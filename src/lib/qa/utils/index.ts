@@ -1,0 +1,57 @@
+import { FORBIDDEN_URLS } from '../types'
+
+export function validateUrl(url: string): { valid: boolean; error?: string } {
+  try {
+    const parsed = new URL(url)
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { valid: false, error: 'URL must use http or https protocol' }
+    }
+    const hostname = parsed.hostname.toLowerCase()
+    for (const forbidden of FORBIDDEN_URLS) {
+      if (hostname.includes(forbidden)) {
+        return { valid: false, error: 'This URL is not allowed for security reasons' }
+      }
+    }
+    return { valid: true }
+  } catch {
+    return { valid: false, error: 'Invalid URL format' }
+  }
+}
+
+export function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    // Remove tracking params
+    const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid']
+    trackingParams.forEach(p => parsed.searchParams.delete(p))
+    // Normalize trailing slash
+    if (parsed.pathname !== '/' && parsed.pathname.endsWith('/')) {
+      parsed.pathname = parsed.pathname.slice(0, -1)
+    }
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
+export function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
+export function isSameOrigin(base: string, target: string): boolean {
+  try {
+    return new URL(base).origin === new URL(target).origin
+  } catch {
+    return false
+  }
+}
+
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`
+}

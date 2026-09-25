@@ -1,26 +1,131 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@plugin '../../node_modules/tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: rgb(var(--color-canvas));
+  --color-sidebar: rgb(var(--color-sidebar));
+  --color-surface: rgb(var(--color-surface));
+  --color-elevated: rgb(var(--color-elevated));
+  --color-border: rgb(var(--color-border));
+  --color-border-strong: rgb(var(--color-border-strong));
+  
+  --color-ink-primary: rgb(var(--color-ink-primary));
+  --color-ink-secondary: rgb(var(--color-ink-secondary));
+  --color-ink-muted: rgb(var(--color-ink-muted));
+  
+  --color-brand: rgb(var(--color-brand));
+  --color-brand-hover: rgb(var(--color-brand-hover));
+  --color-brand-text: rgb(var(--color-brand-text));
+  
+  --color-success: rgb(var(--color-success));
+  --color-danger: rgb(var(--color-danger));
+  --color-info: rgb(var(--color-info));
+  --color-warning: rgb(var(--color-warning));
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root, .dark {
+  --color-canvas: 15 15 15;
+  --color-sidebar: 15 15 15;
+  --color-surface: 20 20 20;
+  --color-elevated: 26 26 26;
+  --color-border: 38 38 38;
+  --color-border-strong: 51 51 51;
+  --color-ink-primary: 245 245 245;
+  --color-ink-secondary: 163 163 163;
+  --color-ink-muted: 107 107 107;
+  --color-brand: 238 96 24;
+  --color-brand-hover: 217 85 20;
+  --color-brand-text: 238 96 24;
+  --color-success: 34 197 94;
+  --color-danger: 239 68 68;
+  --color-info: 59 130 246;
+  --color-warning: 249 115 22;
+
+  --background: 0 0 0;
+  --foreground: 243 244 246;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', var(--font-sans);
+}
+
+.light {
+  --color-canvas: 244 245 248;
+  --color-sidebar: 248 249 251;
+  --color-surface: 255 255 255;
+  --color-elevated: 243 244 247;
+  --color-border: 226 230 236;
+  --color-border-strong: 203 210 220;
+  --color-ink-primary: 15 23 42;
+  --color-ink-secondary: 71 85 105;
+  --color-ink-muted: 148 163 184;
+  --color-brand: 238 96 24;
+  --color-brand-hover: 217 85 20;
+  --color-brand-text: 238 96 24;
+  --color-success: 22 163 74;
+  --color-danger: 220 38 38;
+  --color-info: 37 99 235;
+  --color-warning: 217 119 6;
+
+  --background: 244 245 248;
+  --foreground: 15 23 42;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Shadcn variables for underlying standard components if any */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 240 10% 3.9%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 240 4.9% 83.9%;
+  }
 }
