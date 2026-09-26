@@ -90,10 +90,10 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
     >
       <div>
         {/* Brand Header with Real Qualio Monogram Logo */}
-        <div className="flex h-16 items-center px-4 border-b border-gray-200/60 dark:border-white/[0.08]">
+        <div className="flex h-16 items-center px-3 border-b border-gray-200/60 dark:border-white/[0.08]">
           <Link href="/dashboard" className="flex items-center gap-2.5 group w-full">
             {/* Real Qualio Monogram Mark */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-950 dark:bg-black border border-gray-200/80 dark:border-white/[0.1] p-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-950 dark:bg-black border border-gray-200/80 dark:border-white/[0.1] p-1.5 shadow-2xs group-hover:scale-105 transition-transform duration-200 ease-out">
               <img
                 src="/qualio-logo/export/mark/monogram-orange.svg"
                 alt="Qualio Monogram"
@@ -114,7 +114,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
         </div>
 
         {/* ─── Search Bar IN Sidebar (Crisp Borders) ────────────────────────── */}
-        <div className="px-3 pt-3.5 pb-1">
+        <div className="px-3 py-3">
           {isCollapsed ? (
             <button
               type="button"
