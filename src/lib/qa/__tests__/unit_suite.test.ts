@@ -273,4 +273,35 @@ describe('Qualio QA Unit Suite (T01 - T15)', () => {
     const result = await aiEngine.diagnoseIncident(maliciousIncident)
     expect(result).toBeNull() // Rejection guaranteed
   })
+
+  // T16 — Invalid confidence
+  it('T16: Invalid confidence — Confidence scores outside [0, 1] are clamped safely', async () => {
+    const incident = {
+      id: 'inc1', category: 'network', pageId: 'p1', title: '500 error', severity: 'critical' as const,
+      checks: [
+        { id: 'ev_1', scanId: 's1', pageId: 'p1', category: 'network' as const, key: 'http_status', status: 'failed' as const, severity: 'critical' as const, title: '500', message: 'Fail', duration: 50 }
+      ]
+    }
+    mockProvider.response = {
+      title: 'ERROR', severity: 'critical', summary: 'Crash', impact: 'None', probable_cause: null, recommendation: 'Fix it',
+      confidence: 1.8, // Invalid confidence > 1
+      evidence: [{ id: 'ev_1', type: 'network', reason: 'Crash' }]
+    }
+    const result = await aiEngine.diagnoseIncident(incident)
+    expect(result).not.toBeNull()
+    expect(result?.confidence).toBe(1.0)
+  })
+
+  // T17 — Timeout
+  it('T17: Timeout — Provider timeout is caught and returns null without unhandled rejection', async () => {
+    const incident = {
+      id: 'inc1', category: 'network', pageId: 'p1', title: '500 error', severity: 'critical' as const,
+      checks: [
+        { id: 'ev_1', scanId: 's1', pageId: 'p1', category: 'network' as const, key: 'http_status', status: 'failed' as const, severity: 'critical' as const, title: '500', message: 'Fail', duration: 50 }
+      ]
+    }
+    mockProvider.shouldThrow = new Error('Timeout: AI Provider did not respond in time')
+    const result = await aiEngine.diagnoseIncident(incident)
+    expect(result).toBeNull()
+  })
 })
