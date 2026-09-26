@@ -11,27 +11,27 @@ const C = { canvas:"#000000", carbon:"#141414", ash:"#1a1a1a", graphite:"#262626
 const TERMINAL_LOGS = [
   [
     { c:C.stone,  t:"Qualio scan https://acme.com" },
-    { c:C.graphite, t:"  â†³ Resolving routesâ€¦" },
-    { c:C.green,  t:"  â†³ 6 pages found" },
-    { c:C.stone,  t:"  â†³ Depth: Standard (recommended)" },
+    { c:C.graphite, t:"  ↳ Resolving routes…" },
+    { c:C.green,  t:"  ↳ 6 pages found" },
+    { c:C.stone,  t:"  ↳ Depth: Standard (recommended)" },
   ],
   [
-    { c:C.green,  t:"âœ“  GET / â†’ 200 Â· 280ms" },
-    { c:C.green,  t:"âœ“  GET /pricing â†’ 200 Â· 312ms" },
-    { c:C.orange, t:"â—  POST /contact â†’ 500 Â· 1.2s" },
-    { c:C.orange, t:"âœ—  /pricing CTA â†’ no response" },
+    { c:C.green,  t:"✓  GET / → 200 · 280ms" },
+    { c:C.green,  t:"✓  GET /pricing → 200 · 312ms" },
+    { c:C.orange, t:"●  POST /contact → 500 · 1.2s" },
+    { c:C.orange, t:"✗  /pricing CTA → no response" },
   ],
   [
     { c:C.orange,   t:"[Critical]  Dead click on /pricing" },
-    { c:C.stone,    t:"  Impact    Â· Users can't start trial" },
-    { c:C.stone,    t:"  Cause     Â· Missing click handler" },
-    { c:C.graphite, t:"  ConfidenceÂ· Medium" },
+    { c:C.stone,    t:"  Impact    · Users can't start trial" },
+    { c:C.stone,    t:"  Cause     · Missing click handler" },
+    { c:C.graphite, t:"  Confidence· Medium" },
   ],
   [
-    { c:C.green,  t:"âœ“  /pricing CTA â†’ working (resolved)" },
-    { c:C.green,  t:"âœ“  /contact form â†’ working (resolved)" },
-    { c:C.orange, t:"â†‘  /login redirect â†’ new issue" },
-    { c:C.stone,  t:"âŠ–  0 critical issues remaining" },
+    { c:C.green,  t:"✓  /pricing CTA → working (resolved)" },
+    { c:C.green,  t:"✓  /contact form → working (resolved)" },
+    { c:C.orange, t:"↑  /login redirect → new issue" },
+    { c:C.stone,  t:"⊖  0 critical issues remaining" },
   ],
 ];
 
@@ -137,7 +137,7 @@ export function HowItWorks() {
               <span style={{ width:10,height:10,borderRadius:"50%",background:"#28c840" }}/>
               <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:C.graphite,
                 marginLeft:8,letterSpacing:"-0.02em" }}>
-                Qualio Â· workspace
+                Qualio · workspace
               </span>
             </div>
             <div style={{ flex:1, padding:24, display:"flex", flexDirection:"column", justifyContent:"center" }}>

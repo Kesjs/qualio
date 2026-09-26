@@ -17,12 +17,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Qualio â€” Your Website QA Workspace",
+  title: "Qualio — Your Website QA Workspace",
   description:
     "Stop reading raw logs. Qualio runs real Playwright crawls, captures evidence, and uses AI to transform browser errors into actionable diagnostics with impact severity.",
   keywords: ["QA", "website testing", "Playwright", "AI diagnosis", "web monitoring"],
   openGraph: {
-    title: "Qualio â€” Your Website QA Workspace",
+    title: "Qualio — Your Website QA Workspace",
     description: "Real browser interactions. AI-powered diagnosis. Continuous QA for your website.",
     type: "website",
   },
@@ -36,11 +36,16 @@ import NextTopLoader from 'nextjs-toploader';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang="en"
+      lang="fr"
       suppressHydrationWarning
       className={`${manrope.variable} ${jetbrainsMono.variable}`}
     >
-      <body style={{ fontFamily: "var(--font-manrope), ui-sans-serif, system-ui, sans-serif" }}>
+      <body
+        className="bg-white text-gray-900 dark:bg-black dark:text-[#eeeeee] antialiased"
+        style={{
+          fontFamily: "var(--font-manrope), ui-sans-serif, system-ui, sans-serif"
+        }}
+      >
         <LanguageProvider>
           <Providers>
             <NextTopLoader color="#ee6018" showSpinner={false} height={2} />

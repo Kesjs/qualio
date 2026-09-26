@@ -145,7 +145,7 @@ export function LogoStrip() {
                       background: C.orange, 
                       boxShadow: `0 0 8px ${C.orange}90` 
                     }} />
-                  ) : isGreen ? "âœ“" : "â—†"}
+                  ) : isGreen ? "✓" : "◆"}
                 </span>
                 <span style={{
                   fontFamily: "'Manrope',sans-serif",

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 
-/* â”€â”€â”€ Factory token constants â”€â”€â”€ */
+/* ─── Factory token constants ─── */
 const C = {
   canvas: "#000000",
   carbon: "#141414",
@@ -33,18 +33,18 @@ function ScanPanel() {
   }, []);
 
   const rows = [
-    { status: "done", icon: "âœ“", label: "acme-saas.com/", ms: "280ms" },
-    { status: "done", icon: "âœ“", label: "acme-saas.com/pricing", ms: "312ms" },
-    { status: "done", icon: "âœ“", label: "acme-saas.com/features", ms: "298ms" },
-    { status: "live", icon: "â—", label: "acme-saas.com/contact", ms: "â€”" },
-    { status: "queue", icon: "â—‹", label: "acme-saas.com/login", ms: "â€”" },
-    { status: "queue", icon: "â—‹", label: "acme-saas.com/checkout", ms: "â€”" },
+    { status: "done", icon: "✓", label: "acme-saas.com/", ms: "280ms" },
+    { status: "done", icon: "✓", label: "acme-saas.com/pricing", ms: "312ms" },
+    { status: "done", icon: "✓", label: "acme-saas.com/features", ms: "298ms" },
+    { status: "live", icon: "●", label: "acme-saas.com/contact", ms: "—" },
+    { status: "queue", icon: "○", label: "acme-saas.com/login", ms: "—" },
+    { status: "queue", icon: "○", label: "acme-saas.com/checkout", ms: "—" },
   ];
   const checks = [
     { label: "Links checked", value: "24", color: C.green },
     { label: "Buttons clicked", value: "13", color: C.green },
     { label: "Forms tested", value: "4", color: C.orange },
-    { label: "Responsive", value: "â€”", color: C.graphite },
+    { label: "Responsive", value: "—", color: C.graphite },
   ];
   return (
     <div style={{ background: "#0d0d0d", border: `1px solid ${C.carbon}`, borderRadius: 10, overflow: "hidden" }}>
@@ -107,11 +107,11 @@ function DiagnosisPanel() {
   return (
     <div style={{ background: "#0d0d0d", border: `1px solid ${C.carbon}`, borderRadius: 10, overflow: "hidden" }}>
       <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.carbon}`, display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.orange, letterSpacing: "0.08em", textTransform: "uppercase" }}>â—† AI Diagnosis</span>
+        <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.orange, letterSpacing: "0.08em", textTransform: "uppercase" }}>◆ AI Diagnosis</span>
         <span style={{
           marginLeft: "auto", fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.graphite,
           padding: "2px 7px", border: `1px solid ${C.carbon}`, borderRadius: 3
-        }}>Confidence Â· Medium</span>
+        }}>Confidence · Medium</span>
       </div>
       <div style={{ padding: 16 }}>
         <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: `1px solid ${C.carbon}` }}>
@@ -120,7 +120,7 @@ function DiagnosisPanel() {
               fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.orange,
               padding: "2px 8px", background: "rgba(238,96,24,0.08)", border: "1px solid rgba(238,96,24,0.18)", borderRadius: 3,
               letterSpacing: "0.06em", textTransform: "uppercase"
-            }}>â— Critical</span>
+            }}>● Critical</span>
           </div>
           <h4 style={{
             fontFamily: "'Manrope',sans-serif", fontSize: 15, fontWeight: 400, color: C.bone,
@@ -137,7 +137,7 @@ function DiagnosisPanel() {
           ["Impact", "Users cannot initiate signup from /pricing", C.orange],
           ["Page", "/pricing", C.stone],
           ["Element", "Start free trial", C.stone],
-          ["Evidence", "Screenshot Â· Network Â· Console error", C.graphite],
+          ["Evidence", "Screenshot · Network · Console error", C.graphite],
         ].map(([k, v, col]) => (
           <div key={k as string} style={{
             display: "flex", gap: 12, padding: "5px 0",
@@ -166,7 +166,7 @@ function HistoryPanel() {
         fontFamily: "'JetBrains Mono',monospace", fontSize: 11, color: C.graphite,
         letterSpacing: "0.06em", textTransform: "uppercase"
       }}>
-        Scan history â€” acme-saas.com
+        Scan history — acme-saas.com
       </div>
       <div style={{ padding: 16 }}>
         {scans.map((s, i) => (
@@ -186,7 +186,7 @@ function HistoryPanel() {
                     fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.green,
                     padding: "2px 6px", background: "rgba(160,202,146,0.08)", border: "1px solid rgba(160,202,146,0.18)", borderRadius: 3
                   }}>
-                    âœ“ {s.resolved} resolved
+                    ✓ {s.resolved} resolved
                   </span>
                 )}
                 {s.regression > 0 && (
@@ -194,7 +194,7 @@ function HistoryPanel() {
                     fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.orange,
                     padding: "2px 6px", background: "rgba(238,96,24,0.08)", border: "1px solid rgba(238,96,24,0.18)", borderRadius: 3
                   }}>
-                    â†‘ {s.regression} new
+                    ↑ {s.regression} new
                   </span>
                 )}
               </div>
@@ -214,7 +214,7 @@ function HistoryPanel() {
         }}>
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.green, flexShrink: 0 }} />
           <span style={{ fontFamily: "'Manrope',sans-serif", fontSize: 13, color: C.granite }}>
-            2 issues resolved since last scan Â· 0 regressions
+            2 issues resolved since last scan · 0 regressions
           </span>
         </div>
       </div>
@@ -222,7 +222,7 @@ function HistoryPanel() {
   );
 }
 
-/* â”€â”€â”€ HERO â”€â”€â”€ */
+/* ─── HERO ─── */
 export function Hero() {
   const { t } = useLanguage();
   const hero = t.hero;
@@ -247,7 +247,7 @@ export function Hero() {
     {
       id: "scan",
       label: hero.tabs.scan.label,
-      icon: "â¬¡",
+      icon: "⬡",
       title: hero.tabs.scan.desc,
       sub: hero.tabs.scan.sub,
       panel: <ScanPanel />,
@@ -255,7 +255,7 @@ export function Hero() {
     {
       id: "diagnose",
       label: hero.tabs.diagnosis.label,
-      icon: "â—†",
+      icon: "◆",
       title: hero.tabs.diagnosis.desc,
       sub: hero.tabs.diagnosis.sub,
       panel: <DiagnosisPanel />,
@@ -263,7 +263,7 @@ export function Hero() {
     {
       id: "history",
       label: hero.tabs.history.label,
-      icon: "â—Ž",
+      icon: "◎",
       title: hero.tabs.history.desc,
       sub: hero.tabs.history.sub,
       panel: <HistoryPanel />,
@@ -317,7 +317,7 @@ export function Hero() {
               </motion.span>
             </motion.div>
 
-            {/* Headline â€” Grand & Bold SaaS Presence */}
+            {/* Headline — Grand & Bold SaaS Presence */}
             <h1 data-a style={{
               fontFamily: "'Manrope',sans-serif",
               fontSize: "clamp(42px,5.5vw,72px)", fontWeight: 400,
@@ -423,7 +423,7 @@ export function Hero() {
             </div>
           </div>
 
-          {/* DASHBOARD PREVIEW â€” Landscape & Overlapping */}
+          {/* DASHBOARD PREVIEW — Landscape & Overlapping */}
           <div className="hero-dash" style={{ position: "relative", width: "100%", maxWidth: 1040, zIndex: 3, marginBottom: 48 }}>
             {/* Ambient backlight glow */}
             <div style={{

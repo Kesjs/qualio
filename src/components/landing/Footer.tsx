@@ -114,7 +114,7 @@ export function Footer() {
           padding:"20px 0",borderTop:`1px solid ${C.carbon}` }}>
           <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,
             color:C.graphite,letterSpacing:"-0.02em" }}>
-            Â© 2026 Qualio. All rights reserved.
+            © 2026 Qualio. All rights reserved.
           </span>
           <span style={{ fontFamily:"'JetBrains Mono',monospace",fontSize:11,
             color:C.graphite,letterSpacing:"-0.02em" }}>
@@ -123,7 +123,7 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Watermark â€” Factory signature large wordmark */}
+      {/* Watermark — Factory signature large wordmark */}
       <motion.div
         initial={{ opacity:0 }}
         animate={inView?{opacity:1}:{}}

@@ -49,20 +49,26 @@ export default function BugsPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl border border-gray-200/80 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:border-white/[0.08] space-y-4 animate-pulse">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200/80 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] dark:bg-[#14161C] dark:border-white/[0.08] space-y-4 animate-pulse"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-5 w-20 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
-                    <div className="h-5 w-16 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
-                    <div className="h-3 w-32 bg-gray-100 dark:bg-white/[0.04] rounded" />
+                    <div className="h-5 w-20 bg-gray-200/70 dark:bg-white/[0.08] rounded-md" />
+                    <div className="h-5 w-16 bg-gray-200/50 dark:bg-white/[0.05] rounded-md" />
+                    <div className="h-3.5 w-32 bg-gray-100 dark:bg-white/[0.04] rounded" />
                   </div>
-                  <div className="h-5 w-28 bg-emerald-50 dark:bg-emerald-500/10 rounded-md" />
+                  <div className="h-5 w-24 bg-gray-100 dark:bg-white/[0.05] rounded-md" />
                 </div>
-                <div className="space-y-2.5">
-                  <div className="h-4 w-1/2 bg-gray-200/80 dark:bg-white/[0.06] rounded" />
-                  <div className="h-3 w-3/4 bg-gray-100 dark:bg-white/[0.04] rounded" />
+                <div className="space-y-2">
+                  <div className="h-4 w-2/3 bg-gray-200/80 dark:bg-white/[0.08] rounded" />
+                  <div className="h-3 w-4/5 bg-gray-100 dark:bg-white/[0.04] rounded" />
                 </div>
-                <div className="h-10 w-full bg-orange-50/50 dark:bg-[#ee6018]/5 border border-orange-100/50 dark:border-[#ee6018]/10 rounded-lg mt-2" />
+                <div className="h-10 w-full bg-gray-50/80 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.04] rounded-lg p-2.5 flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-gray-200 dark:bg-white/[0.08]" />
+                  <div className="h-2.5 w-1/3 bg-gray-200/60 dark:bg-white/[0.05] rounded" />
+                </div>
               </div>
             ))}
           </div>
@@ -74,7 +80,8 @@ export default function BugsPage() {
             actionIcon={Bug}
             onActionClick={() => router.push('/dashboard/sites')}
             mainIcon={CheckCircle2}
-            className="max-w-xl mx-auto my-6"
+            iconVariant="emerald"
+            className="my-8"
           />
         ) : (
           activeIssues.map((bug: any) => {

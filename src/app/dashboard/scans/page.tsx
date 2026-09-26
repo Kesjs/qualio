@@ -130,6 +130,7 @@ export default function ScansPage() {
                       actionIcon={ArrowUpRight}
                       onActionClick={() => router.push('/dashboard/sites')}
                       mainIcon={History}
+                      iconVariant="neutral"
                       className="max-w-xl mx-auto border-0 bg-transparent shadow-none p-6 sm:p-8"
                     />
                   </td>

@@ -63,9 +63,9 @@
 }
 
 .dark {
-  --color-canvas: 11 12 14;           /* #0B0C0E - Deep obsidian/slate canvas from Nixtio reference */
+  --color-canvas: 0 0 0;              /* #000000 - True pitch black */
   --color-sidebar: 17 18 22;          /* #111216 - Sleek dark sidebar */
-  --color-surface: 22 24 30;          /* #16181E - Elevated card surface from Nixtio */
+  --color-surface: 22 24 30;          /* #16181E - Elevated card surface */
   --color-elevated: 27 30 38;         /* #1B1E26 - Hover / interactive surface */
   --color-border: 255 255 255;        /* Alpha used for subtle borders */
   --color-border-strong: 45 49 60;    /* #2D313C */
@@ -83,15 +83,18 @@
   --color-info: 59 130 246;
   --color-warning: 249 115 22;
 
-  --background: 11 12 14;             /* #0B0C0E */
+  --background: 0 0 0;                /* #000000 */
   --foreground: 245 245 245;
 }
 
-body {
+html.dark, body.dark {
+  background-color: #000000;
   color: rgb(var(--foreground));
-  background: rgb(var(--background));
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+}
+
+html:not(.dark), body:not(.dark) {
+  background-color: #ffffff;
+  color: rgb(var(--foreground));
 }
 
 /* Shadcn variables for underlying standard components if any */
@@ -117,11 +120,11 @@ body {
     --radius: 0.5rem;
   }
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
+    --card: 0 0% 4%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;

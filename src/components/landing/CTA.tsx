@@ -175,7 +175,7 @@ export function CTA() {
             </div>
           </div>
 
-          {/* Right â€” URL scan form */}
+          {/* Right — URL scan form */}
           <div style={{ position: "relative" }}>
             <div
               className="cta-form-box"
@@ -309,7 +309,7 @@ export function CTA() {
                   </>
                 ) : state === "done" ? (
                   <>
-                    <span style={{ color: C.green }}>âœ“</span> {cta.buttonDone}
+                    <span style={{ color: C.green }}>✓</span> {cta.buttonDone}
                   </>
                 ) : (
                   <>{cta.buttonIdle}</>

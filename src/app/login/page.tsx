@@ -61,7 +61,7 @@ export default function LoginPage() {
 
   const { isLoading: otpLoading, requestOtp, verifyOtp } = useOtpAuth()
 
-  // Redirect si dÃ©jÃ  connectÃ©
+  // Redirect si déjà connecté
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
     supabase.auth.getSession().then(({ data }: Awaited<ReturnType<typeof supabase.auth.getSession>>) => {
@@ -190,7 +190,7 @@ export default function LoginPage() {
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
             style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
           >
-            {/* â”€â”€ PASSWORD mode â”€â”€ */}
+            {/* ── PASSWORD mode ── */}
             {mode === 'password' && (
               <form onSubmit={handlePasswordLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <AuthInput
@@ -229,7 +229,7 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* â”€â”€ REGISTER mode â”€â”€ */}
+            {/* ── REGISTER mode ── */}
             {mode === 'register' && (
               <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <AuthInput
@@ -275,7 +275,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* â”€â”€ FORGOT mode â”€â”€ */}
+            {/* ── FORGOT mode ── */}
             {mode === 'forgot' && (
               <form onSubmit={handleForgot} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <AuthInput
@@ -292,7 +292,7 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* â”€â”€ OTP request mode â”€â”€ */}
+            {/* ── OTP request mode ── */}
             {mode === 'otp' && (
               <form onSubmit={handleOtpRequest} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <AuthInput
@@ -309,7 +309,7 @@ export default function LoginPage() {
               </form>
             )}
 
-            {/* â”€â”€ OTP verify mode â”€â”€ */}
+            {/* ── OTP verify mode ── */}
             {mode === 'otp-verify' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <p style={{ fontFamily: "'Manrope',sans-serif", fontSize: 13, color: C.granite, margin: 0 }}>
@@ -354,7 +354,7 @@ export default function LoginPage() {
           </>
         )}
 
-        {/* Mode switcher password â†” register */}
+        {/* Mode switcher password ↔ register */}
         {(mode === 'password' || mode === 'register') && (
           <p style={{ textAlign: 'center', fontFamily: "'Manrope',sans-serif", fontSize: 13, color: C.granite, margin: 0 }}>
             {mode === 'password' ? (

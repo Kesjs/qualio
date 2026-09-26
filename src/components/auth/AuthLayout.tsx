@@ -12,7 +12,7 @@ const C = {
   granite: '#8a8380', graphite: '#4d4947', stone: '#b8b3b0',
 }
 
-// Panneau droit â€” paysage plein Ã©cran
+// Panneau droit — paysage plein écran
 function ProductVisual() {
   return (
     <div style={{
@@ -166,7 +166,7 @@ export function AuthLayout({ children, title, description, showBack = false }: A
       fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
       color: C.bone,
     }}>
-      {/* Left â€” Form */}
+      {/* Left — Form */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         justifyContent: 'center', alignItems: 'center',
@@ -204,14 +204,14 @@ export function AuthLayout({ children, title, description, showBack = false }: A
           fontFamily: "'JetBrains Mono',monospace", fontSize: 10,
           color: C.graphite, letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
-          Â© 2026 Qualio Â· <a href="/privacy" style={{ color: C.graphite, textDecoration: 'none' }}>Privacy</a> Â· <a href="/terms" style={{ color: C.graphite, textDecoration: 'none' }}>Terms</a>
+          © 2026 Qualio · <a href="/privacy" style={{ color: C.graphite, textDecoration: 'none' }}>Privacy</a> · <a href="/terms" style={{ color: C.graphite, textDecoration: 'none' }}>Terms</a>
         </p>
       </div>
 
-      {/* Right â€” Product visual (desktop only) */}
+      {/* Right — Product visual (desktop only) */}
       <div style={{
         width: '44%', background: C.carbon,
-        display: 'none', // gÃ©rÃ© par media query via globals.css
+        display: 'none', // géré par media query via globals.css
       }}
         className="auth-right-panel"
       >
@@ -221,7 +221,7 @@ export function AuthLayout({ children, title, description, showBack = false }: A
   )
 }
 
-// Input wrapper stylisÃ© Factory
+// Input wrapper stylisé Factory
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string

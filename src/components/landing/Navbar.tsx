@@ -88,12 +88,12 @@ export function Navbar() {
             borderRadius: floating ? 16 : 0,
             borderBottom: floating ? `1px solid rgba(255,255,255,0.06)` : `1px solid rgba(255,255,255,0.04)`, // Subtle bottom border always visible
             borderTop: floating ? `1px solid rgba(255,255,255,0.08)` : "1px solid transparent",
-            borderLeft: floating ? `1px solid ${C.carbon}` : "1px solid transparent",
-            borderRight: floating ? `1px solid ${C.carbon}` : "1px solid transparent",
-            background: floating ? "rgba(13, 11, 10, 0.75)" : "transparent",
+            borderLeft: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
+            borderRight: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
+            background: floating ? "rgba(0, 0, 0, 0.85)" : "transparent",
             backdropFilter: floating ? "blur(24px) saturate(200%)" : "none",
             WebkitBackdropFilter: floating ? "blur(24px) saturate(200%)" : "none",
-            boxShadow: floating ? "0 16px 40px -16px rgba(0,0,0,0.8)" : "none",
+            boxShadow: floating ? "0 16px 40px -16px rgba(0,0,0,0.95)" : "none",
           }}
         >
           {/* Wordmark */}
@@ -106,7 +106,7 @@ export function Navbar() {
             />
           </a>
 
-          {/* Center links â€” moved to left next to logo */}
+          {/* Center links — moved to left next to logo */}
           {!mobile && (
             <motion.div
               style={{

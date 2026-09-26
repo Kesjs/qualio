@@ -22,9 +22,9 @@ export default function DashboardLayout({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   return (
-    <div className="flex h-screen w-full bg-[#F8F9FA] text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#111216] dark:text-zinc-100 transition-colors">
-      {/* ─── Desktop Sidebar (Gray tone: #F8F9FA) ─────────────────────────── */}
-      <div className="hidden md:flex h-full shrink-0">
+    <div className="flex h-screen w-full bg-white text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#0B0C0E] dark:text-zinc-100 transition-colors">
+      {/* ─── Desktop Sidebar ─────────────────────────────────────────── */}
+      <div className="hidden md:flex h-full shrink-0 border-r border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#0B0C0E]">
         <Sidebar
           isCollapsed={isCollapsed}
         />
@@ -38,7 +38,7 @@ export default function DashboardLayout({
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 max-w-full flex">
-            <div className="w-72 bg-[#F8F9FA] dark:bg-[#111216] dark:border-r dark:border-white/[0.08] shadow-2xl relative flex flex-col">
+            <div className="w-72 bg-[#F8F9FA] dark:bg-[#0B0C0E] dark:border-r dark:border-white/[0.08] shadow-2xl relative flex flex-col">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -52,10 +52,10 @@ export default function DashboardLayout({
         </div>
       )}
 
-      {/* ─── Main Panel (Côté droit du dashboard avec bordure légèrement arrondie) ─ */}
-      <div className="flex flex-1 flex-col h-full md:h-[calc(100vh-16px)] md:my-2 md:mr-2 md:ml-1.5 min-w-0 overflow-hidden md:rounded-xl border-0 md:border md:border-gray-200/90 bg-white md:shadow-xs dark:bg-black dark:md:border-white/[0.08] transition-all">
+      {/* ─── Main Panel (Seamless full workspace) ─ */}
+      <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden bg-white dark:bg-[#0B0C0E] transition-all">
         {/* Mobile Header (Image 3: Lintel style) */}
-        <div className="flex md:hidden h-14 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 shrink-0 dark:border-white/[0.08] dark:bg-[#111216]">
+        <div className="flex md:hidden h-14 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 shrink-0 dark:border-white/[0.08] dark:bg-[#0B0C0E]">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ee6018] text-white">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

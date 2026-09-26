@@ -215,7 +215,8 @@ export default function SitesPage() {
           actionIcon={PlusIcon}
           onActionClick={() => setIsAddModalOpen(true)}
           mainIcon={GlobeAltIcon}
-          className="max-w-xl mx-auto my-6"
+          iconVariant="orange"
+          className="my-8"
         />
       )}
 
@@ -224,7 +225,8 @@ export default function SitesPage() {
           title="Aucun résultat trouvé"
           message="Aucun site ne correspond à vos filtres de recherche ou de statut actuels. Modifiez vos critères de recherche."
           mainIcon={MagnifyingGlassIcon}
-          className="max-w-xl mx-auto my-6"
+          iconVariant="neutral"
+          className="my-8"
         />
       )}
 

@@ -93,7 +93,7 @@ export function FAQ() {
       <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px" }}>
         <div className="faq-grid" style={{ display:"grid", alignItems:"start" }}>
 
-          {/* Left â€” header */}
+          {/* Left — header */}
           <motion.div
             ref={ref}
             initial={{ opacity:0, y:16 }}
@@ -125,7 +125,7 @@ export function FAQ() {
             </a>
           </motion.div>
 
-          {/* Right â€” accordion */}
+          {/* Right — accordion */}
           <div style={{ border:`1px solid ${C.carbon}`, borderRadius:10, overflow:"hidden" }}>
             {t.items.map((item, i) => (
               <FAQItem key={i} item={item} index={i} />
