@@ -2,15 +2,15 @@
 
 @plugin '../../node_modules/tailwindcss-animate';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-canvas: rgb(var(--color-canvas));
   --color-sidebar: rgb(var(--color-sidebar));
   --color-surface: rgb(var(--color-surface));
   --color-elevated: rgb(var(--color-elevated));
-  --color-border: rgb(var(--color-border));
-  --color-border-strong: rgb(var(--color-border-strong));
+  --color-border: rgba(var(--color-border), 0.08);
+  --color-border-strong: rgba(var(--color-border), 0.16);
   
   --color-ink-primary: rgb(var(--color-ink-primary));
   --color-ink-secondary: rgb(var(--color-ink-secondary));
@@ -34,50 +34,57 @@
   --radius-xl: 16px;
 }
 
-:root, .dark {
-  --color-canvas: 15 15 15;
-  --color-sidebar: 15 15 15;
-  --color-surface: 20 20 20;
-  --color-elevated: 26 26 26;
-  --color-border: 38 38 38;
-  --color-border-strong: 51 51 51;
-  --color-ink-primary: 245 245 245;
-  --color-ink-secondary: 163 163 163;
-  --color-ink-muted: 107 107 107;
-  --color-brand: 238 96 24;
+:root {
+  --color-canvas: 251 251 251;        /* #FBFBFB */
+  --color-sidebar: 248 249 250;       /* #F8F9FA */
+  --color-surface: 255 255 255;       /* #FFFFFF */
+  --color-elevated: 243 244 246;      /* #F3F4F6 */
+  --color-border: 229 231 235;        /* #E5E7EB */
+  --color-border-strong: 209 213 219; /* #D1D5DB */
+  
+  --color-ink-primary: 17 24 39;      /* #111827 */
+  --color-ink-secondary: 75 85 99;    /* #4B5563 */
+  --color-ink-muted: 156 163 175;     /* #9CA3AF */
+  
+  --color-brand: 238 96 24;          /* #ee6018 (Signal Orange) */
   --color-brand-hover: 217 85 20;
   --color-brand-text: 238 96 24;
+  
+  --color-success: 34 197 94;          /* #22c55e */
+  --color-danger: 239 68 68;
+  --color-info: 59 130 246;
+  --color-warning: 249 115 22;
+
+  --background: 255 255 255;
+  --foreground: 17 24 39;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.dark {
+  --color-canvas: 11 12 14;           /* #0B0C0E - Deep obsidian/slate canvas from Nixtio reference */
+  --color-sidebar: 17 18 22;          /* #111216 - Sleek dark sidebar */
+  --color-surface: 22 24 30;          /* #16181E - Elevated card surface from Nixtio */
+  --color-elevated: 27 30 38;         /* #1B1E26 - Hover / interactive surface */
+  --color-border: 255 255 255;        /* Alpha used for subtle borders */
+  --color-border-strong: 45 49 60;    /* #2D313C */
+  
+  --color-ink-primary: 255 255 255;   /* #FFFFFF - Crisp white */
+  --color-ink-secondary: 148 163 184; /* #94A3B8 - Slate-400 */
+  --color-ink-muted: 100 116 139;     /* #64748B - Muted */
+  
+  --color-brand: 238 96 24;          /* #ee6018 */
+  --color-brand-hover: 255 120 54;
+  --color-brand-text: 255 120 54;
+  
   --color-success: 34 197 94;
   --color-danger: 239 68 68;
   --color-info: 59 130 246;
   --color-warning: 249 115 22;
 
-  --background: 0 0 0;
-  --foreground: 243 244 246;
-  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Manrope', var(--font-sans);
-}
-
-.light {
-  --color-canvas: 244 245 248;
-  --color-sidebar: 248 249 251;
-  --color-surface: 255 255 255;
-  --color-elevated: 243 244 247;
-  --color-border: 226 230 236;
-  --color-border-strong: 203 210 220;
-  --color-ink-primary: 15 23 42;
-  --color-ink-secondary: 71 85 105;
-  --color-ink-muted: 148 163 184;
-  --color-brand: 238 96 24;
-  --color-brand-hover: 217 85 20;
-  --color-brand-text: 238 96 24;
-  --color-success: 22 163 74;
-  --color-danger: 220 38 38;
-  --color-info: 37 99 235;
-  --color-warning: 217 119 6;
-
-  --background: 244 245 248;
-  --foreground: 15 23 42;
+  --background: 11 12 14;             /* #0B0C0E */
+  --foreground: 245 245 245;
 }
 
 body {

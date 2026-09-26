@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${manrope.variable} ${jetbrainsMono.variable}`}
     >
       <body style={{ fontFamily: "var(--font-manrope), ui-sans-serif, system-ui, sans-serif" }}>

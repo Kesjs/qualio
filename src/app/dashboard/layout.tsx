@@ -1,202 +1,119 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
-import {
-  LayoutDashboard,
-  LineChart,
-  Users,
-  Lightbulb,
-  History,
-  ShieldCheck,
-  Menu,
-  PanelLeft,
-  Home,
-  ChevronRight,
-  RefreshCw
-} from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import { AccountMenu } from '@/components/dashboard/AccountMenu'
-import { HeaderMeasureButton } from '@/components/dashboard/HeaderMeasureButton'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { NotificationCenter } from '@/components/dashboard/NotificationCenter'
 import { Sidebar } from '@/components/dashboard/Sidebar'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
+import { Header } from '@/components/dashboard/Header'
+import { NotificationDrawer } from '@/components/dashboard/NotificationDrawer'
+import {
+  Bars3Icon,
+  XMarkIcon,
+  BellIcon,
+} from '@heroicons/react/24/outline'
+import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 
-const navItems = [
-  { label: 'Accueil', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Performance', href: '/dashboard/performance', icon: LineChart },
-  { label: 'Audit', href: '/dashboard/audit-technique', icon: ShieldCheck },
-  { label: 'Concurrents', href: '/dashboard/concurrents', icon: Users },
-  { label: 'Opportunités', href: '/dashboard/opportunites', icon: Lightbulb },
-  { label: 'Historique', href: '/dashboard/historique', icon: History },
-] as const
-
-const pageTitles: Record<string, string> = {
-  '/dashboard': 'Accueil',
-  '/dashboard/performance': 'Performance',
-  '/dashboard/audit-technique': 'Audit',
-  '/dashboard/concurrents': 'Concurrents',
-  '/dashboard/opportunites': 'Opportunités',
-  '/dashboard/historique': 'Historique',
-  '/dashboard/parametres': 'Paramètres',
-}
-
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const pathname = usePathname()
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
-  const [brand, setBrand] = useState<{ name: string } | null>({ name: 'Qualio' })
-
-  async function handleRefresh() {
-    if (isManualRefreshing) return
-    setIsManualRefreshing(true)
-    setTimeout(() => setIsManualRefreshing(false), 1000)
-    window.location.reload()
-  }
-
-  useEffect(() => {
-    if (localStorage.getItem('simulation_mode')) {
-      setIsAuthenticated(true)
-      return
-    }
-
-    const supabase = getSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) {
-        setIsAuthenticated(true)
-      } else {
-        setIsAuthenticated(false)
-        window.location.href = '/login'
-      }
-    }).catch(() => {
-      setIsAuthenticated(false)
-      window.location.href = '/login'
-    })
-  }, [])
-
-  if (isAuthenticated === null) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas">
-        <div className="size-5 animate-spin rounded-full border-2 border-ink-muted/30 border-t-brand" />
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) return null
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   return (
-    <TooltipProvider>
-      <div className="flex min-h-screen w-full bg-canvas text-ink-primary font-sans">
-        {/* Overlay Backdrop sombre sur mobile quand la sidebar est ouverte */}
-        {isMobileMenuOpen && (
-          <div
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden transition-opacity"
-            aria-label="Fermer le menu"
-          />
-        )}
-
-        {/* Sidebar (rétractable avec animation fluide sur desktop, tiroir sur mobile) */}
+    <div className="flex h-screen w-full bg-[#F8F9FA] text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#111216] dark:text-zinc-100 transition-colors">
+      {/* ─── Desktop Sidebar (Gray tone: #F8F9FA) ─────────────────────────── */}
+      <div className="hidden md:flex h-full shrink-0">
         <Sidebar
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
           isCollapsed={isCollapsed}
-          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-          navItems={navItems as any}
-          brand={brand}
         />
+      </div>
 
-        {/* Conteneur principal (décalé selon la largeur de la sidebar avec transition animée) */}
-        <div
-          className={`flex flex-col flex-1 min-h-screen transition-all duration-300 ease-in-out ${
-            isCollapsed ? 'lg:pl-[68px]' : 'lg:pl-60'
-          }`}
-        >
-          {/* La "Carte" du Dashboard style Nooma */}
-          <div className="flex-1 flex flex-col bg-surface lg:m-2 lg:rounded-2xl border border-border overflow-hidden shadow-sm relative">
-            {/* VRAI Header Permanent (Desktop ET Mobile) */}
-            <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-border bg-surface/90 px-4 sm:px-6 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              {/* Bouton Menu sur mobile */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="flex size-8 items-center justify-center rounded-md border border-border bg-surface text-ink-secondary hover:text-ink-primary hover:bg-elevated transition-colors lg:hidden"
-                    aria-label="Ouvrir le menu"
-                  >
-                    <Menu className="size-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Ouvrir le menu</TooltipContent>
-              </Tooltip>
-
-              {/* Bouton Collapse / Rétractation sur grand écran */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => setIsCollapsed((prev) => !prev)}
-                    className="hidden lg:flex size-8 items-center justify-center rounded-md border border-border bg-surface text-ink-secondary hover:text-ink-primary hover:bg-elevated transition-colors"
-                    aria-label={isCollapsed ? 'Déplier la barre latérale' : 'Réduire la barre latérale'}
-                  >
-                    <PanelLeft className="size-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{isCollapsed ? 'Déplier la barre latérale' : 'Réduire la barre latérale'}</TooltipContent>
-              </Tooltip>
-
-              {/* Fil d'Ariane */}
-              <div className="flex items-center gap-1.5 rounded-md border border-border bg-elevated px-2.5 py-1.5 text-xs">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center text-ink-muted transition-colors hover:text-ink-primary"
-                  aria-label="Accueil"
-                >
-                  <Home className="size-3.5" />
-                </Link>
-                <ChevronRight className="size-3.5 text-ink-muted" />
-                <span className="font-medium text-ink-primary lg:text-sm lg:font-semibold">{pathname ? (pageTitles[pathname] || 'Tableau de bord') : 'Accueil'}</span>
-              </div>
+      {/* ─── Mobile Sidebar Slide-Over Drawer (Matching Image 3) ──────────── */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden overflow-hidden">
+          <div
+            className="fixed inset-0 bg-gray-900/30 dark:bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 max-w-full flex">
+            <div className="w-72 bg-[#F8F9FA] dark:bg-[#111216] dark:border-r dark:border-white/[0.08] shadow-2xl relative flex flex-col">
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="absolute top-4 right-4 h-8 w-8 rounded-lg bg-white border border-gray-200 text-gray-500 flex items-center justify-center hover:text-gray-900 shadow-2xs z-10 dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+              <Sidebar isCollapsed={false} />
             </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <HeaderMeasureButton />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={handleRefresh}
-                    disabled={isManualRefreshing}
-                    aria-label="Actualiser le tableau de bord"
-                    className="flex size-8 items-center justify-center rounded-md border border-border bg-surface text-ink-secondary hover:text-ink-primary hover:bg-elevated transition-colors disabled:opacity-60"
-                  >
-                    <RefreshCw className={cn('size-4', isManualRefreshing && 'animate-spin')} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Actualiser</TooltipContent>
-              </Tooltip>
-              <ThemeToggle />
-              <NotificationCenter />
-              <div className="lg:hidden">
-                <AccountMenu variant="header" />
-              </div>
-            </div>
-          </header>
-
-          {/* Zone de contenu des pages du dashboard */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
           </div>
         </div>
+      )}
+
+      {/* ─── Main Panel (Côté droit du dashboard avec bordure légèrement arrondie) ─ */}
+      <div className="flex flex-1 flex-col h-full md:h-[calc(100vh-16px)] md:my-2 md:mr-2 md:ml-1.5 min-w-0 overflow-hidden md:rounded-xl border-0 md:border md:border-gray-200/90 bg-white md:shadow-xs dark:bg-black dark:md:border-white/[0.08] transition-all">
+        {/* Mobile Header (Image 3: Lintel style) */}
+        <div className="flex md:hidden h-14 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 shrink-0 dark:border-white/[0.08] dark:bg-[#111216]">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ee6018] text-white">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="7" />
+                <path d="M12 2v3" />
+                <path d="M12 19v3" />
+                <path d="M2 12h3" />
+                <path d="M19 12h3" />
+              </svg>
+            </div>
+            <span className="text-sm font-bold tracking-tight text-gray-900 dark:text-white">Qualio</span>
+          </Link>
+
+          <div className="flex items-center gap-1.5">
+            <AnimatedThemeToggle className="h-8 w-8" />
+
+            <button
+              type="button"
+              onClick={() => setIsNotificationsOpen(true)}
+              className="relative p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
+            >
+              <BellIcon className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-sm bg-[#ee6018]" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:block shrink-0">
+          <Header
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+            onOpenNotifications={() => setIsNotificationsOpen(true)}
+            unreadNotificationsCount={2}
+          />
+        </div>
+
+        {/* Scrollable Content Container (Pure White in light, Pure Black #000000 in dark) */}
+        <main className="flex-1 overflow-y-auto p-5 md:p-8 bg-white dark:bg-black transition-colors">
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
+        </main>
       </div>
-    </TooltipProvider>
+
+      {/* ─── Real Right Notification Slide-Over Drawer ─────────────────────── */}
+      <NotificationDrawer
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
+    </div>
   )
 }

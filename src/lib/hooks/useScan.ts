@@ -32,9 +32,18 @@ export interface PageRow {
 }
 
 export interface IssueRow {
-  id: string; category: string; severity: string; status: string | null
-  title: string; description: string | null; suggestion: string | null
-  confidence: string | null; page_id: string | null; created_at: string | null
+  id: string
+  category: string
+  severity: string
+  status: string | null
+  title: string
+  description: string | null
+  suggestion: string | null
+  confidence: string | null
+  page_id: string | null
+  created_at: string | null
+  page?: { url: string } | null
+  evidence?: Array<{ id: string; type: string; payload: any }> | null
 }
 
 export interface CheckRow {
@@ -88,12 +97,48 @@ export function useScanStatus(scanId: string | null, enabled = true) {
   })
 }
 
-/** Only fetch results when scan is completed */
+export interface ScanWithSite {
+  id: string
+  status: string
+  started_at: string | null
+  completed_at: string | null
+  created_at: string | null
+  pages_discovered: number | null
+  checks_total: number | null
+  checks_passed: number | null
+  checks_warning: number | null
+  checks_failed: number | null
+  critical_count: number | null
+  major_count: number | null
+  summary: string | null
+  site_id: string
+  sites: {
+    id: string
+    name: string | null
+    url: string
+    environment: string | null
+  } | null
+}
+
+async function fetchScans(): Promise<ScanWithSite[]> {
+  const res = await fetch('/api/scans')
+  if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to fetch scans')
+  return res.json()
+}
+
+export function useScans() {
+  return useQuery({
+    queryKey: ['scans'],
+    queryFn: fetchScans,
+    staleTime: 5 * 60 * 1000, gcTime: 15 * 60 * 1000, refetchOnWindowFocus: false,
+  })
+}
+
 export function useScanResults(scanId: string | null, scanStatus?: string) {
   return useQuery({
     queryKey: ['scan', scanId, 'results'],
     queryFn: () => fetchScanResults(scanId!),
-    enabled: !!scanId && scanStatus === 'completed',
+    enabled: !!scanId && (!scanStatus || TERMINAL_STATUSES.includes(scanStatus)),
     staleTime: 5 * 60 * 1000, // 5min — results don't change
   })
 }
@@ -107,6 +152,7 @@ export function useStartScan() {
       // Invalidate site data so it shows updated scan state
       qc.invalidateQueries({ queryKey: ['site', data.siteId] })
       qc.invalidateQueries({ queryKey: ['sites'] })
+      qc.invalidateQueries({ queryKey: ['scans'] })
     },
     onError: (err: Error) => toast.error(err.message),
   })

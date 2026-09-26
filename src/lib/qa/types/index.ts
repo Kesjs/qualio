@@ -14,7 +14,7 @@ export type ScanStatus =
 
 export type CheckStatus = 'passed' | 'warning' | 'failed' | 'inconclusive' | 'skipped' | 'running'
 
-export type IssueSeverity = 'critical' | 'major' | 'warning'
+export type IssueSeverity = 'critical' | 'major' | 'minor'
 
 export type CheckCategory =
   | 'pages' | 'links' | 'navigation' | 'forms' | 'cta'
@@ -23,7 +23,7 @@ export type CheckCategory =
 
 export type Viewport = 'mobile' | 'tablet' | 'desktop'
 export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screenshot' | 'measurement'
-export type IssueStatus = 'open' | 'fixed' | 'ignored'
+export type IssueStatus = 'open' | 'fixed' | 'ignored' | 'resolved' | 'new' | 'persistent'
 export type Confidence = 'high' | 'medium' | 'low'
 
 export interface QAConfig {
@@ -120,6 +120,11 @@ export interface Issue {
   confidence: Confidence
   status: IssueStatus
   evidence: Evidence[]
+  aiTokensInput?: number
+  aiTokensOutput?: number
+  aiCostUsd?: number
+  aiDurationMs?: number
+  aiModel?: string
 }
 
 export interface ScanResult {
@@ -137,6 +142,11 @@ export interface ScanResult {
   majorCount: number
   summary: string
   error: string | null
+  aiCallsCount?: number
+  aiTokensInput?: number
+  aiTokensOutput?: number
+  aiCostUsd?: number
+  aiDurationMs?: number
   issues: Issue[]
   checks: CheckResult[]
   pages: PageResult[]
@@ -183,3 +193,4 @@ export const SENSITIVE_ACTIONS = [
   'buy', 'pay', 'delete', 'publish', 'book',
   'transfer', 'confirm', 'purchase', 'checkout', 'remove', 'destroy',
 ]
+

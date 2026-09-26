@@ -4,7 +4,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { translations } from "@/i18n/translations";
 
-const C = { canvas:"#101010", carbon:"#1d1a18", ash:"#3d3a39", graphite:"#4d4947",
+const C = { canvas:"#000000", carbon:"#141414", ash:"#1a1a1a", graphite:"#262626",
   granite:"#8a8380", stone:"#b8b3b0", bone:"#eeeeee", chalk:"#fafafa", orange:"#ee6018", green:"#a0ca92" };
 
 const PLAN_MODELS = [
@@ -21,8 +21,8 @@ function Check({ active }: { active: boolean }) {
     </svg>
   ) : (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <circle cx="7" cy="7" r="6" stroke="#3d3a39" strokeWidth="1"/>
-      <path d="M5 9l4-4M9 9L5 5" stroke="#4d4947" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="7" cy="7" r="6" stroke="#1a1a1a" strokeWidth="1"/>
+      <path d="M5 9l4-4M9 9L5 5" stroke="#262626" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }

@@ -2,7 +2,7 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
-const C = { canvas:"#101010", carbon:"#1d1a18", ash:"#3d3a39", graphite:"#4d4947",
+const C = { canvas:"#000000", carbon:"#141414", ash:"#1a1a1a", graphite:"#262626",
   granite:"#8a8380", stone:"#b8b3b0", bone:"#eeeeee", chalk:"#fafafa", orange:"#ee6018", green:"#a0ca92" };
 
 const COLS = [
@@ -14,6 +14,7 @@ const COLS = [
       { label:"Pricing",    href:"#pricing" },
       { label:"Changelog",  href:"/changelog" },
       { label:"Status",     href:"https://status.qualio.dev" },
+      { label:"Go to Dashboard", href:"/dashboard" },
     ],
   },
   {

@@ -99,10 +99,10 @@ export class BrowserEngine {
     const results: Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[] = []
     for (const f of forms) {
       if (!f.hasSubmit) {
-        results.push(this.makeCheck('form_no_submit', 'forms', 'warning', 'Form Missing Submit', 'A form has no visible submit button', 'warning', duration))
+        results.push(this.makeCheck('form_no_submit', 'forms', 'warning', 'Form Missing Submit', 'A form has no visible submit button', 'minor', duration))
       }
       if (f.fieldCount === 0) {
-        results.push(this.makeCheck('form_empty', 'forms', 'warning', 'Empty Form', 'A form has no visible fields', 'warning', duration))
+        results.push(this.makeCheck('form_empty', 'forms', 'warning', 'Empty Form', 'A form has no visible fields', 'minor', duration))
       }
     }
     if (results.length === 0) {
@@ -130,7 +130,7 @@ export class BrowserEngine {
         ctaCount > 0 ? 'passed' : 'warning',
         'Call-to-Action',
         ctaCount > 0 ? `${ctaCount} CTA element(s) found` : 'No clear CTA found on page',
-        ctaCount === 0 ? 'warning' : null,
+        ctaCount === 0 ? 'minor' : null,
         duration
       ),
     ]

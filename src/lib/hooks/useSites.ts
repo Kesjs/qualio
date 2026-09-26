@@ -9,6 +9,7 @@ export interface SiteWithLastScan {
   user_id: string
   url: string
   name: string | null
+  environment?: 'production' | 'staging' | null
   created_at: string | null
   updated_at: string | null
   last_scan_id: string | null
@@ -37,7 +38,11 @@ async function fetchSites(): Promise<SiteWithLastScan[]> {
   return res.json()
 }
 
-async function createSiteAPI(data: { url: string; name?: string }): Promise<SiteWithLastScan> {
+async function createSiteAPI(data: {
+  url: string
+  name?: string
+  environment?: 'production' | 'staging'
+}): Promise<SiteWithLastScan> {
   const res = await fetch('/api/sites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -61,7 +66,7 @@ async function deleteSiteAPI(siteId: string) {
 export function useSites() {
   return useQuery({
     queryKey: ['sites'],
-    queryFn: fetchSites,
+    queryFn: fetchSites, staleTime: 5 * 60 * 1000, gcTime: 15 * 60 * 1000, refetchOnWindowFocus: false,
   })
 }
 

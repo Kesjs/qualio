@@ -145,16 +145,28 @@ export function NewQAModal({ isOpen, onClose, onSuccess, siteId, siteUrl }: NewQ
                   </div>
                 </div>
 
-                <label className="flex items-center gap-3 text-sm text-ink-secondary cursor-pointer select-none group">
-                  <Checkbox
-                    checked={consentGiven}
-                    onCheckedChange={(c) => toggleConsent(c as boolean)}
-                    className="border-ink-muted/50 data-[state=checked]:bg-orange data-[state=checked]:border-orange transition-colors"
-                  />
-                  <span className="text-xs text-ink-muted group-hover:text-ink-secondary transition-colors">
-                    Je confirme avoir l'autorisation d'analyser ce site.
-                  </span>
-                </label>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 text-sm text-ink-secondary cursor-pointer select-none group">
+                    <Checkbox
+                      checked={consentGiven}
+                      onCheckedChange={(c) => toggleConsent(c as boolean)}
+                      className="mt-0.5 border-ink-muted/50 data-[state=checked]:bg-orange data-[state=checked]:border-orange transition-colors"
+                    />
+                    <span className="text-xs text-ink-muted group-hover:text-ink-secondary transition-colors leading-relaxed">
+                      Je confirme avoir l'autorisation de scanner ce site (Safe Crawl). Qualio visitera les pages publiques et vérifiera les liens.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 text-sm text-ink-secondary cursor-pointer select-none group">
+                    <Checkbox
+                      checked={false} // Would be tied to a state if we use it in API, keeping simple for UI
+                      className="mt-0.5 border-ink-muted/50 data-[state=checked]:bg-orange data-[state=checked]:border-orange transition-colors"
+                    />
+                    <span className="text-xs text-ink-muted group-hover:text-ink-secondary transition-colors leading-relaxed">
+                      Autoriser les interactions sensibles (Soumission de formulaires, clics sur les CTA d'achat).
+                    </span>
+                  </label>
+                </div>
 
                 <div className="flex gap-3">
                   <button onClick={handleClose} className="flex-1 py-3 px-4 rounded-lg border border-border bg-carbon text-ink-primary hover:bg-ash transition-colors">

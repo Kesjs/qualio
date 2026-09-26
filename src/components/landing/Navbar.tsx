@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const C = {
-  canvas: "#101010", carbon: "#1d1a18", ash: "#3d3a39", graphite: "#4d4947",
+  canvas: "#000000", carbon: "#141414", ash: "#1a1a1a", graphite: "#262626",
   granite: "#8a8380", stone: "#b8b3b0", bone: "#eeeeee", chalk: "#fafafa", orange: "#ee6018", green: "#a0ca92"
 };
 

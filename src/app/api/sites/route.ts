@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { url, name } = body
+  const { url, name, environment } = body
 
   const validation = validateUrl(url)
   if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 400 })
@@ -53,7 +53,12 @@ export async function POST(req: NextRequest) {
   const admin = getSupabaseAdminClient()
   const { data: site, error } = await admin
     .from('sites')
-    .insert({ user_id: user.id, url: normalizedUrl, name: name || new URL(normalizedUrl).hostname })
+    .insert({
+      user_id: user.id,
+      url: normalizedUrl,
+      name: name || new URL(normalizedUrl).hostname,
+      environment: environment === 'staging' ? 'staging' : 'production',
+    })
     .select('*')
     .single()
 

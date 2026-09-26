@@ -2,12 +2,14 @@
 import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
+import { useRouter } from "next/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const C = {
-  canvas: "#101010",
-  carbon: "#1d1a18",
-  ash: "#3d3a39",
-  graphite: "#4d4947",
+  canvas: "#000000",
+  carbon: "#141414",
+  ash: "#1a1a1a",
+  graphite: "#262626",
   granite: "#8a8380",
   stone: "#b8b3b0",
   bone: "#eeeeee",
@@ -19,22 +21,38 @@ const C = {
 export function CTA() {
   const { t } = useLanguage();
   const cta = t.cta;
+  const router = useRouter();
 
   const [url, setUrl] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
-  const handleScan = () => {
+  const handleScan = async () => {
     if (!url) return;
     setState("loading");
-    setTimeout(() => setState("done"), 1800);
+    
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { data } = await supabase.auth.getSession();
+      
+      sessionStorage.setItem("qualio_pending_url", url);
+      
+      if (data.session) {
+        router.push(`/dashboard?newUrl=${encodeURIComponent(url)}`);
+      } else {
+        router.push(`/login?mode=register&url=${encodeURIComponent(url)}`);
+      }
+    } catch (e) {
+      console.error(e);
+      setState("idle");
+    }
   };
 
   return (
     <section id="cta" style={{ background: C.canvas, padding: "96px 0 80px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
-        {/* Main CTA card â€” light on dark, Factory signature */}
+        {/* Main CTA card — light on dark, Factory signature */}
         <motion.div
           ref={ref}
           initial={{ opacity: 0, y: 24 }}

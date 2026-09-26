@@ -7,7 +7,9 @@ import { QAConfigManager } from '../config'
 import type {
   ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult,
 } from '../types'
-
+import { EvidenceEngine, Incident } from '../evidence'
+import { DiffEngine } from '../diff'
+import { AIEngine } from '../ai/engine'
 interface ScanOptions {
   siteId: string
   userId: string
@@ -67,41 +69,58 @@ export class QAOrchestrator {
       issues: [], checks: [], pages: [], screenshots: [],
     }
 
+    // Add new engine instances to constructor or instantiate locally
+    const evidenceEngine = new EvidenceEngine()
+    const diffEngine = new DiffEngine()
+    const aiEngine = new AIEngine()
+
     try {
       await this.initEngines()
+      // Utility timeout wrapper
+      const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+        let timer: NodeJS.Timeout
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`Timeout: ${label} exceeded ${ms}ms`)), ms)
+          }).finally(() => clearTimeout(timer))
+        ])
+      }
 
-      // Phase 1: Discovery
+      // Phase 1: Discovery (15s timeout)
       await this.updateStatus(scanId, 'discovering')
-      const discovery = await this.discovery.discover(url)
+      const discovery = await withTimeout(this.discovery.discover(url), 15000, 'Discovery')
       await this.saveDiscoveredPages(scanId, discovery.internalLinks)
 
-      // Phase 2: Crawl
+      // Phase 2: Crawl (45s timeout)
       await this.updateStatus(scanId, 'crawling')
-      const crawl = await this.crawler.crawl(url)
+      const crawl = await withTimeout(this.crawler.crawl(url), 45000, 'Crawler')
       const crawledPages = await this.saveCrawledPages(scanId, crawl.pages)
       result.pages = crawledPages
       result.pagesDiscovered = crawledPages.length
 
-      // Phase 3: Browser testing
+      // Phase 3: Browser testing (2m timeout)
       await this.updateStatus(scanId, 'browser_testing')
       const allChecks: CheckResult[] = []
 
-      for (const page of crawledPages.slice(0, this.config.getMaxPages())) {
-        try {
-          const nav = await this.browser.testNavigation(page.url)
-          const forms = await this.browser.testForms(page.url)
-          const cta = await this.browser.testCTA(page.url)
-          ;[...nav, ...forms, ...cta].forEach(c =>
-            allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: page.id ?? null })
-          )
-        } catch (e) { console.error(`Browser test error for ${page.url}:`, e) }
-      }
+      await withTimeout((async () => {
+        for (const page of crawledPages.slice(0, this.config.getMaxPages())) {
+          try {
+            const nav = await this.browser.testNavigation(page.url)
+            const forms = await this.browser.testForms(page.url)
+            const cta = await this.browser.testCTA(page.url)
+            ;[...nav, ...forms, ...cta].forEach(c =>
+              allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: page.id ?? null })
+            )
+          } catch (e) { console.error(`Browser test error for ${page.url}:`, e) }
+        }
 
-      // Responsive test on homepage only
-      const resp = await this.browser.testResponsive(url)
-      resp.forEach(c =>
-        allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: crawledPages[0]?.id ?? null })
-      )
+        // Responsive test on homepage only
+        const resp = await this.browser.testResponsive(url)
+        resp.forEach(c =>
+          allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: crawledPages[0]?.id ?? null })
+        )
+      })(), 120000, 'Browser testing')
 
       await this.saveChecks(scanId, allChecks)
       result.checks = allChecks
@@ -112,11 +131,111 @@ export class QAOrchestrator {
       result.criticalCount = allChecks.filter(c => c.severity === 'critical').length
       result.majorCount = allChecks.filter(c => c.severity === 'major').length
 
-      // Phase 4: Analyzing
+      // Phase 4: Analyzing (Evidence -> Diff -> AI)
       await this.updateStatus(scanId, 'analyzing')
-      const issues = this.extractIssues(allChecks)
-      await this.saveIssues(scanId, issues)
-      result.issues = issues
+      
+      // 4.1. Evidence Engine: Group raw events (checks) into incidents
+      const incidents = evidenceEngine.groupChecksIntoIncidents(allChecks)
+      
+      // 4.2. Diff Engine: Compare with previous scan to find new vs persistent
+      let previousIssues: Issue[] = []
+      if (previousScanId) {
+        const { data } = await this.supabase.from('issues').select('*').eq('scan_id', previousScanId)
+        if (data) {
+          previousIssues = data.map(d => ({
+            id: d.id, scanId: d.scan_id, pageId: d.page_id,
+            category: d.category as any, severity: d.severity as any,
+            title: d.title, description: d.description || '',
+            suggestion: d.suggestion || '', confidence: d.confidence as any,
+            status: d.status as any, evidence: [] // We don't strictly need previous evidence for the diff
+          }))
+        }
+      }
+      
+      const { persistent, newIncidents } = diffEngine.diff(previousIssues, incidents)
+      
+      // 4.3. AI QA Engine: Diagnose new incidents
+      const finalIssues: Issue[] = []
+      
+      // Process persistent issues (carry over previous diagnostic)
+      for (const { issue, incident } of persistent) {
+        finalIssues.push({
+          ...issue,
+          id: crypto.randomUUID(),
+          scanId,
+          pageId: incident.pageId,
+          status: 'persistent',
+          evidence: incident.checks.flatMap(c => c.evidence || [])
+        })
+      }
+      
+      // Initialize AI tracking stats on result
+      result.aiCallsCount = 0
+      result.aiTokensInput = 0
+      result.aiTokensOutput = 0
+      result.aiCostUsd = 0
+      result.aiDurationMs = 0
+      
+      // Process new incidents (run AI)
+      for (const incident of newIncidents) {
+        let title = incident.title
+        let severity = incident.severity
+        let description = 'Diagnostic IA indisponible.'
+        let suggestion = 'Investigate the reported errors manually.'
+        let confidence: any = 'low'
+        let status = 'new'
+        let aiTokensInput, aiTokensOutput, aiDurationMs, aiCostUsd, aiModel
+        
+        // AI Diagnosis
+        const diagnostic = await aiEngine.diagnoseIncident(incident)
+        if (diagnostic) {
+          title = diagnostic.title
+          severity = diagnostic.severity
+          description = JSON.stringify({
+            title: diagnostic.title,
+            severity: diagnostic.severity,
+            summary: diagnostic.summary,
+            impact: diagnostic.impact,
+            probable_cause: diagnostic.probable_cause,
+            recommendation: diagnostic.recommendation,
+            confidence: diagnostic.confidence
+          })
+          suggestion = diagnostic.recommendation
+          confidence = String(diagnostic.confidence)
+          
+          if (diagnostic._meta) {
+            aiTokensInput = diagnostic._meta.tokens_input
+            aiTokensOutput = diagnostic._meta.tokens_output
+            aiDurationMs = diagnostic._meta.duration_ms
+            aiCostUsd = diagnostic._meta.cost_usd
+            aiModel = diagnostic._meta.model
+            
+            result.aiCallsCount = (result.aiCallsCount || 0) + 1
+            result.aiTokensInput = (result.aiTokensInput || 0) + (aiTokensInput || 0)
+            result.aiTokensOutput = (result.aiTokensOutput || 0) + (aiTokensOutput || 0)
+            result.aiCostUsd = (result.aiCostUsd || 0) + (aiCostUsd || 0)
+            result.aiDurationMs = (result.aiDurationMs || 0) + (aiDurationMs || 0)
+          }
+        }
+        
+        finalIssues.push({
+          id: crypto.randomUUID(),
+          scanId,
+          pageId: incident.pageId,
+          category: incident.category as any,
+          severity,
+          title,
+          description,
+          suggestion,
+          confidence,
+          status: status as any,
+          evidence: incident.checks.flatMap(c => c.evidence || []),
+          aiTokensInput, aiTokensOutput, aiDurationMs, aiCostUsd, aiModel
+        })
+      }
+
+      await this.saveIssues(scanId, finalIssues)
+      result.issues = finalIssues
 
       // Phase 5: Reporting
       await this.updateStatus(scanId, 'reporting')
@@ -213,6 +332,8 @@ export class QAOrchestrator {
       scan_id: scanId, page_id: i.pageId, category: i.category, severity: i.severity,
       title: i.title, description: i.description, suggestion: i.suggestion,
       confidence: i.confidence, status: i.status,
+      ai_tokens_input: i.aiTokensInput, ai_tokens_output: i.aiTokensOutput,
+      ai_cost_usd: i.aiCostUsd, ai_duration_ms: i.aiDurationMs, ai_model: i.aiModel
     }))
     if (!rows.length) return
     const { data } = await this.supabase.from('issues').insert(rows as any).select('id')
@@ -274,6 +395,11 @@ export class QAOrchestrator {
       checks_warning: result.checksWarning, checks_failed: result.checksFailed,
       critical_count: result.criticalCount, major_count: result.majorCount,
       summary: result.summary,
+      ai_calls_count: result.aiCallsCount,
+      ai_tokens_input: result.aiTokensInput,
+      ai_tokens_output: result.aiTokensOutput,
+      ai_cost_usd: result.aiCostUsd,
+      ai_duration_ms: result.aiDurationMs
     } as any).eq('id', scanId)
   }
 
@@ -283,3 +409,4 @@ export class QAOrchestrator {
     } as any).eq('id', siteId)
   }
 }
+

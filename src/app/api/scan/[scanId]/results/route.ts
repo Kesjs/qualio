@@ -22,7 +22,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const [pagesRes, issuesRes, checksRes] = await Promise.all([
     supabase.from('pages').select('*').eq('scan_id', scanId).order('depth').order('url'),
-    supabase.from('issues').select('*').eq('scan_id', scanId).order('severity').order('created_at'),
+    supabase
+      .from('issues')
+      .select(`
+        *,
+        page:pages!issues_page_id_fkey (url),
+        evidence (*)
+      `)
+      .eq('scan_id', scanId)
+      .order('severity')
+      .order('created_at'),
     supabase.from('checks').select('*').eq('scan_id', scanId).order('category').order('status'),
   ])
 

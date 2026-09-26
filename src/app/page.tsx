@@ -11,7 +11,7 @@ import { Reveal }      from "@/components/ui/Reveal";
 
 export default function HomePage() {
   return (
-    <div style={{ overflowX: "hidden" }}>
+    <div style={{ overflowX: "hidden", background: "#000000", minHeight: "100vh" }}>
       <Navbar />
       <main>
         <Hero />

@@ -100,6 +100,11 @@ export type Database = {
           status: string | null
           suggestion: string | null
           title: string
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
+          ai_model?: string | null
         }
         Insert: {
           category: string
@@ -113,6 +118,11 @@ export type Database = {
           status?: string | null
           suggestion?: string | null
           title: string
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
+          ai_model?: string | null
         }
         Update: {
           category?: string
@@ -126,6 +136,11 @@ export type Database = {
           status?: string | null
           suggestion?: string | null
           title?: string
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
+          ai_model?: string | null
         }
         Relationships: [
           { foreignKeyName: "issues_page_id_fkey"; columns: ["page_id"]; isOneToOne: false; referencedRelation: "pages"; referencedColumns: ["id"] },
@@ -190,6 +205,11 @@ export type Database = {
           status: string
           summary: string | null
           user_id: string
+          ai_calls_count?: number | null
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
         }
         Insert: {
           checks_failed?: number | null
@@ -210,6 +230,11 @@ export type Database = {
           status?: string
           summary?: string | null
           user_id: string
+          ai_calls_count?: number | null
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
         }
         Update: {
           checks_failed?: number | null
@@ -230,6 +255,11 @@ export type Database = {
           status?: string
           summary?: string | null
           user_id?: string
+          ai_calls_count?: number | null
+          ai_tokens_input?: number | null
+          ai_tokens_output?: number | null
+          ai_cost_usd?: number | null
+          ai_duration_ms?: number | null
         }
         Relationships: [
           { foreignKeyName: "scans_previous_scan_id_fkey"; columns: ["previous_scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
@@ -289,6 +319,7 @@ export type Database = {
       sites: {
         Row: {
           created_at: string | null
+          environment: string | null
           id: string
           last_scan_id: string | null
           name: string | null
@@ -298,6 +329,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          environment?: string | null
           id?: string
           last_scan_id?: string | null
           name?: string | null
@@ -307,6 +339,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          environment?: string | null
           id?: string
           last_scan_id?: string | null
           name?: string | null
