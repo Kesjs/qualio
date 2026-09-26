@@ -137,10 +137,16 @@ export default function SitesPage() {
           <div className="flex items-center gap-2.5">
             {/* Environment Filter */}
             <Select value={envFilter} onValueChange={(val: any) => setEnvFilter(val)}>
-              <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
-                <SelectValue placeholder="Tous les environnements" />
+              <SelectTrigger className="w-[175px] h-8 text-xs font-medium bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
+                <SelectValue placeholder="Environnement">
+                  {(val) => {
+                    if (val === 'production') return 'Production'
+                    if (val === 'staging') return 'Staging'
+                    return 'Tous les envs'
+                  }}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent align="end">
                 <SelectItem value="all">Tous les environnements</SelectItem>
                 <SelectItem value="production">Production</SelectItem>
                 <SelectItem value="staging">Staging</SelectItem>
@@ -149,10 +155,23 @@ export default function SitesPage() {
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
-              <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
-                <SelectValue placeholder="Statut: Tous" />
+              <SelectTrigger className="w-[175px] h-8 text-xs font-medium bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
+                <SelectValue placeholder="Statut">
+                  {(val) => {
+                    const labels: Record<string, string> = {
+                      all: 'Statut: Tous',
+                      healthy: 'Statut: Sain',
+                      regression: 'Statut: Régression',
+                      warning: 'Statut: Warning',
+                      running: 'Statut: En cours',
+                      never_scanned: 'Statut: Non scanné',
+                      scan_failed: 'Statut: Échec',
+                    }
+                    return labels[val] || 'Statut: Tous'
+                  }}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent align="end">
                 <SelectItem value="all">Statut: Tous</SelectItem>
                 <SelectItem value="healthy">Healthy (Sain)</SelectItem>
                 <SelectItem value="regression">Régression</SelectItem>
