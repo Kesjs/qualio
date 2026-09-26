@@ -56,17 +56,22 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden bg-white dark:bg-[#0B0C0E] transition-all">
         {/* Mobile Header (Image 3: Lintel style) */}
         <div className="flex md:hidden h-14 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 shrink-0 dark:border-white/[0.08] dark:bg-[#0B0C0E]">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ee6018] text-white">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="7" />
-                <path d="M12 2v3" />
-                <path d="M12 19v3" />
-                <path d="M2 12h3" />
-                <path d="M19 12h3" />
-              </svg>
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-950 dark:bg-black border border-gray-200/80 dark:border-white/[0.1] p-1 shadow-2xs group-hover:scale-105 transition-transform">
+              <img
+                src="/qualio-logo/export/mark/monogram-orange.svg"
+                alt="Qualio Monogram"
+                className="h-full w-full object-contain"
+              />
             </div>
-            <span className="text-sm font-bold tracking-tight text-gray-900 dark:text-white">Qualio</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold tracking-tight text-gray-900 dark:text-white leading-none font-sans">
+                Qualio
+              </span>
+              <span className="text-[9px] font-mono font-medium text-gray-400 dark:text-zinc-500 mt-0.5">
+                QA WORKSPACE
+              </span>
+            </div>
           </Link>
 
           <div className="flex items-center gap-1.5">
