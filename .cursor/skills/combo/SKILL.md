@@ -24,6 +24,29 @@ Ce skill enchaîne automatiquement les commandes du système Impeccable (install
 7. **distill** [target] — élimine le superflu, simplifie vers l'essentiel.
 8. **polish** [target] — passe de finition finale : alignements, micro-espacements, bordures, états :hover/:focus/:active/:disabled.
 
+## Règles de rendu strictes & Anti-patrons (Standards Qualio)
+
+1. **Surfaces élevées (Zéro fil de fer creux)** :
+   - En dark mode, toujours utiliser la vraie surface anthracite du design system : `bg-white dark:bg-[#16181E] border border-gray-200/90 dark:border-white/[0.08] shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]`.
+   - Ne JAMAIS laisser une carte transparente sur fond noir pur (`#000000`) avec de simples bordures blanches dures.
+
+2. **Pas de boîtes dans des boîtes (Aération visuelle)** :
+   - Éviter d'enfermer les métriques dans des sous-boîtes à bordures rigides. Présenter les compteurs et données en flux aéré avec des séparations douces (`border-t border-gray-100 dark:border-white/[0.06]`).
+   - Ne pas empiler des conteneurs à bordures pour chaque élément textuel.
+
+3. **Zéro liseré néon kitsch** :
+   - Ne JAMAIS mettre de bordure supérieure fluo (`border-t-2 border-rose-500` ou vert).
+   - Utiliser des badges ronds raffinés avec pastille de couleur (`rounded-full px-2.5 py-0.5 text-[11px] font-semibold`).
+
+4. **Typographie moderne (Linear / Vercel)** :
+   - La police principale est **Manrope** (`font-sans`), avec des graisses équilibrées (`font-semibold` ou `font-bold`), sans abuser de `font-black` écrasant.
+   - Les chiffres et URLs utilisent `font-mono` avec des graisses vectorisées réelles.
+
+5. **Actions et boutons hiérarchisés** :
+   - Action primaire unique par contexte : Signal Orange (`bg-[#ee6018] hover:bg-[#d95514] text-white`).
+   - Actions de navigation / workspace : bouton contrasté affirmé (`bg-gray-950 dark:bg-white text-white dark:text-gray-950`).
+   - Actions secondaires : fond doux (`bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-300`).
+
 ## Comment procéder
 
 1. Identifie la cible exacte donnée par Ken (chemin du fichier ou nom du composant/page).
