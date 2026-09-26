@@ -13,8 +13,11 @@ import {
 } from '@heroicons/react/24/outline'
 import { parseIssueDiagnostic } from '@/lib/qa/ai'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { EmptyState } from '@/components/ui/empty-state'
 
 export default function BugsPage() {
+  const router = useRouter()
   const { data: issues = [], isLoading } = useQuery({
     queryKey: ['all-issues'],
     queryFn: async () => {
@@ -64,26 +67,15 @@ export default function BugsPage() {
             ))}
           </div>
         ) : activeIssues.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center max-w-xl mx-auto shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:border-white/10 dark:bg-[#16181E]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30 mb-4">
-              <CheckCircle2 className="h-6 w-6 stroke-[1.75]" />
-            </div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sans">
-              Aucun bug actif trouvé
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed max-w-sm mx-auto">
-              Bonne nouvelle ! Vos environnements semblent sains. Tous les incidents ont été résolus ou aucun n'a encore été détecté.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/dashboard/sites"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gray-900 text-white text-xs font-semibold shadow-sm hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 transition-all cursor-pointer"
-              >
-                <Bug className="h-4 w-4" />
-                <span>Lancer un nouveau scan</span>
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            title="Aucun bug actif trouvé"
+            message="Bonne nouvelle ! Vos environnements semblent sains. Tous les incidents ont été résolus ou aucun n'a encore été détecté."
+            actionLabel="Lancer un nouveau scan"
+            actionIcon={Bug}
+            onActionClick={() => router.push('/dashboard/sites')}
+            mainIcon={CheckCircle2}
+            className="max-w-xl mx-auto my-6"
+          />
         ) : (
           activeIssues.map((bug: any) => {
             const diag = parseIssueDiagnostic(bug)

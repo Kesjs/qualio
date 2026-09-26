@@ -13,8 +13,11 @@ import {
   Clock,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { EmptyState } from '@/components/ui/empty-state'
 
 export default function ScansPage() {
+  const router = useRouter()
   const [search, setSearch] = useState('')
 
   const { data: scans = [], isLoading } = useQuery({
@@ -119,27 +122,16 @@ export default function ScansPage() {
                 </tr>
               ) : filteredScans.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16">
-                    <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-[#ee6018] border border-orange-100 dark:bg-[#ee6018]/15 dark:text-[#ff7836] dark:border-[#ee6018]/30 mb-4">
-                        <History className="h-6 w-6 stroke-[1.75]" />
-                      </div>
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-white font-sans">
-                        Aucun scan trouvé
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
-                        L'historique est vide pour le moment. Lancez un diagnostic depuis l'onglet Sites pour voir les résultats ici.
-                      </p>
-                      <div className="mt-5">
-                        <Link
-                          href="/dashboard/sites"
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ee6018] text-white text-xs font-semibold shadow-sm hover:bg-[#d95514] transition-all"
-                        >
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                          <span>Aller aux Sites</span>
-                        </Link>
-                      </div>
-                    </div>
+                  <td colSpan={8} className="py-8 px-4">
+                    <EmptyState
+                      title="Aucun scan trouvé"
+                      message="L'historique est vide ou aucun scan ne correspond à votre recherche. Lancez un diagnostic depuis l'onglet Sites pour voir les résultats ici."
+                      actionLabel="Aller aux Sites"
+                      actionIcon={ArrowUpRight}
+                      onActionClick={() => router.push('/dashboard/sites')}
+                      mainIcon={History}
+                      className="max-w-xl mx-auto border-0 bg-transparent shadow-none p-6 sm:p-8"
+                    />
                   </td>
                 </tr>
               ) : filteredScans.map((scan: any) => (

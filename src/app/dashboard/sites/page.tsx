@@ -27,6 +27,7 @@ import {
 import { useSites, SiteWithLastScan } from '@/lib/hooks/useSites'
 import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
+import { EmptyState } from '@/components/ui/empty-state'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -207,28 +208,24 @@ export default function SitesPage() {
 
       {/* 5. Empty State (Specification Wireframe B) */}
       {!isLoading && !error && sites && sites.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center max-w-xl mx-auto shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:border-white/10 dark:bg-[#16181E]">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-[#ee6018] border border-orange-100 dark:bg-[#ee6018]/15 dark:text-[#ff7836] dark:border-[#ee6018]/30 mb-4">
-            <SignalIcon className="h-6 w-6 stroke-[1.75]" />
-          </div>
-          <h3 className="text-base font-bold text-gray-900 dark:text-white font-sans">
-            Aucun site surveillé pour le moment
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed max-w-sm mx-auto">
-            Ajoutez votre premier site web ou application pour lancer une analyse Playwright
-            et obtenir votre premier diagnostic chirurgical par IA.
-          </p>
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#ee6018] text-white text-xs font-semibold shadow-sm shadow-[#ee6018]/25 hover:bg-[#d95514] transition-all cursor-pointer"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span>Ajouter mon premier site</span>
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          title="Aucun site surveillé pour le moment"
+          message="Ajoutez votre premier site web ou application pour lancer une analyse Playwright et obtenir votre premier diagnostic chirurgical par IA."
+          actionLabel="Ajouter mon premier site"
+          actionIcon={PlusIcon}
+          onActionClick={() => setIsAddModalOpen(true)}
+          mainIcon={GlobeAltIcon}
+          className="max-w-xl mx-auto my-6"
+        />
+      )}
+
+      {!isLoading && !error && sites && sites.length > 0 && filteredSites.length === 0 && (
+        <EmptyState
+          title="Aucun résultat trouvé"
+          message="Aucun site ne correspond à vos filtres de recherche ou de statut actuels. Modifiez vos critères de recherche."
+          mainIcon={MagnifyingGlassIcon}
+          className="max-w-xl mx-auto my-6"
+        />
       )}
 
       {/* 6. Sites Grid (Specification Wireframe C & Stitch 4-variant cards) */}
