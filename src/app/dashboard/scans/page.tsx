@@ -1,6 +1,7 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   History,
   Search,
@@ -11,42 +12,49 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react'
-
-const allScans = [
-  {
-    id: '#878909',
-    site: 'app.qualio.dev',
-    trigger: 'Automatique (CI/CD)',
-    date: '2 Déc 2026, 14:32',
-    status: 'Succès',
-    checksPassed: 18,
-    checksFailed: 0,
-    duration: '38s',
-  },
-  {
-    id: '#878908',
-    site: 'docs.qualio.dev',
-    trigger: 'Manuel',
-    date: '1 Déc 2026, 09:15',
-    status: 'Succès',
-    checksPassed: 42,
-    checksFailed: 0,
-    duration: '54s',
-  },
-  {
-    id: '#878907',
-    site: 'acme-store.com',
-    trigger: 'Automatique (Quotidien)',
-    date: '30 Nov 2026, 03:00',
-    status: 'Échec',
-    checksPassed: 9,
-    checksFailed: 3,
-    duration: '46s',
-  },
-]
+import Link from 'next/link'
 
 export default function ScansPage() {
   const [search, setSearch] = useState('')
+
+  const { data: scans = [], isLoading } = useQuery({
+    queryKey: ['all-scans'],
+    queryFn: async () => {
+      const res = await fetch('/api/scans')
+      if (!res.ok) throw new Error('Failed to fetch scans')
+      return res.json()
+    }
+  })
+
+  // Filter based on search
+  const filteredScans = scans.filter((scan: any) => {
+    if (!search) return true
+    const searchLower = search.toLowerCase()
+    return (
+      scan.id.toLowerCase().includes(searchLower) ||
+      (scan.sites?.url || '').toLowerCase().includes(searchLower) ||
+      (scan.sites?.name || '').toLowerCase().includes(searchLower)
+    )
+  })
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-'
+    const d = new Date(dateStr)
+    return d.toLocaleString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const getDuration = (startedStr: string, completedStr: string) => {
+    if (!startedStr || !completedStr) return '-'
+    const s = new Date(startedStr).getTime()
+    const c = new Date(completedStr).getTime()
+    return Math.round((c - s) / 1000) + 's'
+  }
 
   return (
     <div className="space-y-6">
@@ -100,42 +108,80 @@ export default function ScansPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100/80 dark:divide-white/[0.04]">
-              {allScans.map((scan) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-6 w-6 rounded-full border-2 border-gray-200 border-t-[#ee6018] animate-spin dark:border-zinc-700 dark:border-t-[#ff7836]"></div>
+                      <span className="text-xs text-gray-500 dark:text-zinc-400">Chargement de l'historique...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredScans.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-16">
+                    <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-[#ee6018] border border-orange-100 dark:bg-[#ee6018]/15 dark:text-[#ff7836] dark:border-[#ee6018]/30 mb-4">
+                        <History className="h-6 w-6 stroke-[1.75]" />
+                      </div>
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white font-sans">
+                        Aucun scan trouvé
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                        L'historique est vide pour le moment. Lancez un diagnostic depuis l'onglet Sites pour voir les résultats ici.
+                      </p>
+                      <div className="mt-5">
+                        <Link
+                          href="/dashboard/sites"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ee6018] text-white text-xs font-semibold shadow-sm hover:bg-[#d95514] transition-all"
+                        >
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                          <span>Aller aux Sites</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredScans.map((scan: any) => (
                 <tr key={scan.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 px-5 font-mono font-medium text-gray-900 dark:text-white">
-                    {scan.id}
+                  <td className="py-3.5 px-5 font-mono font-medium text-gray-900 dark:text-white" title={scan.id}>
+                    {scan.id.slice(0, 8)}
                   </td>
                   <td className="py-3.5 px-4 font-mono font-semibold text-gray-900 dark:text-white">
-                    {scan.site}
+                    <Link href={`/dashboard/sites/${scan.site_id}`} className="hover:underline">
+                      {scan.sites?.url?.replace(/^https?:\/\//, '') || scan.sites?.name}
+                    </Link>
                   </td>
-                  <td className="py-3.5 px-4 text-gray-500 dark:text-zinc-400">{scan.trigger}</td>
-                  <td className="py-3.5 px-4 text-gray-500 dark:text-zinc-400">{scan.date}</td>
+                  <td className="py-3.5 px-4 text-gray-500 dark:text-zinc-400">Manuel</td>
+                  <td className="py-3.5 px-4 text-gray-500 dark:text-zinc-400">{formatDate(scan.created_at)}</td>
                   <td className="py-3.5 px-4">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{scan.checksPassed} passés</span>
-                    {scan.checksFailed > 0 && (
-                      <span className="text-rose-500 dark:text-rose-400 font-medium ml-1.5">· {scan.checksFailed} échecs</span>
+                    {scan.checks_passed !== null && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{scan.checks_passed} passés</span>}
+                    {scan.checks_failed > 0 && (
+                      <span className="text-rose-500 dark:text-rose-400 font-medium ml-1.5">· {scan.checks_failed} échecs</span>
                     )}
                   </td>
                   <td className="py-3.5 px-4">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ${
-                        scan.status === 'Succès'
+                        scan.status === 'completed'
                           ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/25'
-                          : 'bg-red-50 text-red-600 border border-red-200/50 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/25'
+                          : scan.status === 'failed' || scan.status === 'error'
+                          ? 'bg-red-50 text-red-600 border border-red-200/50 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/25'
+                          : 'bg-blue-50 text-blue-600 border border-blue-200/50 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/25'
                       }`}
                     >
                       {scan.status}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-gray-500 dark:text-zinc-400">{scan.duration}</td>
+                  <td className="py-3.5 px-4 font-mono text-gray-500 dark:text-zinc-400">{getDuration(scan.started_at, scan.completed_at)}</td>
                   <td className="py-3.5 px-5 text-right">
-                    <button
-                      type="button"
+                    <Link
+                      href={`/dashboard/sites/${scan.site_id}`}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-[#ee6018] hover:text-[#d95514] dark:text-[#ff7836] dark:hover:text-[#ee6018]"
                     >
                       <span>Détails</span>
                       <ArrowUpRight className="h-3 w-3" />
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -146,4 +192,3 @@ export default function ScansPage() {
     </div>
   )
 }
-

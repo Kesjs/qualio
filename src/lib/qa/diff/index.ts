@@ -20,11 +20,9 @@ export class DiffEngine {
     const currentMatched = new Set<string>()
 
     for (const oldIssue of previousIssues) {
-      // Find a matching incident in the current scan
-      // For simplicity, we match by pageId and category.
-      // In a more robust system, we would compare check keys.
+      // Find a matching incident in the current scan by category
       const matchIndex = currentIncidents.findIndex(
-        inc => inc.pageId === oldIssue.pageId && inc.category === oldIssue.category && !currentMatched.has(inc.id)
+        inc => inc.category === oldIssue.category && !currentMatched.has(inc.id)
       )
 
       if (matchIndex !== -1) {

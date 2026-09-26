@@ -152,7 +152,13 @@ export class QAOrchestrator {
         }
       }
       
-      const { persistent, newIncidents } = diffEngine.diff(previousIssues, incidents)
+      const { persistent, newIncidents, resolved } = diffEngine.diff(previousIssues, incidents)
+      
+      // Update resolved status in database for issues that are now gone
+      if (resolved.length > 0) {
+        const resolvedIds = resolved.map(r => r.id)
+        await this.supabase.from('issues').update({ status: 'resolved' as any }).in('id', resolvedIds)
+      }
       
       // 4.3. AI QA Engine: Diagnose new incidents
       const finalIssues: Issue[] = []
@@ -173,7 +179,7 @@ export class QAOrchestrator {
       result.aiCallsCount = 0
       result.aiTokensInput = 0
       result.aiTokensOutput = 0
-      result.aiCostUsd = 0
+      result.aiCostUsd = undefined
       result.aiDurationMs = 0
       
       // Process new incidents (run AI)
@@ -198,7 +204,8 @@ export class QAOrchestrator {
             impact: diagnostic.impact,
             probable_cause: diagnostic.probable_cause,
             recommendation: diagnostic.recommendation,
-            confidence: diagnostic.confidence
+            confidence: diagnostic.confidence,
+            _meta: diagnostic._meta
           })
           suggestion = diagnostic.recommendation
           confidence = String(diagnostic.confidence)
@@ -211,10 +218,18 @@ export class QAOrchestrator {
             aiModel = diagnostic._meta.model
             
             result.aiCallsCount = (result.aiCallsCount || 0) + 1
-            result.aiTokensInput = (result.aiTokensInput || 0) + (aiTokensInput || 0)
-            result.aiTokensOutput = (result.aiTokensOutput || 0) + (aiTokensOutput || 0)
-            result.aiCostUsd = (result.aiCostUsd || 0) + (aiCostUsd || 0)
-            result.aiDurationMs = (result.aiDurationMs || 0) + (aiDurationMs || 0)
+            if (typeof aiTokensInput === 'number') {
+              result.aiTokensInput = (result.aiTokensInput || 0) + aiTokensInput
+            }
+            if (typeof aiTokensOutput === 'number') {
+              result.aiTokensOutput = (result.aiTokensOutput || 0) + aiTokensOutput
+            }
+            if (typeof aiCostUsd === 'number') {
+              result.aiCostUsd = (result.aiCostUsd ?? 0) + aiCostUsd
+            }
+            if (typeof aiDurationMs === 'number') {
+              result.aiDurationMs = (result.aiDurationMs || 0) + aiDurationMs
+            }
           }
         }
         
@@ -329,14 +344,22 @@ export class QAOrchestrator {
 
   private async saveIssues(scanId: string, issues: Issue[]) {
     const rows = issues.map(i => ({
-      scan_id: scanId, page_id: i.pageId, category: i.category, severity: i.severity,
-      title: i.title, description: i.description, suggestion: i.suggestion,
-      confidence: i.confidence, status: i.status,
-      ai_tokens_input: i.aiTokensInput, ai_tokens_output: i.aiTokensOutput,
-      ai_cost_usd: i.aiCostUsd, ai_duration_ms: i.aiDurationMs, ai_model: i.aiModel
+      scan_id: scanId,
+      page_id: i.pageId,
+      category: i.category,
+      severity: i.severity,
+      title: i.title,
+      description: i.description,
+      suggestion: i.suggestion,
+      confidence: i.confidence,
+      status: i.status
     }))
     if (!rows.length) return
-    const { data } = await this.supabase.from('issues').insert(rows as any).select('id')
+    const { data, error } = await this.supabase.from('issues').insert(rows as any).select('id')
+    if (error) {
+      console.error('[QAOrchestrator] Error inserting issues into Supabase:', error)
+      throw new Error(`Failed to save issues: ${error.message}`)
+    }
     // Save evidence per issue
     for (let i = 0; i < issues.length; i++) {
       const dbIssue = (data ?? [])[i] as any
@@ -389,17 +412,21 @@ export class QAOrchestrator {
   }
 
   private async finalizeScan(scanId: string, result: ScanResult) {
+    let summary = result.summary
+    if (result.aiCallsCount && result.aiCallsCount > 0) {
+      const costStr = result.aiCostUsd !== undefined ? `$${result.aiCostUsd.toFixed(6)}` : 'coût inconnu'
+      summary += ` [AI: ${result.aiCallsCount} call(s), ${result.aiTokensInput ?? 0} in / ${result.aiTokensOutput ?? 0} out, ${costStr}]`
+    }
+
     await this.supabase.from('scans').update({
       pages_discovered: result.pagesDiscovered,
-      checks_total: result.checksTotal, checks_passed: result.checksPassed,
-      checks_warning: result.checksWarning, checks_failed: result.checksFailed,
-      critical_count: result.criticalCount, major_count: result.majorCount,
-      summary: result.summary,
-      ai_calls_count: result.aiCallsCount,
-      ai_tokens_input: result.aiTokensInput,
-      ai_tokens_output: result.aiTokensOutput,
-      ai_cost_usd: result.aiCostUsd,
-      ai_duration_ms: result.aiDurationMs
+      checks_total: result.checksTotal,
+      checks_passed: result.checksPassed,
+      checks_warning: result.checksWarning,
+      checks_failed: result.checksFailed,
+      critical_count: result.criticalCount,
+      major_count: result.majorCount,
+      summary,
     } as any).eq('id', scanId)
   }
 

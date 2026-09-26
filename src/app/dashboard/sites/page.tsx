@@ -1,7 +1,13 @@
 'use client'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   GlobeAltIcon,
   PlusIcon,
@@ -129,55 +135,60 @@ export default function SitesPage() {
 
           <div className="flex items-center gap-2.5">
             {/* Environment Filter */}
-            <div className="relative">
-              <select
-                value={envFilter}
-                onChange={(e) => setEnvFilter(e.target.value as any)}
-                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#ee6018] dark:bg-[#111216] dark:border-white/[0.08] dark:text-zinc-200 dark:hover:bg-white/[0.04]"
-              >
-                <option value="all">Tous les environnements</option>
-                <option value="production">Production</option>
-                <option value="staging">Staging</option>
-              </select>
-              <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-zinc-500 pointer-events-none" />
-            </div>
+            <Select value={envFilter} onValueChange={(val: any) => setEnvFilter(val)}>
+              <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
+                <SelectValue placeholder="Tous les environnements" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les environnements</SelectItem>
+                <SelectItem value="production">Production</SelectItem>
+                <SelectItem value="staging">Staging</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Status Filter */}
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#ee6018] dark:bg-[#111216] dark:border-white/[0.08] dark:text-zinc-200 dark:hover:bg-white/[0.04]"
-              >
-                <option value="all">Statut: Tous</option>
-                <option value="healthy">Healthy (Sain)</option>
-                <option value="regression">Régression</option>
-                <option value="warning">Warning</option>
-                <option value="running">En cours</option>
-                <option value="never_scanned">Non scanné</option>
-                <option value="scan_failed">Échec</option>
-              </select>
-              <ChevronDownIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-zinc-500 pointer-events-none" />
-            </div>
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
+              <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white border-gray-200 dark:bg-[#111216] dark:border-white/[0.08]">
+                <SelectValue placeholder="Statut: Tous" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Statut: Tous</SelectItem>
+                <SelectItem value="healthy">Healthy (Sain)</SelectItem>
+                <SelectItem value="regression">Régression</SelectItem>
+                <SelectItem value="warning">Warning</SelectItem>
+                <SelectItem value="running">En cours</SelectItem>
+                <SelectItem value="never_scanned">Non scanné</SelectItem>
+                <SelectItem value="scan_failed">Échec</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}
 
       {/* 3. Loading State */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-56 rounded-xl bg-white border border-gray-200/80 p-6 space-y-4"
+              className="h-56 rounded-xl border border-gray-200/80 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:border-white/[0.08] space-y-4 animate-pulse flex flex-col justify-between"
             >
-              <div className="flex justify-between items-center">
-                <div className="h-5 w-24 bg-gray-100 rounded-md" />
-                <div className="h-4 w-20 bg-gray-100 rounded" />
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex gap-2">
+                    <div className="h-5 w-16 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
+                    <div className="h-5 w-20 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
+                  </div>
+                  <div className="h-4 w-24 bg-gray-100 dark:bg-white/[0.04] rounded" />
+                </div>
+                <div className="h-5 w-48 bg-gray-200/80 dark:bg-white/[0.08] rounded mt-2" />
+                <div className="h-4 w-36 bg-gray-100 dark:bg-white/[0.04] rounded mt-2" />
+                <div className="h-12 w-full bg-gray-50/80 dark:bg-[#111216]/50 rounded-lg mt-4 border border-gray-100 dark:border-white/[0.04]" />
               </div>
-              <div className="h-6 w-48 bg-gray-100 rounded mt-3" />
-              <div className="h-4 w-36 bg-gray-100 rounded" />
-              <div className="h-12 bg-gray-50 rounded-lg mt-4" />
+              <div className="flex gap-3 border-t border-gray-100 dark:border-white/[0.06] pt-4 mt-4">
+                 <div className="h-8 w-1/2 bg-gray-200/60 dark:bg-white/[0.04] rounded-lg" />
+                 <div className="h-8 w-1/2 bg-gray-900/10 dark:bg-white/[0.06] rounded-lg" />
+              </div>
             </div>
           ))}
         </div>

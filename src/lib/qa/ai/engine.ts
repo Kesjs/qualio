@@ -3,6 +3,7 @@ import { QAAIDiagnostic } from './index'
 import { QAAIProvider, QAIncidentInput } from './types'
 import { OpenAIQAProvider } from './providers/openai'
 import { GeminiQAProvider } from './providers/gemini'
+import { MockQAProvider } from './providers/mock'
 
 export class AIEngine {
   private provider: QAAIProvider
@@ -11,6 +12,8 @@ export class AIEngine {
     const providerName = process.env.QA_AI_PROVIDER || 'openai'
     if (providerName === 'gemini') {
       this.provider = new GeminiQAProvider()
+    } else if (providerName === 'mock') {
+      this.provider = new MockQAProvider()
     } else {
       this.provider = new OpenAIQAProvider()
     }

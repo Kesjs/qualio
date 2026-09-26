@@ -44,9 +44,46 @@ export default function BugsPage() {
       {/* Issues List */}
       <div className="space-y-4">
         {isLoading ? (
-          <div className="text-center text-gray-500 py-8">Chargement des incidents...</div>
+          <div className="grid grid-cols-1 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-gray-200/80 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:border-white/[0.08] space-y-4 animate-pulse">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-5 w-20 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
+                    <div className="h-5 w-16 bg-gray-200/60 dark:bg-white/[0.06] rounded-md" />
+                    <div className="h-3 w-32 bg-gray-100 dark:bg-white/[0.04] rounded" />
+                  </div>
+                  <div className="h-5 w-28 bg-emerald-50 dark:bg-emerald-500/10 rounded-md" />
+                </div>
+                <div className="space-y-2.5">
+                  <div className="h-4 w-1/2 bg-gray-200/80 dark:bg-white/[0.06] rounded" />
+                  <div className="h-3 w-3/4 bg-gray-100 dark:bg-white/[0.04] rounded" />
+                </div>
+                <div className="h-10 w-full bg-orange-50/50 dark:bg-[#ee6018]/5 border border-orange-100/50 dark:border-[#ee6018]/10 rounded-lg mt-2" />
+              </div>
+            ))}
+          </div>
         ) : activeIssues.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">Aucun bug actif trouvé.</div>
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center max-w-xl mx-auto shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:border-white/10 dark:bg-[#16181E]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30 mb-4">
+              <CheckCircle2 className="h-6 w-6 stroke-[1.75]" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white font-sans">
+              Aucun bug actif trouvé
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed max-w-sm mx-auto">
+              Bonne nouvelle ! Vos environnements semblent sains. Tous les incidents ont été résolus ou aucun n'a encore été détecté.
+            </p>
+            <div className="mt-6">
+              <Link
+                href="/dashboard/sites"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gray-900 text-white text-xs font-semibold shadow-sm hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 transition-all cursor-pointer"
+              >
+                <Bug className="h-4 w-4" />
+                <span>Lancer un nouveau scan</span>
+              </Link>
+            </div>
+          </div>
         ) : (
           activeIssues.map((bug: any) => {
             const diag = parseIssueDiagnostic(bug)

@@ -28,43 +28,7 @@ interface NotificationDrawerProps {
   onClose: () => void
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    type: 'regression_alert',
-    title: 'Régression critique détectée',
-    message: '2 anomalies critiques identifiées sur le checkout lors de la dernière session Playwright.',
-    timestamp: 'Il y a 10 min',
-    read: false,
-    link: '/dashboard/bugs',
-  },
-  {
-    id: 'notif-2',
-    type: 'scan_completed',
-    title: 'Scan terminé avec succès',
-    message: 'acme-store.com : 42 assertions Playwright validées en 42s (0 échec).',
-    timestamp: 'Il y a 1h',
-    read: false,
-    link: '/dashboard/scans',
-  },
-  {
-    id: 'notif-3',
-    type: 'system',
-    title: 'Moteur Playwright opérationnel',
-    message: 'Chromium headless v1.63 prêt pour vos tests automatisés programmés.',
-    timestamp: 'Il y a 3h',
-    read: true,
-  },
-  {
-    id: 'notif-4',
-    type: 'scan_completed',
-    title: 'Cartographie initiale effectuée',
-    message: '18 pages explorées sur staging.qualio.dev. Aucune rupture 404/500 détectée.',
-    timestamp: 'Hier à 18:30',
-    read: true,
-    link: '/dashboard/sites',
-  },
-]
+const INITIAL_NOTIFICATIONS: NotificationItem[] = []
 
 export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)

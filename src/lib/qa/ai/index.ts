@@ -155,6 +155,7 @@ export function parseIssueDiagnostic(issue: {
           probable_cause: parsed.probable_cause,
           recommendation: parsed.recommendation || issue.suggestion || 'Vérifier la configuration du composant.',
           confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.94,
+          _meta: parsed._meta
         }
       }
     } catch {

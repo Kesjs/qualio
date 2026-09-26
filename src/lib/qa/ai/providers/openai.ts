@@ -100,17 +100,20 @@ export class OpenAIQAProvider implements QAAIProvider {
       if (content) {
         const diag = JSON.parse(content) as QAAIDiagnostic
         
-        // Calculate cost based on gpt-4o pricing (using as proxy for gpt-5.6-luna for now)
-        // input: $5.00 / 1M tokens, output: $15.00 / 1M tokens
-        const promptTokens = completion.usage?.prompt_tokens || 0
-        const completionTokens = completion.usage?.completion_tokens || 0
-        const cost = (promptTokens * 5 / 1000000) + (completionTokens * 15 / 1000000)
+        const promptTokens = completion.usage?.prompt_tokens
+        const completionTokens = completion.usage?.completion_tokens
+        let cost: number | null = null
+        if (typeof promptTokens === 'number' && typeof completionTokens === 'number') {
+          // Calculate cost based on gpt-4o pricing (using as proxy for gpt-5.6-luna for now)
+          // input: $5.00 / 1M tokens, output: $15.00 / 1M tokens
+          cost = (promptTokens * 5 / 1000000) + (completionTokens * 15 / 1000000)
+        }
 
         diag._meta = {
           tokens_input: promptTokens,
           tokens_output: completionTokens,
           duration_ms: endMs - startMs,
-          cost_usd: cost,
+          cost_usd: cost ?? undefined,
           model: completion.model
         }
         return diag

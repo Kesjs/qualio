@@ -17,6 +17,7 @@ describe('AIEngine', () => {
   let mockProvider: MockProvider
 
   beforeEach(() => {
+    process.env.QA_AI_PROVIDER = 'mock'
     mockProvider = new MockProvider()
     engine = new AIEngine()
     // Inject mock provider

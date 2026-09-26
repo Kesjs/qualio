@@ -104,18 +104,20 @@ export class GeminiQAProvider implements QAAIProvider {
           diag.probable_cause = null
         }
 
-        const promptTokens = response.usageMetadata?.promptTokenCount || 0
-        const completionTokens = response.usageMetadata?.candidatesTokenCount || 0
+        const promptTokens = response.usageMetadata?.promptTokenCount
+        const completionTokens = response.usageMetadata?.candidatesTokenCount
         
-        // Gemini Flash free has no cost, but if it was paid it would be:
-        // Input: $0.075 / 1M, Output: $0.30 / 1M
-        const cost = (promptTokens * 0.075 / 1000000) + (completionTokens * 0.30 / 1000000)
+        let cost: number | null = null
+        if (typeof promptTokens === 'number' && typeof completionTokens === 'number') {
+          // Gemini Flash pricing: Input $0.075 / 1M, Output $0.30 / 1M
+          cost = (promptTokens * 0.075 / 1000000) + (completionTokens * 0.30 / 1000000)
+        }
 
         diag._meta = {
           tokens_input: promptTokens,
           tokens_output: completionTokens,
           duration_ms: endMs - startMs,
-          cost_usd: cost,
+          cost_usd: cost ?? undefined,
           model: this.model
         }
         return diag
