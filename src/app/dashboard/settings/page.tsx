@@ -13,6 +13,44 @@ import {
   KeyIcon,
 } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient as createClient } from '@/lib/supabase/client'
+import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
+
+const NOTIFICATION_OPTIONS: CheckboxGroupOption[] = [
+  {
+    label: "Push notifications",
+    value: "push",
+    description: "Get instant alerts on your devices when a regression is detected",
+    group: "Direct Alerts",
+  },
+  {
+    label: "Email digest",
+    value: "email",
+    description: "A weekly summary in your inbox covering health trends and fixes",
+    group: "Direct Alerts",
+  },
+  {
+    label: "SMS alerts",
+    value: "sms",
+    description: "Text messages for critical production-breaking incidents",
+    group: "Direct Alerts",
+  },
+  {
+    label: "Slack integration",
+    value: "slack",
+    description: "Send automated reports to your #qa channel on every completed run",
+    disabled: true,
+    disabledReason: "Available on the Team plan",
+    group: "External Integrations",
+  },
+  {
+    label: "Discord webhook",
+    value: "discord",
+    description: "Real-time regression notifications dispatched to Discord servers",
+    disabled: true,
+    disabledReason: "Available on the Team plan",
+    group: "External Integrations",
+  },
+]
 
 const TABS = [
   { id: 'profile', label: 'Profil', icon: UserIcon },
@@ -26,8 +64,7 @@ const TABS = [
 export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('profile')
-  const [emailAlerts, setEmailAlerts] = useState(true)
-  const [slackAlerts, setSlackAlerts] = useState(false)
+  const [notificationPreferences, setNotificationPreferences] = useState<string[]>(['push', 'email'])
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -127,60 +164,16 @@ export default function SettingsPage() {
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Préférences de notification</h2>
                   <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-                    Choisissez quand et comment vous souhaitez être alerté des régressions.
+                    Choisissez quand et comment vous souhaitez être alerté des régressions critiques et des bilans QA.
                   </p>
                 </div>
 
-                <div className="space-y-6">
-                  {/* Email Alert */}
-                  <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-200/50 bg-gray-50/50 dark:bg-white/[0.02] dark:border-white/[0.04]">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alerte Email Immédiate</h3>
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-md">
-                        Recevoir un email dès qu'une régression critique (ex: CTA bloqué) est détectée sur vos environnements de production.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setEmailAlerts(!emailAlerts)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-[#ee6018] focus:ring-offset-2 dark:focus:ring-offset-[#16181E] transition-colors ${
-                        emailAlerts ? 'bg-[#ee6018]' : 'bg-gray-200 dark:bg-zinc-700'
-                      }`}
-                    >
-                      <span className="sr-only">Use setting</span>
-                      <span
-                        aria-hidden="true"
-                        className={`pointer-events-none absolute left-0.5 h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${
-                          emailAlerts ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Slack Alert */}
-                  <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-200/50 bg-gray-50/50 dark:bg-white/[0.02] dark:border-white/[0.04]">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alerte Slack</h3>
-                      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-md">
-                        Envoyer un rapport résumé dans un canal Slack spécifique à chaque fin de run automatisé.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSlackAlerts(!slackAlerts)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-[#ee6018] focus:ring-offset-2 dark:focus:ring-offset-[#16181E] transition-colors ${
-                        slackAlerts ? 'bg-[#ee6018]' : 'bg-gray-200 dark:bg-zinc-700'
-                      }`}
-                    >
-                      <span className="sr-only">Use setting</span>
-                      <span
-                        aria-hidden="true"
-                        className={`pointer-events-none absolute left-0.5 h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${
-                          slackAlerts ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
+                <div className="max-w-xl rounded-xl border border-gray-200/80 bg-gray-50/30 p-2 dark:border-white/[0.06] dark:bg-white/[0.01]">
+                  <CheckboxGroup
+                    options={NOTIFICATION_OPTIONS}
+                    value={notificationPreferences}
+                    onChange={setNotificationPreferences}
+                  />
                 </div>
               </div>
             )}

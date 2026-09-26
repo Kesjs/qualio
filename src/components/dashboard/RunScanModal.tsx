@@ -12,6 +12,35 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline'
 import { useStartScan } from '@/lib/hooks/useScan'
+import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
+
+const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
+  {
+    label: "Exploration des pages (Crawler)",
+    value: "pages",
+    description: "Crawl des liens internes, détection des erreurs 404 & 500",
+  },
+  {
+    label: "Interactions & Boutons CTA",
+    value: "cta",
+    description: "Vérification de la cliquabilité des boutons principaux",
+  },
+  {
+    label: "Formulaires de base",
+    value: "forms",
+    description: "Présence des champs requis et boutons de validation",
+  },
+  {
+    label: "Erreurs JavaScript (Console & Réseau)",
+    value: "consoleErrors",
+    description: "Capture des exceptions non gérées et requêtes échouées",
+  },
+  {
+    label: "Navigation Mobile (Responsive)",
+    value: "mobileResponsive",
+    description: "Détection des débordements horizontaux et menus mobiles",
+  },
+]
 
 interface RunScanModalProps {
   isOpen: boolean
@@ -33,13 +62,7 @@ interface RunScanModalProps {
 
 export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess }: RunScanModalProps) {
   const [selectedSiteId, setSelectedSiteId] = useState<string>(site?.id || availableSites?.[0]?.id || '')
-  const [tests, setTests] = useState({
-    pages: true,
-    cta: true,
-    forms: true,
-    consoleErrors: false,
-    mobileResponsive: false,
-  })
+  const [selectedModules, setSelectedModules] = useState<string[]>(['pages', 'cta', 'forms'])
   const [consentGiven, setConsentGiven] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,9 +83,6 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
   if (!isOpen) return null
   if (!activeSite) return null
 
-  const toggleTest = (key: keyof typeof tests) => {
-    setTests((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
 
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -159,65 +179,12 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Modules de vérification Playwright
             </label>
-            <div className="space-y-2">
-              {[
-                {
-                  id: 'pages',
-                  title: 'Exploration des pages',
-                  desc: 'Crawl des liens internes, détection des erreurs 404 & 500',
-                  checked: tests.pages,
-                },
-                {
-                  id: 'cta',
-                  title: 'Interactions & Boutons CTA',
-                  desc: 'Vérification de la cliquabilité des boutons principaux',
-                  checked: tests.cta,
-                },
-                {
-                  id: 'forms',
-                  title: 'Formulaires de base',
-                  desc: 'Présence des champs requis et boutons de validation',
-                  checked: tests.forms,
-                },
-                {
-                  id: 'consoleErrors',
-                  title: 'Erreurs JavaScript (Console & Réseau)',
-                  desc: 'Capture des exceptions non gérées et requêtes échouées',
-                  checked: tests.consoleErrors,
-                },
-                {
-                  id: 'mobileResponsive',
-                  title: 'Navigation Mobile (Responsive)',
-                  desc: 'Détection des débordements horizontaux et menus mobiles',
-                  checked: tests.mobileResponsive,
-                },
-              ].map((test) => (
-                <div
-                  key={test.id}
-                  onClick={() => toggleTest(test.id as keyof typeof tests)}
-                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                    test.checked
-                      ? 'bg-[#ee6018]/[0.04] dark:bg-[#ee6018]/10 border-[#ee6018]/30 dark:border-[#ee6018]/40 shadow-2xs'
-                      : 'bg-white dark:bg-[#111216] border-gray-200/80 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.03]'
-                  }`}
-                >
-                  <div className="pt-0.5">
-                    {test.checked ? (
-                      <div className="h-4 w-4 rounded bg-[#ee6018] flex items-center justify-center text-white">
-                        <CheckCircleIcon className="h-3 w-3 stroke-[3]" />
-                      </div>
-                    ) : (
-                      <div className="h-4 w-4 rounded border border-gray-300 dark:border-white/20 bg-white dark:bg-transparent" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-white">{test.title}</h4>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
-                      {test.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-xl border border-gray-200/80 bg-gray-50/30 p-1 dark:border-white/[0.06] dark:bg-white/[0.01]">
+              <CheckboxGroup
+                options={SCAN_MODULE_OPTIONS}
+                value={selectedModules}
+                onChange={setSelectedModules}
+              />
             </div>
           </div>
 
