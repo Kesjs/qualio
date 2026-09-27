@@ -42,7 +42,7 @@ interface IssueCardProps {
   diag: QAAIDiagnostic
   confidencePct: number
   toggleBugAccordion: (issueId: string) => void
-  handleOpenEvidence: (issue: IssueRow, type: 'screenshot' | 'network' | 'console') => void
+  handleOpenEvidence: (issue: IssueRow, type: EvidenceDetail['type']) => void
 }
 
 function IssueCard({
@@ -223,6 +223,28 @@ function IssueCard({
                   <span>💻 Console</span>
                 </button>
               )}
+
+              {/* Generic button for evidence types without a dedicated icon
+                  (diagnostic, viewport, measurement, url, action...). Without
+                  this, that evidence existed in the database but had no way
+                  to be opened from the incident card. */}
+              {(issue.evidence || []).some(
+                (e: any) => !['screenshot', 'network', 'console'].includes(e.type)
+              ) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const other = (issue.evidence || []).find(
+                      (e: any) => !['screenshot', 'network', 'console'].includes(e.type)
+                    )
+                    handleOpenEvidence(issue, (other?.type as EvidenceDetail['type']) || 'raw')
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
+                >
+                  <InformationCircleIcon className="h-3.5 w-3.5 text-[#ee6018]" />
+                  <span>🔍 Autre preuve</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -393,20 +415,29 @@ export default function SiteWorkspacePage() {
   }
 
   // Open evidence drawer for a specific proof
-  const handleOpenEvidence = (issue: IssueRow, preferredType: 'screenshot' | 'network' | 'console') => {
+  const handleOpenEvidence = (issue: IssueRow, preferredType: EvidenceDetail['type']) => {
     const rawEvList = issue.evidence || []
-    const evList: EvidenceDetail[] = rawEvList.map((ev) => ({
-      type: (ev.type as any) || 'raw',
-      title:
-        ev.type === 'network'
-          ? `Preuve Réseau (HTTP ${ev.payload?.status || 500})`
-          : ev.type === 'screenshot'
-          ? 'Capture d\'écran Playwright'
-          : 'Journal Console JavaScript',
-      url: issue.page?.url,
-      issueTitle: issue.title,
-      payload: ev.payload,
-    }))
+    const evList: EvidenceDetail[] = rawEvList.map((ev) => {
+      const type = (ev.type as EvidenceDetail['type']) || 'raw'
+      const titles: Record<string, string> = {
+        network: `Preuve Réseau (HTTP ${ev.payload?.status || 500})`,
+        screenshot: 'Capture d\'écran Playwright',
+        console: 'Journal Console JavaScript',
+        diagnostic: 'Diagnostic technique',
+        viewport: 'Preuve Responsive (Viewport)',
+        measurement: 'Mesure technique',
+        journey: 'Étapes du parcours utilisateur',
+        url: 'Page concernée',
+        action: 'Action utilisateur',
+      }
+      return {
+        type,
+        title: titles[type] || 'Preuve technique',
+        url: issue.page?.url,
+        issueTitle: issue.title,
+        payload: ev.payload,
+      }
+    })
 
     const matched = evList.find((e) => e.type === preferredType) || evList[0] || null
     if (!matched) return // Don't open if no evidence exists

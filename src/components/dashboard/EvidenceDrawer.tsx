@@ -22,7 +22,7 @@ import { useIssueScreenshots, useScreenshotSignedUrl, useBeforeAfterScreenshots,
 import type { JourneyStep } from '@/lib/hooks/useScreenshots'
 
 export interface EvidenceDetail {
-  type: 'screenshot' | 'network' | 'console' | 'raw' | 'journey'
+  type: 'screenshot' | 'network' | 'console' | 'raw' | 'journey' | 'diagnostic' | 'viewport' | 'measurement' | 'url' | 'action'
   title: string
   url?: string
   issueTitle?: string
@@ -359,12 +359,15 @@ at HTMLButtonElement.element.addEventListener.call (https://app.acme.com/assets/
               </div>
             )}
 
-            {/* VIEW 4: RAW GENERIC FALLBACK */}
-            {evidence.type === 'raw' && (
+            {/* VIEW 4: RAW GENERIC FALLBACK — catches any evidence type without
+                a dedicated view (raw, diagnostic, viewport, measurement, url,
+                action...). Without this fallback, unknown types rendered a
+                blank drawer even though the evidence existed in the database. */}
+            {!['screenshot', 'network', 'console', 'journey'].includes(evidence.type) && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>Preuve brute enregistrée dans Supabase</span>
-                  <span className="font-mono text-[11px]">evidence_payload</span>
+                  <span className="font-mono text-[11px]">evidence_payload · {evidence.type}</span>
                 </div>
                 <div className="rounded-lg bg-gray-950 p-4 border border-gray-800 text-xs font-mono text-gray-200 overflow-x-auto">
                   <pre>{JSON.stringify(payload, null, 2)}</pre>

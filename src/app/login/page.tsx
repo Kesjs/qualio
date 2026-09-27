@@ -101,6 +101,11 @@ export default function LoginPage() {
     if (!email || !password) { toast.error(t.errors.fillAll); return }
     setIsLoading(true)
     try {
+      const check = await fetch('/api/auth/signup-check', { method: 'POST' })
+      if (check.status === 429) {
+        toast.error(t.errors.tooManyAttempts)
+        return
+      }
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
