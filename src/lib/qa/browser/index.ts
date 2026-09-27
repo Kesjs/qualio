@@ -207,11 +207,12 @@ export class BrowserEngine {
     })
 
     try {
-      // Naviguer vers l'URL de départ
-      await page.goto(journey.startUrl, { 
-        waitUntil: 'domcontentloaded', 
-        timeout: 20000 
-      })
+      if (journey.startUrl) {
+        await page.goto(journey.startUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20000,
+        })
+      }
 
       // Exécuter chaque étape du parcours
       for (let i = 0; i < journey.steps.length; i++) {
@@ -333,11 +334,15 @@ export class BrowserEngine {
     stepResult: JourneyStepResult
   ): Promise<void> {
     switch (action.type) {
-      case 'navigation':
+      case 'navigate': {
         if (!action.target) throw new Error('Navigation requires a target URL')
-        const response = await page.goto(action.target, { 
-          waitUntil: 'domcontentloaded', 
-          timeout: 20000 
+        const waitUntil =
+          action.details?.waitUntil === 'networkidle' || action.details?.waitUntil === 'load'
+            ? action.details.waitUntil
+            : 'domcontentloaded'
+        const response = await page.goto(action.target, {
+          waitUntil,
+          timeout: 20000,
         })
         stepResult.resultPayload = {
           url: action.target,
@@ -345,6 +350,7 @@ export class BrowserEngine {
           finalUrl: page.url(),
         }
         break
+      }
 
       case 'click':
         if (!action.target) throw new Error('Click requires a target selector')
@@ -356,40 +362,44 @@ export class BrowserEngine {
         stepResult.resultPayload = { currentUrl: page.url() }
         break
 
-      case 'fill':
+      case 'fill': {
         if (!action.target) throw new Error('Fill requires a target selector')
+        const detailsValue =
+          typeof action.details?.value === 'string' ? action.details.value : undefined
         if (typeof action.value === 'object') {
-          // Remplir plusieurs champs
           for (const [selector, value] of Object.entries(action.value)) {
             await page.fill(selector, value, { timeout: 10000 })
           }
           stepResult.actionDetails = { fields: Object.keys(action.value) }
         } else {
-          // Remplir un seul champ
-          await page.fill(action.target, action.value || '', { timeout: 10000 })
-          stepResult.actionDetails = { selector: action.target }
+          await page.fill(action.target, action.value || detailsValue || '', { timeout: 10000 })
+          stepResult.actionDetails = { selector: action.target, ...(action.details ?? {}) }
         }
         break
+      }
 
-      case 'submit':
+      case 'submit': {
         if (!action.target) throw new Error('Submit requires a target selector')
-        const submitPromises = [page.click(action.target, { timeout: 10000 })]
+        const submitPromises: Promise<unknown>[] = [page.click(action.target, { timeout: 10000 })]
         if (action.waitFor) {
           submitPromises.push(page.waitForURL(action.waitFor, { timeout: 10000 }))
         }
         await Promise.all(submitPromises)
         stepResult.resultPayload = { currentUrl: page.url() }
         break
+      }
 
-      case 'wait':
+      case 'wait': {
+        const timeout = typeof action.details?.timeout === 'number' ? action.details.timeout : 10000
         if (action.target) {
-          // Attendre un sélecteur
-          await page.waitForSelector(action.target, { timeout: 10000 })
+          await page.waitForSelector(action.target, { timeout })
         } else if (action.waitFor) {
-          // Attendre une URL
-          await page.waitForURL(action.waitFor, { timeout: 10000 })
+          await page.waitForURL(action.waitFor, { timeout })
+        } else {
+          await page.waitForTimeout(timeout)
         }
         break
+      }
 
       case 'assert':
         // Les assertions sont gérées par verifyStepResult

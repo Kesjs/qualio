@@ -1,9 +1,10 @@
 const sharp = require('sharp');
 const fs = require('fs');
+const path = require('path');
 
 const userRaw = 'C:/Users/kenke/.gemini/antigravity-ide/brain/e20a754d-7dc9-4532-8ed3-d5ab31b29a4a/.user_uploaded/media_1790317518011.jpg';
-const destUserWebp = 'c:/Users/kenke/reachly/public/hero-bg-user.webp';
-const destMainWebp = 'c:/Users/kenke/reachly/public/hero-bg.webp';
+const destUserWebp = path.join(__dirname, '..', 'public', 'hero-bg-user.webp');
+const destMainWebp = path.join(__dirname, '..', 'public', 'hero-bg.webp');
 
 async function processUserImage() {
   console.log('Processing user image to 4K WebP...');

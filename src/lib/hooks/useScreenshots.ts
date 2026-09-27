@@ -1,6 +1,8 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import type { Database } from '@/lib/supabase/database.types'
+import { jsonToRecord, parseJourneyStepStatus } from '@/lib/qa/journeys/map-row'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,43 @@ export interface JourneySummary {
   status: 'pass' | 'fail' | 'partial'
 }
 
+type JourneyStepRow = Database['public']['Tables']['journey_steps']['Row']
+
+type ScreenshotRow = Database['public']['Tables']['screenshots']['Row']
+
+function mapScreenshot(row: ScreenshotRow): Screenshot {
+  return {
+    id: row.id,
+    scan_id: row.scan_id,
+    page_id: row.page_id,
+    issue_id: row.issue_id,
+    storage_path: row.storage_path,
+    viewport: row.viewport ?? 'desktop',
+    created_at: row.created_at,
+  }
+}
+
+function mapJourneyStep(row: JourneyStepRow): JourneyStep {
+  return {
+    id: row.id,
+    scan_id: row.scan_id,
+    page_id: row.page_id,
+    issue_id: row.issue_id,
+    journey_name: row.journey_name,
+    step_order: row.step_order,
+    step_name: row.step_name,
+    action_type: row.action_type,
+    action_target: row.action_target ?? null,
+    action_details: jsonToRecord(row.action_details),
+    status: parseJourneyStepStatus(row.status),
+    result_payload: jsonToRecord(row.result_payload),
+    error_message: row.error_message,
+    screenshot_id: row.screenshot_id,
+    duration_ms: row.duration_ms ?? 0,
+    created_at: row.created_at,
+  }
+}
+
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
 /** Récupère tous les screenshots d'un scan depuis la table screenshots */
@@ -67,7 +106,7 @@ async function fetchScanScreenshots(scanId: string): Promise<Screenshot[]> {
     throw new Error('Impossible de récupérer les screenshots')
   }
 
-  return data || []
+  return (data ?? []).map(mapScreenshot)
 }
 
 /** Récupère les screenshots associés à un incident spécifique */
@@ -85,7 +124,7 @@ async function fetchIssueScreenshots(issueId: string): Promise<Screenshot[]> {
     throw new Error('Impossible de récupérer les screenshots')
   }
 
-  return data || []
+  return (data ?? []).map(mapScreenshot)
 }
 
 /**
@@ -241,7 +280,7 @@ async function fetchJourneySteps(scanId: string): Promise<JourneyStep[]> {
     throw new Error('Impossible de récupérer les journey steps')
   }
 
-  return data || []
+  return (data ?? []).map(mapJourneyStep)
 }
 
 /**
@@ -265,7 +304,7 @@ async function fetchJourneyStepsByName(
     throw new Error('Impossible de récupérer les journey steps')
   }
 
-  return data || []
+  return (data ?? []).map(mapJourneyStep)
 }
 
 /**

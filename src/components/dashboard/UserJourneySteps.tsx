@@ -126,7 +126,7 @@ export function UserJourneySteps({
                 
                 {/* Action effectuée */}
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                  {step.action_type === 'navigation' && `Naviguer vers ${step.action_target || 'page'}`}
+                  {step.action_type === 'navigate' && `Naviguer vers ${step.action_target || 'page'}`}
                   {step.action_type === 'click' && `Cliquer sur ${step.action_target || 'élément'}`}
                   {step.action_type === 'fill' && `Remplir ${step.action_target || 'formulaire'}`}
                   {step.action_type === 'submit' && `Soumettre ${step.action_target || 'formulaire'}`}

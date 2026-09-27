@@ -43,9 +43,11 @@ export function JourneyStepDetail({ step, journeyName, className = '' }: Journey
   }
 
   const hasScreenshot = !!step.screenshot_id
-  const hasNetworkData = step.result_payload?.status || step.result_payload?.networkErrors
-  const hasConsoleErrors = step.result_payload?.consoleErrors && Array.isArray(step.result_payload.consoleErrors)
-  const currentUrl = step.result_payload?.currentUrl as string | undefined
+  const hasNetworkData = Boolean(step.result_payload.status || step.result_payload.networkErrors)
+  const hasConsoleErrors = Array.isArray(step.result_payload.consoleErrors)
+  const currentUrl = typeof step.result_payload.currentUrl === 'string'
+    ? step.result_payload.currentUrl
+    : undefined
 
   return (
     <div className={`space-y-4 ${className}`}>

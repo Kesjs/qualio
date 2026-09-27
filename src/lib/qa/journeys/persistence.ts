@@ -5,6 +5,12 @@
 
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import type { JourneyResult, JourneyStepResult } from '../types'
+import { mapJourneyStepRow, recordToJson } from './map-row'
+
+function screenshotViewport(step: JourneyStepResult): string {
+  const viewport = step.resultPayload?.viewport
+  return typeof viewport === 'string' && viewport.length > 0 ? viewport : 'desktop'
+}
 
 /**
  * Persiste les résultats d'un journey dans Supabase
@@ -17,22 +23,41 @@ export async function persistJourneyResults(
 ): Promise<{ success: boolean; stepIds: string[]; error?: string }> {
   const supabase = getSupabaseAdminClient()
   const stepIds: string[] = []
+  const scanId = journeyResult.steps[0]?.scanId
+
+  if (!scanId) {
+    return { success: true, stepIds }
+  }
 
   try {
-    // Persister chaque étape
+    const { data: scan, error: scanError } = await supabase
+      .from('scans')
+      .select('user_id')
+      .eq('id', scanId)
+      .single()
+
+    if (scanError || !scan?.user_id) {
+      return {
+        success: false,
+        stepIds,
+        error: scanError?.message || 'Impossible de récupérer user_id du scan pour le chemin Storage',
+      }
+    }
+
+    const userId = scan.user_id
+
     for (const step of journeyResult.steps) {
       let screenshotId: string | null = null
 
-      // Upload du screenshot si présent (uniquement à l'échec)
       if (step.status === 'fail' && step.resultPayload?.screenshotBuffer) {
         try {
           const screenshotBuffer = Buffer.from(
-            step.resultPayload.screenshotBuffer as string,
+            String(step.resultPayload.screenshotBuffer),
             'base64'
           )
-          const storagePath = `${step.scanId}/journey_${step.journeyName.replace(/\s+/g, '_')}_step${step.stepOrder}_${Date.now()}.png`
+          const storagePath = `${userId}/${step.scanId}/journey_${step.journeyName.replace(/\s+/g, '_')}_step${step.stepOrder}_${Date.now()}.png`
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('screenshots')
             .upload(storagePath, screenshotBuffer, {
               contentType: 'image/png',
@@ -42,7 +67,6 @@ export async function persistJourneyResults(
           if (uploadError) {
             console.error('Erreur upload screenshot journey step:', uploadError)
           } else {
-            // Créer l'entrée dans la table screenshots
             const { data: screenshotData, error: screenshotError } = await supabase
               .from('screenshots')
               .insert({
@@ -50,7 +74,7 @@ export async function persistJourneyResults(
                 page_id: step.pageId || null,
                 issue_id: step.issueId || null,
                 storage_path: storagePath,
-                viewport: step.resultPayload?.viewport || 'desktop',
+                viewport: screenshotViewport(step),
               })
               .select('id')
               .single()
@@ -62,18 +86,15 @@ export async function persistJourneyResults(
             }
           }
 
-          // Nettoyer le buffer du payload avant persistance
           delete step.resultPayload.screenshotBuffer
         } catch (error) {
           console.error('Erreur traitement screenshot:', error)
         }
       }
 
-      // Préparer le payload propre (sans le buffer screenshot)
       const cleanPayload = { ...step.resultPayload }
       delete cleanPayload.screenshotBuffer
 
-      // Insérer l'étape dans journey_steps
       const { data: stepData, error: stepError } = await supabase
         .from('journey_steps')
         .insert({
@@ -84,13 +105,13 @@ export async function persistJourneyResults(
           step_order: step.stepOrder,
           step_name: step.stepName,
           action_type: step.actionType,
-          action_target: step.actionTarget || null,
-          action_details: step.actionDetails || {},
+          action_target: step.actionTarget ?? null,
+          action_details: recordToJson(step.actionDetails),
           status: step.status,
-          result_payload: cleanPayload || {},
-          error_message: step.errorMessage || null,
+          result_payload: recordToJson(cleanPayload),
+          error_message: step.errorMessage ?? null,
           screenshot_id: screenshotId,
-          duration_ms: step.durationMs || 0,
+          duration_ms: step.durationMs ?? 0,
         })
         .select('id')
         .single()
@@ -106,12 +127,12 @@ export async function persistJourneyResults(
     }
 
     return { success: true, stepIds }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur persistance journey results:', error)
     return {
       success: false,
       stepIds,
-      error: error.message || 'Erreur inconnue lors de la persistance',
+      error: error instanceof Error ? error.message : 'Erreur inconnue lors de la persistance',
     }
   }
 }
@@ -134,26 +155,7 @@ export async function fetchJourneySteps(scanId: string): Promise<JourneyStepResu
     return []
   }
 
-  return (
-    data?.map((row) => ({
-      id: row.id,
-      scanId: row.scan_id,
-      pageId: row.page_id,
-      issueId: row.issue_id,
-      journeyName: row.journey_name,
-      stepOrder: row.step_order,
-      stepName: row.step_name,
-      actionType: row.action_type as any,
-      actionTarget: row.action_target,
-      actionDetails: row.action_details as Record<string, unknown>,
-      status: row.status as any,
-      resultPayload: row.result_payload as Record<string, unknown>,
-      errorMessage: row.error_message,
-      screenshotId: row.screenshot_id,
-      durationMs: row.duration_ms,
-      createdAt: row.created_at,
-    })) || []
-  )
+  return data?.map(mapJourneyStepRow) ?? []
 }
 
 /**
@@ -177,26 +179,7 @@ export async function fetchJourneyStepsByName(
     return []
   }
 
-  return (
-    data?.map((row) => ({
-      id: row.id,
-      scanId: row.scan_id,
-      pageId: row.page_id,
-      issueId: row.issue_id,
-      journeyName: row.journey_name,
-      stepOrder: row.step_order,
-      stepName: row.step_name,
-      actionType: row.action_type as any,
-      actionTarget: row.action_target,
-      actionDetails: row.action_details as Record<string, unknown>,
-      status: row.status as any,
-      resultPayload: row.result_payload as Record<string, unknown>,
-      errorMessage: row.error_message,
-      screenshotId: row.screenshot_id,
-      durationMs: row.duration_ms,
-      createdAt: row.created_at,
-    })) || []
-  )
+  return data?.map(mapJourneyStepRow) ?? []
 }
 
 /**
@@ -215,7 +198,5 @@ export async function fetchJourneyNames(scanId: string): Promise<string[]> {
     return []
   }
 
-  // Retourner les noms uniques
-  const uniqueNames = Array.from(new Set(data?.map((row) => row.journey_name) || []))
-  return uniqueNames
+  return Array.from(new Set(data?.map((row) => row.journey_name) ?? []))
 }

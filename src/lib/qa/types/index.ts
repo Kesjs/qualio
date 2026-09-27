@@ -22,13 +22,19 @@ export type CheckCategory =
   | 'performance' | 'accessibility' | 'security' | 'visual'
 
 export type Viewport = 'mobile' | 'tablet' | 'desktop'
-export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screenshot' | 'measurement'
+export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screenshot' | 'measurement' | 'viewport'
 export type IssueStatus = 'open' | 'fixed' | 'ignored' | 'resolved' | 'new' | 'persistent'
 export type Confidence = 'high' | 'medium' | 'low'
 
 // Types pour les User Journeys (Phase 3)
 export type JourneyStepStatus = 'pass' | 'fail' | 'not_reached' | 'skip'
-export type JourneyActionType = 'navigation' | 'click' | 'fill' | 'submit' | 'wait' | 'assert'
+export type JourneyActionType =
+  | 'navigate'
+  | 'click'
+  | 'fill'
+  | 'submit'
+  | 'wait'
+  | 'assert'
 
 export interface QAConfig {
   maxPages: number
@@ -173,6 +179,7 @@ export interface JourneyStepAction {
   target?: string // Sélecteur CSS, URL, ou identifiant
   value?: string | Record<string, string> // Valeur à remplir, ou map de champs
   waitFor?: string // Condition d'attente (URL, sélecteur, timeout)
+  details?: Record<string, unknown>
 }
 
 export interface JourneyStepDefinition {
@@ -189,7 +196,7 @@ export interface JourneyDefinition {
   name: string
   description?: string
   steps: JourneyStepDefinition[]
-  startUrl: string
+  startUrl?: string
   viewport?: ViewportConfig
 }
 

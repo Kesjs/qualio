@@ -3,7 +3,7 @@
 
 -- Table principale : journey_steps
 CREATE TABLE IF NOT EXISTS public.journey_steps (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   scan_id UUID NOT NULL REFERENCES public.scans(id) ON DELETE CASCADE,
   page_id UUID REFERENCES public.pages(id) ON DELETE SET NULL,
   issue_id UUID REFERENCES public.issues(id) ON DELETE SET NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.journey_steps (
   step_name TEXT NOT NULL, -- Ex: "Homepage", "Click CTA", "Submit form"
   
   -- Action effectuée
-  action_type TEXT NOT NULL, -- 'navigation', 'click', 'fill', 'submit', 'wait'
+  action_type TEXT NOT NULL, -- 'navigate', 'click', 'fill', 'submit', 'wait', 'assert'
   action_target TEXT, -- Ex: "#pricing-link", "form#contact"
   action_details JSONB, -- Détails additionnels (champs remplis, URL navigée, etc.)
   
@@ -67,7 +67,7 @@ COMMENT ON TABLE public.journey_steps IS 'Stocke chaque étape d''un parcours ut
 COMMENT ON COLUMN public.journey_steps.journey_name IS 'Nom du parcours complet (ex: "Lead & Demo Conversion Flow")';
 COMMENT ON COLUMN public.journey_steps.step_order IS 'Position de l''étape dans le parcours (commence à 1)';
 COMMENT ON COLUMN public.journey_steps.step_name IS 'Nom descriptif de l''étape (ex: "Homepage", "Click CTA")';
-COMMENT ON COLUMN public.journey_steps.action_type IS 'Type d''action Playwright : navigation, click, fill, submit, wait';
+COMMENT ON COLUMN public.journey_steps.action_type IS 'Type d''action Playwright : navigate, click, fill, submit, wait, assert';
 COMMENT ON COLUMN public.journey_steps.status IS 'Résultat de l''étape : pass (réussi), fail (échec), not_reached (étape suivante non atteinte après échec), skip (ignorée)';
 COMMENT ON COLUMN public.journey_steps.screenshot_id IS 'Screenshot capturé à cette étape (uniquement si échec)';
 COMMENT ON COLUMN public.journey_steps.result_payload IS 'Données techniques : HTTP status, network errors, console logs, DOM state, etc.';

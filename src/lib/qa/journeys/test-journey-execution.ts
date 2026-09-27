@@ -1,20 +1,32 @@
 /**
  * SCRIPT DE TEST POUR LES JOURNEY STEPS
- * 
- * Ce script permet de tester l'exécution des journeys de manière isolée.
- * Utile pour débugger et valider que tout fonctionne correctement.
- * 
- * Usage (depuis la console Node.js ou un endpoint API) :
- * 
+ *
+ * Usage :
  * import { testJourneyExecution } from '@/lib/qa/journeys/test-journey-execution'
  * await testJourneyExecution('https://example.com', 'scan_test_123')
  */
 
-import { chromium } from 'playwright'
-import { executeJourney } from '@/lib/qa/browser/BrowserEngine'
+import { BrowserEngine } from '@/lib/qa/browser'
+import { QAConfigManager } from '@/lib/qa/config'
 import { persistJourneyResults, fetchJourneySteps } from '@/lib/qa/journeys/persistence'
 import { JOURNEY_BROKEN_TEST, JOURNEY_LOGIN } from '@/lib/qa/journeys/definitions'
 import type { JourneyDefinition } from '@/lib/qa/types'
+
+async function runJourney(scanId: string, journey: JourneyDefinition) {
+  const engine = new BrowserEngine(new QAConfigManager())
+  await engine.initialize()
+  try {
+    return await engine.executeJourney(scanId, journey)
+  } finally {
+    await engine.cleanup()
+  }
+}
+
+function bufferSizeFromPayload(payload: Record<string, unknown> | undefined): number | null {
+  const raw = payload?.screenshotBuffer
+  if (typeof raw !== 'string') return null
+  return Buffer.from(raw, 'base64').length
+}
 
 /**
  * Test complet d'un journey avec logs détaillés
@@ -24,205 +36,125 @@ export async function testJourneyExecution(
   scanId: string = `test_scan_${Date.now()}`,
   journeyToTest: JourneyDefinition = JOURNEY_BROKEN_TEST
 ): Promise<void> {
+  const journey: JourneyDefinition = {
+    ...journeyToTest,
+    startUrl: journeyToTest.startUrl ?? targetUrl,
+  }
+
   console.log('\n' + '='.repeat(80))
   console.log('🧪 JOURNEY EXECUTION TEST')
   console.log('='.repeat(80))
   console.log(`Target URL: ${targetUrl}`)
   console.log(`Scan ID: ${scanId}`)
-  console.log(`Journey: ${journeyToTest.name}`)
-  console.log(`Steps: ${journeyToTest.steps.length}`)
+  console.log(`Journey: ${journey.name}`)
+  console.log(`Steps: ${journey.steps.length}`)
   console.log('='.repeat(80) + '\n')
 
-  const browser = await chromium.launch({ 
-    headless: false,  // Visible pour debug
-    slowMo: 500       // Ralentir pour voir ce qui se passe
-  })
+  const startTime = Date.now()
+  const result = await runJourney(scanId, journey)
+  const executionTime = Date.now() - startTime
 
-  const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-  })
+  console.log(`\n✓ Journey execution completed in ${executionTime}ms\n`)
+  console.log('─'.repeat(80))
+  console.log('📊 EXECUTION RESULTS')
+  console.log('─'.repeat(80))
+  console.log(`Journey Name: ${result.journeyName}`)
+  console.log(`Total Steps: ${result.steps.length}`)
+  console.log(`✓ Passed: ${result.stepsPassed}`)
+  console.log(`✗ Failed: ${result.stepsFailed}`)
+  console.log(`○ Not Reached: ${result.stepsNotReached}`)
+  console.log(`Duration: ${result.durationMs}ms`)
+  console.log('─'.repeat(80) + '\n')
 
-  const page = await context.newPage()
+  console.log('📋 STEP-BY-STEP BREAKDOWN')
+  console.log('─'.repeat(80))
+  result.steps.forEach((step, index) => {
+    const statusIcon = {
+      pass: '✓',
+      fail: '✗',
+      not_reached: '○',
+      skip: '⊘',
+    }[step.status]
 
-  try {
-    // Ajouter des listeners pour debug
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        console.log(`[Browser Console Error] ${msg.text()}`)
-      }
-    })
+    console.log(`\n${index + 1}. ${step.stepName}`)
+    console.log(`   Status: ${statusIcon} ${step.status.toUpperCase()}`)
+    console.log(`   Action: ${step.actionType} ${step.actionTarget || ''}`)
 
-    page.on('pageerror', error => {
-      console.log(`[Browser Page Error] ${error.message}`)
-    })
-
-    // Naviguer vers la page
-    console.log(`\n📍 Navigating to: ${targetUrl}`)
-    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 30000 })
-    console.log(`✓ Page loaded successfully\n`)
-
-    // Exécuter le journey
-    console.log(`🚀 Executing journey: ${journeyToTest.name}\n`)
-    const startTime = Date.now()
-    
-    const result = await executeJourney(scanId, journeyToTest, page)
-    
-    const executionTime = Date.now() - startTime
-    console.log(`\n✓ Journey execution completed in ${executionTime}ms\n`)
-
-    // Afficher les résultats détaillés
-    console.log('─'.repeat(80))
-    console.log('📊 EXECUTION RESULTS')
-    console.log('─'.repeat(80))
-    console.log(`Journey Name: ${result.journeyName}`)
-    console.log(`Total Steps: ${result.steps.length}`)
-    console.log(`✓ Passed: ${result.passCount}`)
-    console.log(`✗ Failed: ${result.failCount}`)
-    console.log(`○ Not Reached: ${result.notReachedCount}`)
-    console.log(`⊘ Skipped: ${result.skipCount}`)
-    console.log(`Duration: ${result.totalDuration}ms`)
-    console.log('─'.repeat(80) + '\n')
-
-    // Détail de chaque étape
-    console.log('📋 STEP-BY-STEP BREAKDOWN')
-    console.log('─'.repeat(80))
-    result.steps.forEach((step, index) => {
-      const statusIcon = {
-        pass: '✓',
-        fail: '✗',
-        not_reached: '○',
-        skip: '⊘'
-      }[step.status]
-
-      console.log(`\n${index + 1}. ${step.step_name}`)
-      console.log(`   Status: ${statusIcon} ${step.status.toUpperCase()}`)
-      console.log(`   Action: ${step.action_type} ${step.action_target || ''}`)
-      
-      if (step.duration_ms !== undefined) {
-        console.log(`   Duration: ${step.duration_ms}ms`)
-      }
-
-      if (step.error_message) {
-        console.log(`   Error: ${step.error_message}`)
-      }
-
-      if (step.screenshot_id) {
-        console.log(`   Screenshot: ${step.screenshot_id} ✓`)
-      }
-
-      if (step.result_payload?.screenshotBuffer) {
-        const bufferSize = Buffer.from(step.result_payload.screenshotBuffer, 'base64').length
-        console.log(`   Screenshot Buffer: ${(bufferSize / 1024).toFixed(2)} KB`)
-      }
-    })
-    console.log('\n' + '─'.repeat(80) + '\n')
-
-    // Persister dans Supabase
-    console.log('💾 Persisting results to Supabase...')
-    await persistJourneyResults(scanId, result)
-    console.log('✓ Results persisted successfully\n')
-
-    // Vérifier que les données ont bien été enregistrées
-    console.log('🔍 Verifying data in database...')
-    const savedSteps = await fetchJourneySteps(scanId)
-    const journeySteps = savedSteps.filter(s => s.journey_name === journeyToTest.name)
-    
-    if (journeySteps.length === result.steps.length) {
-      console.log(`✓ All ${journeySteps.length} steps found in database`)
-    } else {
-      console.warn(`⚠ Mismatch: ${result.steps.length} steps executed but ${journeySteps.length} found in DB`)
+    if (step.durationMs !== undefined) {
+      console.log(`   Duration: ${step.durationMs}ms`)
     }
 
-    // Vérifier les screenshots
-    const stepsWithScreenshots = journeySteps.filter(s => s.screenshot_id)
-    console.log(`✓ ${stepsWithScreenshots.length} steps have screenshots saved`)
-
-    if (stepsWithScreenshots.length > 0) {
-      console.log('\n📸 Screenshots captured:')
-      stepsWithScreenshots.forEach(step => {
-        console.log(`   - ${step.step_name}: ${step.screenshot_id}`)
-      })
+    if (step.errorMessage) {
+      console.log(`   Error: ${step.errorMessage}`)
     }
 
-    console.log('\n' + '='.repeat(80))
-    console.log('✅ TEST COMPLETED SUCCESSFULLY')
-    console.log('='.repeat(80) + '\n')
+    if (step.screenshotId) {
+      console.log(`   Screenshot: ${step.screenshotId} ✓`)
+    }
 
-    console.log('Next steps:')
-    console.log(`1. Open Evidence Drawer with scan_id: ${scanId}`)
-    console.log(`2. Select "User Journeys" tab`)
-    console.log(`3. Click on failed steps to see screenshot and error details`)
-    console.log('')
+    const bufferSize = bufferSizeFromPayload(step.resultPayload)
+    if (bufferSize !== null) {
+      console.log(`   Screenshot Buffer: ${(bufferSize / 1024).toFixed(2)} KB`)
+    }
+  })
+  console.log('\n' + '─'.repeat(80) + '\n')
 
-  } catch (error) {
-    console.error('\n' + '='.repeat(80))
-    console.error('❌ TEST FAILED')
-    console.error('='.repeat(80))
-    console.error(error)
-    throw error
-  } finally {
-    console.log('\n🧹 Cleaning up...')
-    await page.waitForTimeout(2000)  // Pause pour voir le résultat final
-    await context.close()
-    await browser.close()
-    console.log('✓ Browser closed\n')
+  console.log('💾 Persisting results to Supabase...')
+  await persistJourneyResults(result)
+  console.log('✓ Results persisted successfully\n')
+
+  console.log('🔍 Verifying data in database...')
+  const savedSteps = await fetchJourneySteps(scanId)
+  const journeySteps = savedSteps.filter(s => s.journeyName === journeyToTest.name)
+
+  if (journeySteps.length === result.steps.length) {
+    console.log(`✓ All ${journeySteps.length} steps found in database`)
+  } else {
+    console.warn(`⚠ Mismatch: ${result.steps.length} steps executed but ${journeySteps.length} found in DB`)
   }
+
+  const stepsWithScreenshots = journeySteps.filter(s => s.screenshotId)
+  console.log(`✓ ${stepsWithScreenshots.length} steps have screenshots saved`)
+
+  if (stepsWithScreenshots.length > 0) {
+    console.log('\n📸 Screenshots captured:')
+    stepsWithScreenshots.forEach(step => {
+      console.log(`   - ${step.stepName}: ${step.screenshotId}`)
+    })
+  }
+
+  console.log('\n' + '='.repeat(80))
+  console.log('✅ TEST COMPLETED SUCCESSFULLY')
+  console.log('='.repeat(80) + '\n')
 }
 
-/**
- * Test rapide du journey LOGIN (devrait passer sur la plupart des sites)
- */
 export async function quickTestLogin(url: string): Promise<void> {
   return testJourneyExecution(url, `test_login_${Date.now()}`, JOURNEY_LOGIN)
 }
 
-/**
- * Test rapide du journey BROKEN (devrait échouer et capturer un screenshot)
- */
 export async function quickTestBroken(url: string): Promise<void> {
   return testJourneyExecution(url, `test_broken_${Date.now()}`, JOURNEY_BROKEN_TEST)
 }
 
-/**
- * Test de performance : mesurer le temps d'exécution
- */
 export async function benchmarkJourneyExecution(
   url: string,
   journey: JourneyDefinition,
   iterations: number = 3
 ): Promise<number[]> {
   console.log(`\n⏱️  BENCHMARK: ${journey.name} (${iterations} iterations)\n`)
-  
+
   const times: number[] = []
 
   for (let i = 0; i < iterations; i++) {
     const scanId = `benchmark_${Date.now()}_${i}`
     console.log(`Iteration ${i + 1}/${iterations}...`)
 
-    const browser = await chromium.launch({ headless: true })
-    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } })
-    const page = await context.newPage()
+    const startTime = Date.now()
+    const result = await runJourney(scanId, { ...journey, startUrl: journey.startUrl ?? url })
+    const duration = Date.now() - startTime
+    times.push(duration)
 
-    try {
-      await page.goto(url, { waitUntil: 'networkidle' })
-      
-      const startTime = Date.now()
-      const result = await executeJourney(scanId, journey, page)
-      const endTime = Date.now()
-
-      const duration = endTime - startTime
-      times.push(duration)
-
-      console.log(`  Duration: ${duration}ms (${result.passCount} pass, ${result.failCount} fail)`)
-
-      // Ne pas persister pour ne pas polluer la DB
-    } finally {
-      await context.close()
-      await browser.close()
-    }
-
-    // Pause entre les itérations
+    console.log(`  Duration: ${duration}ms (${result.stepsPassed} pass, ${result.stepsFailed} fail)`)
     await new Promise(resolve => setTimeout(resolve, 1000))
   }
 
@@ -239,9 +171,6 @@ export async function benchmarkJourneyExecution(
   return times
 }
 
-/**
- * Helper : Créer un journey custom pour des tests spécifiques
- */
 export function createTestJourney(
   name: string,
   targetUrl: string,
@@ -249,38 +178,38 @@ export function createTestJourney(
 ): JourneyDefinition {
   return {
     name,
+    startUrl: targetUrl,
     steps: [
       {
         name: 'Navigate to page',
         action: {
           type: 'navigate',
-          target: targetUrl
-        }
+          target: targetUrl,
+        },
       },
       {
         name: `Click on ${selectorToClick}`,
         action: {
           type: 'click',
-          target: selectorToClick
-        }
+          target: selectorToClick,
+        },
       },
       {
         name: 'Wait for result',
         action: {
           type: 'wait',
           target: 'body',
-          details: { timeout: 2000 }
-        }
-      }
-    ]
+          details: { timeout: 2000 },
+        },
+      },
+    ],
   }
 }
 
-// Export des tests par défaut
 export const tests = {
   full: testJourneyExecution,
   login: quickTestLogin,
   broken: quickTestBroken,
   benchmark: benchmarkJourneyExecution,
-  custom: createTestJourney
+  custom: createTestJourney,
 }

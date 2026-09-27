@@ -19,7 +19,7 @@ import { BeforeAfterComparison } from './BeforeAfterComparison'
 import { UserJourneySteps } from './UserJourneySteps'
 import { JourneyStepDetail } from './JourneyStepDetail'
 import { useIssueScreenshots, useScreenshotSignedUrl, useBeforeAfterScreenshots, useScanJourneySteps } from '@/lib/hooks/useScreenshots'
-import type { JourneyStepRecord } from '@/lib/qa/types'
+import type { JourneyStep } from '@/lib/hooks/useScreenshots'
 
 export interface EvidenceDetail {
   type: 'screenshot' | 'network' | 'console' | 'raw' | 'journey'
@@ -47,7 +47,7 @@ export function EvidenceDrawer({
   const [copied, setCopied] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showScreenshotModal, setShowScreenshotModal] = useState(false)
-  const [selectedJourneyStep, setSelectedJourneyStep] = useState<JourneyStepRecord | null>(null)
+  const [selectedJourneyStep, setSelectedJourneyStep] = useState<JourneyStep | null>(null)
 
   // Récupérer les screenshots de l'incident (si evidence.payload.issue_id existe)
   const issueId = evidence?.payload?.issue_id
@@ -87,6 +87,10 @@ export function EvidenceDrawer({
   }, [isOpen, onClose])
 
   if (!isOpen || !evidence) return null
+
+  const journeyName = selectedJourneyStep?.journey_name
+    ?? journeySteps?.[0]?.journey_name
+    ?? evidence.title
 
   const handleCopy = () => {
     const textToCopy = typeof evidence.payload === 'string'
@@ -381,13 +385,14 @@ at HTMLButtonElement.element.addEventListener.call (https://app.acme.com/assets/
                       <span>←</span>
                       <span>Retour à la liste des étapes</span>
                     </button>
-                    <JourneyStepDetail step={selectedJourneyStep} />
+                    <JourneyStepDetail step={selectedJourneyStep} journeyName={journeyName} />
                   </div>
                 ) : (
                   <>
                     {journeySteps && journeySteps.length > 0 ? (
                       <UserJourneySteps
                         steps={journeySteps}
+                        journeyName={journeyName}
                         onStepClick={(step) => {
                           if (step.status === 'fail') {
                             setSelectedJourneyStep(step)
