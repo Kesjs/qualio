@@ -27,7 +27,8 @@ function ProductVisual() {
         alt="Landscape"
         fill
         priority
-        unoptimized
+        quality={90}
+        sizes="(max-width: 1023px) 0px, 44vw"
         style={{ objectFit: 'cover', objectPosition: 'center' }}
       />
     </div>

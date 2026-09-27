@@ -149,3 +149,10 @@ html:not(.dark), body:not(.dark) {
     --ring: 240 4.9% 83.9%;
   }
 }
+
+/* Auth Panel - Desktop only visibility */
+@media (min-width: 1024px) {
+  .auth-right-panel {
+    display: block !important;
+  }
+}
