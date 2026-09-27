@@ -395,17 +395,29 @@ export class QAOrchestrator {
       console.error('[QAOrchestrator] Error inserting issues into Supabase:', error)
       throw new Error(`Failed to save issues: ${error.message}`)
     }
-    // Save evidence per issue
+    // Save evidence per issue. Every incident reported to a user must be traceable to
+    // at least one evidence row — an issue with zero evidence silently erodes trust in
+    // the diagnostic, so we guarantee a fallback row rather than skip the insert.
     for (let i = 0; i < issues.length; i++) {
       const dbIssue = (data ?? [])[i] as any
-      if (dbIssue && issues[i].evidence.length > 0) {
-        const evRows = []
+      if (!dbIssue) continue
+
+      const evRows = []
+      if (issues[i].evidence.length > 0) {
         for (const ev of issues[i].evidence) {
           const payload = await this.persistScreenshotEvidence(scanId, userId, dbIssue.id, issues[i].pageId, ev)
           evRows.push({ scan_id: scanId, issue_id: dbIssue.id, type: ev.type, payload })
         }
-        await this.supabase.from('evidence').insert(evRows as any)
+      } else {
+        console.error(`[QAOrchestrator] Issue ${dbIssue.id} (${issues[i].category}/${issues[i].title}) has no evidence — inserting fallback marker.`)
+        evRows.push({
+          scan_id: scanId,
+          issue_id: dbIssue.id,
+          type: 'diagnostic',
+          payload: { note: 'No evidence was captured for this incident by the check that reported it.' },
+        })
       }
+      await this.supabase.from('evidence').insert(evRows as any)
     }
   }
 
@@ -493,4 +505,3 @@ export class QAOrchestrator {
     } as any).eq('id', siteId)
   }
 }
-
