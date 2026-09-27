@@ -51,15 +51,23 @@ export class BrowserEngine {
     page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
 
     const t0 = Date.now()
-    let statusCode = 200
+    // statusCode stays null until we actually get an HTTP response. Defaulting to 200
+    // on a thrown goto() (DNS failure, timeout, connection refused) would silently mark
+    // a completely unreachable page as "passed" — the single worst case to miss.
+    let statusCode: number | null = null
+    let navigationError: string | null = null
     try {
       const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
-      statusCode = res?.status() ?? 200
-    } catch {}
+      statusCode = res?.status() ?? null
+    } catch (error) {
+      navigationError = error instanceof Error ? error.message : String(error)
+    }
     const duration = Date.now() - t0
 
-    const navigationFailed = statusCode < 200 || statusCode >= 400
+    const navigationFailed = navigationError !== null || statusCode === null || statusCode < 200 || statusCode >= 400
     const consoleFailed = consoleErrors.length > 2
+    // Network/error evidence is always attached on failure — the screenshot is best-effort
+    // on top of it, since a page that failed to load may not be screenshot-able at all.
     let screenshotEvidence: Evidence[] = []
     if (navigationFailed || consoleFailed) {
       try {
@@ -76,10 +84,12 @@ export class BrowserEngine {
         'http_status', 'navigation',
         navigationFailed ? 'failed' : 'passed',
         'HTTP Status',
-        `Page returned HTTP ${statusCode}`,
-        statusCode >= 400 ? 'critical' : null,
+        navigationError
+          ? `Page failed to load: ${navigationError}`
+          : `Page returned HTTP ${statusCode}`,
+        navigationError || (statusCode !== null && statusCode >= 400) ? 'critical' : null,
         duration,
-        navigationFailed ? [{ type: 'network', payload: { url, statusCode } }, ...screenshotEvidence] : undefined,
+        navigationFailed ? [{ type: 'network', payload: { url, statusCode, navigationError } }, ...screenshotEvidence] : undefined,
       ))
     if (modules.consoleErrors) results.push(this.makeCheck(
         'console_errors', 'browser',
