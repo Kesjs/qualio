@@ -87,6 +87,11 @@ export interface EvidenceInputPayload {
     url: string
     environment: string
     test_action: string
+    viewport?: {
+      name: string
+      width: number
+      height: number
+    }
   }
   observed_facts: {
     status: string
@@ -116,12 +121,18 @@ export function buildEvidencePayload(params: {
     status: number
     response?: unknown
   }
+  viewport?: {
+    name: string
+    width: number
+    height: number
+  }
 }): EvidenceInputPayload {
   return {
     test_context: {
       url: params.url,
       environment: params.environment || 'production',
       test_action: params.testAction || 'Exécution de scénario Playwright automatisé',
+      viewport: params.viewport
     },
     observed_facts: {
       status: params.status || 'failed',
@@ -142,6 +153,7 @@ export function parseIssueDiagnostic(issue: {
   confidence?: string | number | null
   category?: string
   page?: { url: string } | null
+  viewport?: { name: string; width?: number; height?: number } | null
 }): QAAIDiagnostic {
   // If description is stored as JSON string from structured output
   if (issue.description) {
@@ -170,6 +182,9 @@ export function parseIssueDiagnostic(issue: {
   const severity = (['critical', 'major', 'minor'].includes(rawSev) ? rawSev : 'major') as 'critical' | 'major' | 'minor'
   const rawDesc = issue.description || 'Échec d\'assertion Playwright lors de l\'exécution du test.'
   const category = (issue.category || 'navigation').toLowerCase()
+  const viewportName = issue.viewport?.name?.toLowerCase() || ''
+  const isMobile = viewportName.includes('mobile') || viewportName.includes('phone') || (issue.viewport?.width && issue.viewport.width < 768)
+  const isTablet = viewportName.includes('tablet') || (issue.viewport?.width && issue.viewport.width >= 768 && issue.viewport.width < 1024)
 
   // Format confidence
   let confidence = 0.94
@@ -193,20 +208,39 @@ export function parseIssueDiagnostic(issue: {
   let probableCause = 'Le composant semble ne pas recevoir les données attendues ou rencontrer un timeout réseau.'
   let recommendation = issue.suggestion || 'Inspecter les appels réseau et les gestionnaires d\'événements du sélecteur.'
 
+  // Device-specific context
+  const deviceContext = isMobile ? 'Sur mobile, ' : isTablet ? 'Sur tablette, ' : ''
+
   if (category.includes('form') || titleUpper.includes('PAIEMENT') || titleUpper.includes('FORMULAIRE')) {
-    impact = 'Blocage direct du tunnel de conversion ou d\'enregistrement. Perte d\'inscriptions ou de chiffre d\'affaires direct.'
+    impact = `${deviceContext}les visiteurs ne peuvent pas soumettre le formulaire — blocage direct du tunnel de conversion ou d'enregistrement.`.trim()
+    if (severity === 'critical') {
+      impact = `${deviceContext}bloque complètement la soumission du formulaire. Les visiteurs ne peuvent pas se convertir.`.trim()
+    }
     probableCause = 'Le serveur pourrait rejeter la soumission (erreur HTTP 4xx/5xx) ou un champ obligatoire attendu par l\'API serait manquant dans le payload frontend.'
     recommendation = issue.suggestion || 'Vérifier le payload réseau envoyé lors du clic sur le bouton de soumission et inspecter les validations serveur.'
   } else if (category.includes('link') || titleUpper.includes('404') || titleUpper.includes('LIEN')) {
-    impact = 'Navigation rompue pour l\'utilisateur arrivant sur une page d\'erreur 404.'
+    impact = `${deviceContext}navigation rompue — l'utilisateur arrive sur une page d'erreur 404 au lieu du contenu attendu.`.trim()
+    if (severity === 'critical') {
+      impact = `${deviceContext}empêche complètement l'accès à une section importante du site.`.trim()
+    }
     probableCause = 'L\'URL cible pourrait être mal typée dans le lien ou la route a été déplacée sans redirection 301.'
     recommendation = issue.suggestion || 'Mettre à jour l\'attribut href du lien ou configurer une redirection serveur.'
   } else if (category.includes('console') || titleUpper.includes('CONSOLE') || titleUpper.includes('JAVASCRIPT')) {
-    impact = 'Dégradation potentielle des fonctionnalités interactives ou arrêt de scripts tiers (analytics, tracking).'
+    impact = `${deviceContext}risque de dégradation des fonctionnalités interactives ou arrêt de scripts tiers (analytics, tracking).`.trim()
+    if (severity === 'critical') {
+      impact = `${deviceContext}bloque des fonctionnalités essentielles du site due à une erreur JavaScript.`.trim()
+    }
     probableCause = 'Une variable non définie (TypeError) ou une ressource bloquée par CORS pourrait interrompre le fil d\'exécution.'
     recommendation = issue.suggestion || 'Corriger la référence non sécurisée ou vérifier les règles de sécurité CORS de l\'hôte.'
   } else if (category.includes('responsive') || titleUpper.includes('MOBILE') || titleUpper.includes('OVERFLOW')) {
-    impact = 'Débordement horizontal sur petits écrans, rendant la lecture ou le clic difficile pour les utilisateurs sur mobile.'
+    impact = isMobile 
+      ? `Sur mobile, débordement horizontal — l'utilisateur glisse accidentellement de gauche à droite en scrollant. Expérience dégradée.`
+      : `Sur petits écrans, débordement horizontal rendant la lecture ou le clic difficile pour l'utilisateur.`
+    if (severity === 'critical') {
+      impact = isMobile
+        ? `Sur mobile, le contenu déborde complètement de l'écran — rend le site pratiquement inutilisable sur ce device.`
+        : `Sur tablette/petits écrans, débordement critique rendant le contenu illisible et intéractif.`
+    }
     probableCause = 'Un conteneur parent aurait une largeur fixe en pixels (`width: ...px`) au lieu d\'un dimensionnement fluide (`w-full` ou `max-w-*`).'
     recommendation = issue.suggestion || 'Remplacer les dimensions fixes par des classes responsive et appliquer `overflow-x-hidden` si nécessaire.'
   }
