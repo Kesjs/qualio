@@ -61,7 +61,41 @@ async function fetchScanStatus(scanId: string): Promise<ScanStatus> {
   return res.json()
 }
 
+import { MOCK_SCANS, MOCK_BUGS } from '@/lib/mock/qa-mock-data'
+
 async function fetchScanResults(scanId: string): Promise<ScanResults> {
+  if (scanId.startsWith('scan-')) {
+    const mockScan = MOCK_SCANS.find((s) => s.id === scanId) || MOCK_SCANS[0]
+    const mockBugs = MOCK_BUGS.filter((b) => b.scan_id === scanId || b.site_id === mockScan.site_id)
+    return {
+      scan: mockScan,
+      pages: [
+        { id: 'p1', url: mockScan.sites?.url || 'https://qualio.dev', status_code: 200, final_url: null, response_time_ms: 124, title: 'Accueil', depth: 0 },
+        { id: 'p2', url: `${mockScan.sites?.url || 'https://qualio.dev'}/pricing`, status_code: 200, final_url: null, response_time_ms: 210, title: 'Tarifs', depth: 1 },
+        { id: 'p3', url: `${mockScan.sites?.url || 'https://qualio.dev'}/pricing/enterprise`, status_code: 404, final_url: null, response_time_ms: 85, title: 'Non trouvé', depth: 2 },
+      ],
+      issues: mockBugs.map((b) => ({
+        id: b.id,
+        category: b.category,
+        severity: b.severity,
+        status: b.status,
+        title: b.title,
+        description: b.diagnostic.summary,
+        suggestion: b.diagnostic.recommendation,
+        confidence: String(b.confidence),
+        page_id: 'p1',
+        created_at: b.created_at,
+        page: { url: b.url },
+        evidence: [],
+      })),
+      checks: [
+        { id: 'c1', category: 'availability', key: 'http_status_ok', status: 'passed', severity: null, title: 'Disponibilité HTTP', message: 'Toutes les pages clés répondent en HTTP 200', duration_ms: 140, page_id: 'p1' },
+        { id: 'c2', category: 'links', key: 'broken_links', status: (mockScan.critical_count ?? 0) > 0 ? 'failed' : 'passed', severity: 'critical', title: 'Contrôle des liens', message: (mockScan.critical_count ?? 0) > 0 ? 'Lien mort détecté vers /pricing/enterprise' : '0 lien mort', duration_ms: 320, page_id: 'p2' },
+        { id: 'c3', category: 'forms', key: 'cta_clickable', status: 'passed', severity: null, title: 'Boutons CTA interactifs', message: 'Tous les boutons sont cliquables', duration_ms: 210, page_id: 'p1' },
+      ],
+    }
+  }
+
   const res = await fetch(`/api/scan/${scanId}/results`)
   if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to fetch scan results')
   return res.json()

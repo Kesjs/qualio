@@ -11,10 +11,18 @@ import {
   ArrowsPointingInIcon,
   CodeBracketIcon,
   ShieldCheckIcon,
+  MapIcon,
 } from '@heroicons/react/24/outline'
+import { ScreenshotViewer, NoScreenshotAvailable } from './ScreenshotViewer'
+import { ScreenshotModal } from './ScreenshotModal'
+import { BeforeAfterComparison } from './BeforeAfterComparison'
+import { UserJourneySteps } from './UserJourneySteps'
+import { JourneyStepDetail } from './JourneyStepDetail'
+import { useIssueScreenshots, useScreenshotSignedUrl, useBeforeAfterScreenshots, useScanJourneySteps } from '@/lib/hooks/useScreenshots'
+import type { JourneyStepRecord } from '@/lib/qa/types'
 
 export interface EvidenceDetail {
-  type: 'screenshot' | 'network' | 'console' | 'raw'
+  type: 'screenshot' | 'network' | 'console' | 'raw' | 'journey'
   title: string
   url?: string
   issueTitle?: string
@@ -38,6 +46,35 @@ export function EvidenceDrawer({
 }: EvidenceDrawerProps) {
   const [copied, setCopied] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
+  const [selectedJourneyStep, setSelectedJourneyStep] = useState<JourneyStepRecord | null>(null)
+
+  // Récupérer les screenshots de l'incident (si evidence.payload.issue_id existe)
+  const issueId = evidence?.payload?.issue_id
+  const pageId = evidence?.payload?.page_id
+  const scanId = evidence?.payload?.scan_id
+  const issueStatus = evidence?.payload?.issue_status || evidence?.payload?.status
+  const isResolved = issueStatus === 'resolved'
+  
+  const { data: screenshots } = useIssueScreenshots(issueId, isOpen && !!issueId)
+  const firstScreenshot = screenshots?.[0]
+
+  // Récupérer les screenshots Before/After si l'incident est résolu
+  const { data: beforeAfter } = useBeforeAfterScreenshots(
+    issueId,
+    pageId,
+    isResolved,
+    isOpen && isResolved
+  )
+
+  // Récupérer les journey steps du scan
+  const { data: journeySteps } = useScanJourneySteps(scanId, isOpen && !!scanId)
+
+  // Récupérer l'URL signée pour la modal plein écran
+  const { data: signedUrlData } = useScreenshotSignedUrl(
+    firstScreenshot?.id || null,
+    showScreenshotModal && !!firstScreenshot
+  )
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -167,6 +204,7 @@ export function EvidenceDrawer({
                     {ev.type === 'screenshot' && <CameraIcon className="h-3.5 w-3.5" />}
                     {ev.type === 'network' && <GlobeAltIcon className="h-3.5 w-3.5" />}
                     {ev.type === 'console' && <CommandLineIcon className="h-3.5 w-3.5" />}
+                    {ev.type === 'journey' && <MapIcon className="h-3.5 w-3.5" />}
                     <span>{ev.title}</span>
                   </button>
                 )
@@ -178,36 +216,29 @@ export function EvidenceDrawer({
           <div className="flex-1 overflow-y-auto p-5 space-y-5">
             {/* VIEW 1: SCREENSHOT */}
             {evidence.type === 'screenshot' && (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-[#16181E] p-3 text-xs text-gray-600 dark:text-gray-300 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CameraIcon className="h-4 w-4 text-[#ee6018]" />
-                    <span>Capture d'écran au moment de la rupture Playwright</span>
-                  </div>
-                  <span className="font-mono text-[11px] text-gray-400">
-                    {payload.viewport || '1440x900'} (Desktop Chrome)
-                  </span>
-                </div>
-
-                <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] overflow-hidden bg-black/5 dark:bg-black/40 flex items-center justify-center p-2 relative group">
-                  {payload.screenshot_url ? (
-                    <img
-                      src={payload.screenshot_url}
-                      alt="Capture de preuve Playwright"
-                      className="max-h-[60vh] w-auto object-contain rounded-lg shadow-md border border-gray-200 dark:border-white/[0.08]"
-                    />
-                  ) : (
-                    <div className="py-20 text-center space-y-3">
-                      <CameraIcon className="h-10 w-10 text-gray-400 mx-auto" />
-                      <p className="text-xs text-gray-500 font-mono">
-                        Aperçu de la vue Playwright (viewport 1440px)
-                      </p>
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-xs font-semibold text-[#ee6018] border border-orange-200 dark:border-orange-900/40">
-                        <span>Élément cible : {payload.selector || "form[action='/checkout'] button[type='submit']"}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+              <>
+                {/* Afficher Before/After si l'incident est RESOLVED */}
+                {isResolved && beforeAfter && (beforeAfter.before || beforeAfter.after) ? (
+                  <BeforeAfterComparison
+                    beforeScreenshotId={beforeAfter.before?.id || null}
+                    afterScreenshotId={beforeAfter.after?.id || null}
+                    issueTitle={evidence.issueTitle || evidence.title}
+                  />
+                ) : (
+                  /* Affichage normal pour les incidents non résolus */
+                  <>
+                    {firstScreenshot ? (
+                      <ScreenshotViewer
+                        screenshotId={firstScreenshot.id}
+                        viewport={firstScreenshot.viewport}
+                        createdAt={firstScreenshot.created_at}
+                        onClickZoom={() => setShowScreenshotModal(true)}
+                      />
+                    ) : (
+                      <NoScreenshotAvailable />
+                    )}
+                  </>
+                )}
 
                 {payload.selector && (
                   <div className="p-3 rounded-lg bg-gray-100 dark:bg-[#16181E] border border-gray-200 dark:border-white/[0.08] text-xs">
@@ -217,7 +248,7 @@ export function EvidenceDrawer({
                     <code className="text-[#ee6018] font-mono text-xs">{payload.selector}</code>
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {/* VIEW 2: NETWORK REQUEST/RESPONSE */}
@@ -336,6 +367,45 @@ at HTMLButtonElement.element.addEventListener.call (https://app.acme.com/assets/
                 </div>
               </div>
             )}
+
+            {/* VIEW 5: USER JOURNEY STEPS */}
+            {evidence.type === 'journey' && (
+              <div className="space-y-4">
+                {selectedJourneyStep ? (
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJourneyStep(null)}
+                      className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1"
+                    >
+                      <span>←</span>
+                      <span>Retour à la liste des étapes</span>
+                    </button>
+                    <JourneyStepDetail step={selectedJourneyStep} />
+                  </div>
+                ) : (
+                  <>
+                    {journeySteps && journeySteps.length > 0 ? (
+                      <UserJourneySteps
+                        steps={journeySteps}
+                        onStepClick={(step) => {
+                          if (step.status === 'fail') {
+                            setSelectedJourneyStep(step)
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-[#16181E] p-8 text-center">
+                        <MapIcon className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Aucun parcours utilisateur enregistré pour ce scan
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ─── Drawer Footer ────────────────────────────────────────────── */}
@@ -353,6 +423,18 @@ at HTMLButtonElement.element.addEventListener.call (https://app.acme.com/assets/
           </div>
         </div>
       </div>
+
+      {/* Modal plein écran pour le screenshot */}
+      {showScreenshotModal && firstScreenshot && signedUrlData?.signedUrl && (
+        <ScreenshotModal
+          isOpen={showScreenshotModal}
+          onClose={() => setShowScreenshotModal(false)}
+          signedUrl={signedUrlData.signedUrl}
+          viewport={signedUrlData.viewport}
+          createdAt={signedUrlData.createdAt}
+          issueTitle={evidence?.issueTitle || evidence?.title}
+        />
+      )}
     </div>
   )
 }

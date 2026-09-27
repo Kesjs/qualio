@@ -26,6 +26,10 @@ export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screensho
 export type IssueStatus = 'open' | 'fixed' | 'ignored' | 'resolved' | 'new' | 'persistent'
 export type Confidence = 'high' | 'medium' | 'low'
 
+// Types pour les User Journeys (Phase 3)
+export type JourneyStepStatus = 'pass' | 'fail' | 'not_reached' | 'skip'
+export type JourneyActionType = 'navigation' | 'click' | 'fill' | 'submit' | 'wait' | 'assert'
+
 export interface QAConfig {
   maxPages: number
   maxCrawlDepth: number
@@ -160,6 +164,64 @@ export interface ScreenshotResult {
   issueId: string | null
   viewport: Viewport
   storagePath: string
+}
+
+// ─── User Journey Types (Phase 3) ────────────────────────────────────────────
+
+export interface JourneyStepAction {
+  type: JourneyActionType
+  target?: string // Sélecteur CSS, URL, ou identifiant
+  value?: string | Record<string, string> // Valeur à remplir, ou map de champs
+  waitFor?: string // Condition d'attente (URL, sélecteur, timeout)
+}
+
+export interface JourneyStepDefinition {
+  name: string
+  action: JourneyStepAction
+  expectedResult?: {
+    url?: string // URL attendue après l'action
+    selector?: string // Élément qui doit être présent
+    text?: string // Texte qui doit être visible
+  }
+}
+
+export interface JourneyDefinition {
+  name: string
+  description?: string
+  steps: JourneyStepDefinition[]
+  startUrl: string
+  viewport?: ViewportConfig
+}
+
+export interface JourneyStepResult {
+  id?: string
+  scanId: string
+  pageId?: string | null
+  issueId?: string | null
+  journeyName: string
+  stepOrder: number
+  stepName: string
+  actionType: JourneyActionType
+  actionTarget?: string
+  actionDetails?: Record<string, unknown>
+  status: JourneyStepStatus
+  resultPayload?: Record<string, unknown>
+  errorMessage?: string
+  screenshotId?: string | null
+  durationMs?: number
+  createdAt?: string
+}
+
+export interface JourneyResult {
+  journeyName: string
+  status: 'pass' | 'fail' | 'partial'
+  stepsTotal: number
+  stepsPassed: number
+  stepsFailed: number
+  stepsNotReached: number
+  steps: JourneyStepResult[]
+  durationMs: number
+  error?: string
 }
 
 export const DEFAULT_QA_CONFIG: QAConfig = {

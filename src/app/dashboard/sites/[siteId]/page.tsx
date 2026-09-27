@@ -27,9 +27,211 @@ import { useSite } from '@/lib/hooks/useSite'
 import { useScanResults, useScanStatus, IssueRow, PageRow, CheckRow } from '@/lib/hooks/useScan'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EvidenceDrawer, EvidenceDetail } from '@/components/dashboard/EvidenceDrawer'
+import { ScreenshotIndicator } from '@/components/dashboard/ScreenshotIndicator'
+import { useIssueScreenshots } from '@/lib/hooks/useScreenshots'
 import { parseIssueDiagnostic, QAAIDiagnostic } from '@/lib/qa/ai'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+
+// ─── Issue Card Component avec Screenshot Indicator ───────────────────────────
+
+interface IssueCardProps {
+  issue: IssueRow
+  index: number
+  isExpanded: boolean
+  diag: QAAIDiagnostic
+  confidencePct: number
+  toggleBugAccordion: (issueId: string) => void
+  handleOpenEvidence: (issue: IssueRow, type: 'screenshot' | 'network' | 'console') => void
+}
+
+function IssueCard({
+  issue,
+  index,
+  isExpanded,
+  diag,
+  confidencePct,
+  toggleBugAccordion,
+  handleOpenEvidence,
+}: IssueCardProps) {
+  // Charger les screenshots de cet incident
+  const { data: screenshots } = useIssueScreenshots(issue.id, true)
+  const firstScreenshot = screenshots?.[0]
+
+  return (
+    <div
+      className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216] overflow-hidden transition-all shadow-2xs"
+    >
+      {/* Accordion Header (Click to expand/collapse) */}
+      <div
+        onClick={() => toggleBugAccordion(issue.id)}
+        className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors select-none"
+      >
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-gray-400 dark:text-gray-500">
+            {isExpanded ? (
+              <ChevronDownIcon className="h-4 w-4" />
+            ) : (
+              <ChevronRightIcon className="h-4 w-4" />
+            )}
+          </span>
+
+          {/* Uppercase Title */}
+          <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white tracking-wide uppercase font-sans">
+            {diag.title}
+          </h3>
+
+          {/* Severity badge */}
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+              diag.severity === 'critical'
+                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
+                : diag.severity === 'major'
+                ? 'bg-orange-50 dark:bg-orange-950/40 text-[#ee6018] border border-orange-200/60 dark:border-orange-800/40'
+                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
+            }`}
+          >
+            {diag.severity === 'critical'
+              ? '🔴 Critique'
+              : diag.severity === 'major'
+              ? '🟠 Majeur'
+              : '🟡 Mineur'}
+          </span>
+
+          {/* Status Badge */}
+          {issue.status === 'new' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/20">
+              <SparklesIcon className="h-3 w-3" />
+              Nouveau
+            </span>
+          )}
+          {issue.status === 'persistent' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 border border-gray-200/60 dark:border-white/[0.1]">
+              <ClockIcon className="h-3 w-3" />
+              Persistant
+            </span>
+          )}
+
+          {/* Screenshot Indicator avec hover preview */}
+          {firstScreenshot && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <ScreenshotIndicator
+                screenshotId={firstScreenshot.id}
+                issueTitle={diag.title}
+              />
+            </div>
+          )}
+
+          {/* URL location */}
+          {issue.page?.url && (
+            <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <span>📍</span>
+              <span className="underline decoration-dotted underline-offset-2">
+                {issue.page.url.replace(/^https?:\/\/[^/]+/, '') || '/'}
+              </span>
+            </span>
+          )}
+        </div>
+
+        {/* AI Confidence badge */}
+        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold font-mono shrink-0">
+          <span>🎯</span>
+          <span>{confidencePct}% confiance</span>
+        </div>
+      </div>
+
+      {/* Accordion Body: The 4 Business Blocks & Technical Proofs */}
+      {isExpanded && (
+        <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-white/[0.06] space-y-4">
+          {/* Block 1: Ce que Qualio a constaté */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block font-mono">
+              Ce que Qualio a constaté :
+            </span>
+            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-gray-50/70 dark:bg-[#16181E] p-3 rounded-lg border border-gray-200/60 dark:border-white/[0.04]">
+              {diag.summary}
+            </p>
+          </div>
+
+          {/* Block 2: Impact Utilisateur */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block font-mono">
+              Impact Utilisateur :
+            </span>
+            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-rose-50/40 dark:bg-rose-950/20 p-3 rounded-lg border border-rose-200/50 dark:border-rose-900/30">
+              {diag.impact}
+            </p>
+          </div>
+
+          {/* Block 3: Cause probable (Hypothèse) */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block font-mono">
+              Cause probable (Hypothèse) :
+            </span>
+            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-amber-50/40 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50 dark:border-amber-900/30">
+              {diag.probable_cause}
+            </p>
+          </div>
+
+          {/* Block 4: Correction suggérée */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#ee6018] block font-mono">
+              Correction suggérée :
+            </span>
+            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-orange-50/40 dark:bg-orange-950/20 p-3 rounded-lg border border-orange-200/50 dark:border-orange-900/30">
+              {diag.recommendation}
+            </p>
+          </div>
+
+          {/* Preuves techniques (Principes de confiance - Clickable buttons) */}
+          <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-between flex-wrap gap-2">
+            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 font-mono">
+              Preuves techniques :
+            </span>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Dynamic Evidence Buttons based on real data */}
+              {(issue.evidence || []).some((e: any) => e.type === 'screenshot') && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenEvidence(issue, 'screenshot')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
+                >
+                  <CameraIcon className="h-3.5 w-3.5 text-[#ee6018]" />
+                  <span>📸 Screenshot</span>
+                </button>
+              )}
+
+              {(issue.evidence || []).some((e: any) => e.type === 'network') && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenEvidence(issue, 'network')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
+                >
+                  <GlobeAltIcon className="h-3.5 w-3.5 text-[#ee6018]" />
+                  <span>🌐 Network</span>
+                </button>
+              )}
+
+              {(issue.evidence || []).some((e: any) => e.type === 'console') && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenEvidence(issue, 'console')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
+                >
+                  <CommandLineIcon className="h-3.5 w-3.5 text-[#ee6018]" />
+                  <span>💻 Console</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function SiteWorkspacePage() {
   const params = useParams()
@@ -609,166 +811,16 @@ export default function SiteWorkspacePage() {
                   const confidencePct = Math.round(diag.confidence * 100)
 
                   return (
-                    <div
+                    <IssueCard
                       key={issue.id}
-                      className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216] overflow-hidden transition-all shadow-2xs"
-                    >
-                      {/* Accordion Header (Click to expand/collapse) */}
-                      <div
-                        onClick={() => toggleBugAccordion(issue.id)}
-                        className="p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/[0.02] transition-colors select-none"
-                      >
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="text-gray-400 dark:text-gray-500">
-                            {isExpanded ? (
-                              <ChevronDownIcon className="h-4 w-4" />
-                            ) : (
-                              <ChevronRightIcon className="h-4 w-4" />
-                            )}
-                          </span>
-
-                          {/* Uppercase Title */}
-                          <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white tracking-wide uppercase font-sans">
-                            {diag.title}
-                          </h3>
-
-                                                    {/* Severity badge */}
-                          <span
-                                                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                              diag.severity === 'critical'
-                                ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
-                                : diag.severity === 'major'
-                                ? 'bg-orange-50 dark:bg-orange-950/40 text-[#ee6018] border border-orange-200/60 dark:border-orange-800/40'
-                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
-                            }`}
-                          >
-                            {diag.severity === 'critical'
-                              ? '🔴 Critique'
-                              : diag.severity === 'major'
-                              ? '🟠 Majeur'
-                              : '🟡 Mineur'}
-                          </span>
-
-                          {/* Status Badge */}
-                          {issue.status === 'new' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/20">
-                              <SparklesIcon className="h-3 w-3" />
-                              Nouveau
-                            </span>
-                          )}
-                          {issue.status === 'persistent' && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-zinc-300 border border-gray-200/60 dark:border-white/[0.1]">
-                              <ClockIcon className="h-3 w-3" />
-                              Persistant
-                            </span>
-                          )}
-
-                          {/* URL location */}
-                          {issue.page?.url && (
-                            <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                              <span>📍</span>
-                              <span className="underline decoration-dotted underline-offset-2">
-                                {issue.page.url.replace(/^https?:\/\/[^/]+/, '') || '/'}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* AI Confidence badge */}
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold font-mono shrink-0">
-                          <span>🎯</span>
-                          <span>{confidencePct}% confiance</span>
-                        </div>
-                      </div>
-
-                      {/* Accordion Body: The 4 Business Blocks & Technical Proofs */}
-                      {isExpanded && (
-                        <div className="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-white/[0.06] space-y-4">
-                          {/* Block 1: Ce que Qualio a constaté */}
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block font-mono">
-                              Ce que Qualio a constaté :
-                            </span>
-                            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-gray-50/70 dark:bg-[#16181E] p-3 rounded-lg border border-gray-200/60 dark:border-white/[0.04]">
-                              {diag.summary}
-                            </p>
-                          </div>
-
-                          {/* Block 2: Impact Utilisateur */}
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 block font-mono">
-                              Impact Utilisateur :
-                            </span>
-                            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-rose-50/40 dark:bg-rose-950/20 p-3 rounded-lg border border-rose-200/50 dark:border-rose-900/30">
-                              {diag.impact}
-                            </p>
-                          </div>
-
-                          {/* Block 3: Cause probable (Hypothèse) */}
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block font-mono">
-                              Cause probable (Hypothèse) :
-                            </span>
-                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed bg-amber-50/40 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50 dark:border-amber-900/30">
-                              {diag.probable_cause}
-                            </p>
-                          </div>
-
-                          {/* Block 4: Correction suggérée */}
-                          <div className="space-y-1">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-[#ee6018] block font-mono">
-                              Correction suggérée :
-                            </span>
-                            <p className="text-xs text-gray-800 dark:text-gray-200 leading-relaxed bg-orange-50/40 dark:bg-orange-950/20 p-3 rounded-lg border border-orange-200/50 dark:border-orange-900/30">
-                              {diag.recommendation}
-                            </p>
-                          </div>
-
-                          {/* Preuves techniques (Principes de confiance - Clickable buttons) */}
-                          <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-between flex-wrap gap-2">
-                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 font-mono">
-                              Preuves techniques :
-                            </span>
-
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {/* Dynamic Evidence Buttons based on real data */}
-                              {(issue.evidence || []).some((e: any) => e.type === 'screenshot') && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEvidence(issue, 'screenshot')}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
-                                >
-                                  <CameraIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                                  <span>📸 Screenshot</span>
-                                </button>
-                              )}
-
-                              {(issue.evidence || []).some((e: any) => e.type === 'network') && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEvidence(issue, 'network')}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
-                                >
-                                  <GlobeAltIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                                  <span>🌐 Network</span>
-                                </button>
-                              )}
-
-                              {(issue.evidence || []).some((e: any) => e.type === 'console') && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEvidence(issue, 'console')}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
-                                >
-                                  <CommandLineIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                                  <span>💻 Console</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      issue={issue}
+                      index={index}
+                      isExpanded={isExpanded}
+                      diag={diag}
+                      confidencePct={confidencePct}
+                      toggleBugAccordion={toggleBugAccordion}
+                      handleOpenEvidence={handleOpenEvidence}
+                    />
                   )
                 })}
               </div>

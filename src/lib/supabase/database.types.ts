@@ -298,6 +298,68 @@ export type Database = {
           { foreignKeyName: "screenshots_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
         ]
       }
+      journey_steps: {
+        Row: {
+          id: string
+          scan_id: string
+          page_id: string | null
+          issue_id: string | null
+          journey_name: string
+          step_order: number
+          step_name: string
+          action_type: string
+          action_target: string | null
+          action_details: Json | null
+          status: string
+          result_payload: Json | null
+          error_message: string | null
+          screenshot_id: string | null
+          duration_ms: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          scan_id: string
+          page_id?: string | null
+          issue_id?: string | null
+          journey_name: string
+          step_order: number
+          step_name: string
+          action_type: string
+          action_target?: string | null
+          action_details?: Json | null
+          status: string
+          result_payload?: Json | null
+          error_message?: string | null
+          screenshot_id?: string | null
+          duration_ms?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          scan_id?: string
+          page_id?: string | null
+          issue_id?: string | null
+          journey_name?: string
+          step_order?: number
+          step_name?: string
+          action_type?: string
+          action_target?: string | null
+          action_details?: Json | null
+          status?: string
+          result_payload?: Json | null
+          error_message?: string | null
+          screenshot_id?: string | null
+          duration_ms?: number | null
+          created_at?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "journey_steps_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
+          { foreignKeyName: "journey_steps_page_id_fkey"; columns: ["page_id"]; isOneToOne: false; referencedRelation: "pages"; referencedColumns: ["id"] },
+          { foreignKeyName: "journey_steps_issue_id_fkey"; columns: ["issue_id"]; isOneToOne: false; referencedRelation: "issues"; referencedColumns: ["id"] },
+          { foreignKeyName: "journey_steps_screenshot_id_fkey"; columns: ["screenshot_id"]; isOneToOne: false; referencedRelation: "screenshots"; referencedColumns: ["id"] },
+        ]
+      }
       signup_attempts: {
         Row: {
           id: string
