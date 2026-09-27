@@ -16,7 +16,6 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
-import { MOCK_SCANS } from '@/lib/mock/qa-mock-data'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -25,17 +24,13 @@ export default function ScansPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  const { data: scans = [], isLoading } = useQuery({
+  const { data: scans = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['all-scans'],
     queryFn: async () => {
-      try {
-        const res = await fetch('/api/scans')
-        if (!res.ok) return MOCK_SCANS
-        const data = await res.json()
-        return Array.isArray(data) && data.length > 0 ? data : MOCK_SCANS
-      } catch {
-        return MOCK_SCANS
-      }
+      const res = await fetch('/api/scans')
+      if (!res.ok) throw new Error('Impossible de charger les scans')
+      const data = await res.json()
+      return Array.isArray(data) ? data : []
     },
   })
 
@@ -52,7 +47,7 @@ export default function ScansPage() {
       statusFilter === 'all' ||
       (statusFilter === 'regression' && (scan.critical_count ?? 0) > 0) ||
       (statusFilter === 'healthy' && scan.status === 'completed' && (scan.critical_count ?? 0) === 0) ||
-      (statusFilter === 'running' && ['running', 'crawling', 'discovering', 'auditing'].includes(scan.status))
+      (statusFilter === 'running' && ['queued', 'running', 'crawling', 'discovering', 'auditing'].includes(scan.status))
 
     return matchesSearch && matchesStatus
   })
@@ -200,6 +195,21 @@ export default function ScansPage() {
                     </div>
                   </td>
                 </tr>
+              ) : isError ? (
+                <tr>
+                  <td colSpan={7} className="py-8 px-4">
+                    <EmptyState
+                      title="Impossible de charger les scans"
+                      message="L'historique réel n'est pas disponible pour le moment. Réessayez dans quelques instants."
+                      actionLabel="Réessayer"
+                      actionIcon={ArrowPathIcon}
+                      onActionClick={() => refetch()}
+                      mainIcon={ExclamationTriangleIcon}
+                      iconVariant="orange"
+                      className="max-w-xl mx-auto border-0 bg-transparent shadow-none p-6 sm:p-8"
+                    />
+                  </td>
+                </tr>
               ) : filteredScans.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 px-4">
@@ -219,7 +229,7 @@ export default function ScansPage() {
                 </tr>
               ) : (
                 filteredScans.map((scan: any) => {
-                  const isRunning = ['running', 'crawling', 'discovering', 'auditing'].includes(scan.status)
+                  const isRunning = ['queued', 'running', 'crawling', 'discovering', 'auditing'].includes(scan.status)
                   const hasRegression = (scan.critical_count ?? 0) > 0
                   const isFailed = scan.status === 'failed' || scan.status === 'error'
 

@@ -210,6 +210,11 @@ export type Database = {
           ai_tokens_output?: number | null
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
+          scan_modules: Json
+          attempt_count: number
+          max_attempts: number
+          queued_at: string | null
+          worker_started_at: string | null
         }
         Insert: {
           checks_failed?: number | null
@@ -235,6 +240,11 @@ export type Database = {
           ai_tokens_output?: number | null
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
+          scan_modules?: Json
+          attempt_count?: number
+          max_attempts?: number
+          queued_at?: string | null
+          worker_started_at?: string | null
         }
         Update: {
           checks_failed?: number | null
@@ -260,6 +270,11 @@ export type Database = {
           ai_tokens_output?: number | null
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
+          scan_modules?: Json
+          attempt_count?: number
+          max_attempts?: number
+          queued_at?: string | null
+          worker_started_at?: string | null
         }
         Relationships: [
           { foreignKeyName: "scans_previous_scan_id_fkey"; columns: ["previous_scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
@@ -383,6 +398,7 @@ export type Database = {
           created_at: string | null
           environment: string | null
           id: string
+          journey_definitions: Json
           last_scan_id: string | null
           name: string | null
           updated_at: string | null
@@ -393,6 +409,7 @@ export type Database = {
           created_at?: string | null
           environment?: string | null
           id?: string
+          journey_definitions?: Json
           last_scan_id?: string | null
           name?: string | null
           updated_at?: string | null
@@ -403,6 +420,7 @@ export type Database = {
           created_at?: string | null
           environment?: string | null
           id?: string
+          journey_definitions?: Json
           last_scan_id?: string | null
           name?: string | null
           updated_at?: string | null

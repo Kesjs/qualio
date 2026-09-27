@@ -1,17 +1,10 @@
-import { FORBIDDEN_URLS } from '../types'
-
 export function validateUrl(url: string): { valid: boolean; error?: string } {
   try {
     const parsed = new URL(url)
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return { valid: false, error: 'URL must use http or https protocol' }
     }
-    const hostname = parsed.hostname.toLowerCase()
-    for (const forbidden of FORBIDDEN_URLS) {
-      if (hostname.includes(forbidden)) {
-        return { valid: false, error: 'This URL is not allowed for security reasons' }
-      }
-    }
+    if (parsed.username || parsed.password) return { valid: false, error: 'URLs with credentials are not allowed' }
     return { valid: true }
   } catch {
     return { valid: false, error: 'Invalid URL format' }

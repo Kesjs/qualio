@@ -5,18 +5,37 @@ import { CrawlerEngine } from '../crawler'
 import { BrowserEngine } from '../browser'
 import { QAConfigManager } from '../config'
 import type {
-  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult,
+  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult, ScanModule, JourneyDefinition, Evidence,
 } from '../types'
 import { EvidenceEngine, Incident } from '../evidence'
 import { DiffEngine } from '../diff'
 import { AIEngine } from '../ai/engine'
+import { persistJourneyResults } from '../journeys/persistence'
 interface ScanOptions {
+  scanId?: string
   siteId: string
   userId: string
   url: string
   previousScanId?: string
   config?: QAConfigManager
   consentConfirmedAt?: string | null
+  modules?: ScanModule[]
+  journeys?: unknown
+}
+
+function parseJourneys(value: unknown, baseUrl: string): JourneyDefinition[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item): JourneyDefinition[] => {
+    if (!item || typeof item !== 'object') return []
+    const journey = item as Partial<JourneyDefinition>
+    if (!journey.name || !Array.isArray(journey.steps) || journey.steps.length === 0) return []
+    return [{
+      ...journey,
+      name: journey.name,
+      steps: journey.steps,
+      startUrl: new URL(journey.startUrl || '/', baseUrl).toString(),
+    } as JourneyDefinition]
+  })
 }
 
 export class QAOrchestrator {
@@ -59,7 +78,8 @@ export class QAOrchestrator {
     const { siteId, userId, url, previousScanId, consentConfirmedAt } = options
 
     // 1. Create scan record
-    const scanId = await this.createScan({ siteId, userId, url, previousScanId, consentConfirmedAt })
+    const scanId = options.scanId ?? await this.createScan({ siteId, userId, url, previousScanId, consentConfirmedAt })
+    const enabledModules = new Set(options.modules ?? ['pages', 'cta', 'forms', 'consoleErrors', 'mobileResponsive'])
 
     const result: ScanResult = {
       scanId, siteId, status: 'created',
@@ -106,20 +126,35 @@ export class QAOrchestrator {
       await withTimeout((async () => {
         for (const page of crawledPages.slice(0, this.config.getMaxPages())) {
           try {
-            const nav = await this.browser.testNavigation(page.url)
-            const forms = await this.browser.testForms(page.url)
-            const cta = await this.browser.testCTA(page.url)
-            ;[...nav, ...forms, ...cta].forEach(c =>
+            const checks = [
+              ...(enabledModules.has('pages') || enabledModules.has('consoleErrors')
+                ? await this.browser.testNavigation(page.url, {
+                    navigation: enabledModules.has('pages'),
+                    consoleErrors: enabledModules.has('consoleErrors'),
+                  })
+                : []),
+              ...(enabledModules.has('forms') ? await this.browser.testForms(page.url) : []),
+              ...(enabledModules.has('cta') ? await this.browser.testCTA(page.url) : []),
+            ]
+            checks.forEach(c =>
               allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: page.id ?? null })
             )
           } catch (e) { console.error(`Browser test error for ${page.url}:`, e) }
         }
 
         // Responsive test on homepage only
-        const resp = await this.browser.testResponsive(url)
-        resp.forEach(c =>
-          allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: crawledPages[0]?.id ?? null })
-        )
+        if (enabledModules.has('mobileResponsive')) {
+          const resp = await this.browser.testResponsive(url)
+          resp.forEach(c =>
+            allChecks.push({ ...c, id: crypto.randomUUID(), scanId, pageId: crawledPages[0]?.id ?? null })
+          )
+        }
+
+        for (const journey of parseJourneys(options.journeys, url)) {
+          const journeyResult = await this.browser.executeJourney(scanId, journey)
+          const persisted = await persistJourneyResults(journeyResult)
+          if (!persisted.success) console.error('[QAOrchestrator] Journey persistence failed:', persisted.error)
+        }
       })(), 120000, 'Browser testing')
 
       await this.saveChecks(scanId, allChecks)
@@ -249,7 +284,7 @@ export class QAOrchestrator {
         })
       }
 
-      await this.saveIssues(scanId, finalIssues)
+      await this.saveIssues(scanId, userId, finalIssues)
       result.issues = finalIssues
 
       // Phase 5: Reporting
@@ -342,7 +377,7 @@ export class QAOrchestrator {
     if (rows.length) await this.supabase.from('checks').insert(rows as any)
   }
 
-  private async saveIssues(scanId: string, issues: Issue[]) {
+  private async saveIssues(scanId: string, userId: string, issues: Issue[]) {
     const rows = issues.map(i => ({
       scan_id: scanId,
       page_id: i.pageId,
@@ -364,12 +399,34 @@ export class QAOrchestrator {
     for (let i = 0; i < issues.length; i++) {
       const dbIssue = (data ?? [])[i] as any
       if (dbIssue && issues[i].evidence.length > 0) {
-        const evRows = issues[i].evidence.map(ev => ({
-          scan_id: scanId, issue_id: dbIssue.id, type: ev.type, payload: ev.payload,
-        }))
+        const evRows = []
+        for (const ev of issues[i].evidence) {
+          const payload = await this.persistScreenshotEvidence(scanId, userId, dbIssue.id, issues[i].pageId, ev)
+          evRows.push({ scan_id: scanId, issue_id: dbIssue.id, type: ev.type, payload })
+        }
         await this.supabase.from('evidence').insert(evRows as any)
       }
     }
+  }
+
+  private async persistScreenshotEvidence(scanId: string, userId: string, issueId: string, pageId: string | null, evidence: Evidence) {
+    if (evidence.type !== 'screenshot' || typeof evidence.payload.screenshotBuffer !== 'string') return evidence.payload
+    const storagePath = `${userId}/${scanId}/issue_${issueId}_${Date.now()}.png`
+    const screenshotBuffer = Buffer.from(evidence.payload.screenshotBuffer, 'base64')
+    const { error: uploadError } = await this.supabase.storage.from('screenshots').upload(storagePath, screenshotBuffer, {
+      contentType: 'image/png', upsert: false,
+    })
+    if (uploadError) {
+      console.error('[QAOrchestrator] Screenshot upload failed:', uploadError)
+      return { ...evidence.payload, screenshotBuffer: undefined, uploadError: uploadError.message }
+    }
+    const { data: screenshotRecord, error: screenshotError } = await this.supabase.from('screenshots').insert({
+      scan_id: scanId, page_id: pageId, issue_id: issueId, storage_path: storagePath,
+      viewport: String(evidence.payload.viewport ?? 'desktop'),
+    } as any).select('id').single()
+    if (screenshotError) console.error('[QAOrchestrator] Screenshot record failed:', screenshotError)
+    const { screenshotBuffer: _screenshotBuffer, ...payload } = evidence.payload
+    return { ...payload, screenshotId: screenshotRecord?.id ?? null }
   }
 
   private extractIssues(checks: CheckResult[]): Issue[] {

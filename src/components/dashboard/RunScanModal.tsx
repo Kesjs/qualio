@@ -98,6 +98,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
         siteId: activeSite.id,
         url: activeSite.url,
         consentConfirmedAt: new Date().toISOString(),
+        selectedModules,
       },
       {
         onSuccess: (data) => {

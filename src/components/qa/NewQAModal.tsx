@@ -58,7 +58,7 @@ export function NewQAModal({ isOpen, onClose, onSuccess, siteId, siteUrl }: NewQ
     setInternalError(null)
 
     startScan.mutate(
-      { siteId: currentSiteId || '', url, consentConfirmedAt },
+      { siteId: currentSiteId || '', url, consentConfirmedAt, selectedModules: ['pages', 'cta', 'forms', 'consoleErrors', 'mobileResponsive'] },
       {
         onSuccess: (data) => {
           setCurrentScanId(data.scanId)

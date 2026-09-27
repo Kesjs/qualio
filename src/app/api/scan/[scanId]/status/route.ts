@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 type Params = { params: Promise<{ scanId: string }> }
 
 const PROGRESS_MAP: Record<string, number> = {
-  created: 2, discovering: 10, crawling: 30,
+  created: 2, queued: 5, running: 8, discovering: 10, crawling: 30,
   browser_testing: 60, analyzing: 80, reporting: 90, completed: 100,
   failed: 100, partial: 100, blocked: 100,
 }

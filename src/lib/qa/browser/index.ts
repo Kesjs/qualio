@@ -42,7 +42,10 @@ export class BrowserEngine {
     return { key, category, status, title, message, severity, duration, evidence }
   }
 
-  async testNavigation(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
+  async testNavigation(
+    url: string,
+    modules: { navigation: boolean; consoleErrors: boolean } = { navigation: true, consoleErrors: true },
+  ): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
     const page = await this.context!.newPage()
     const consoleErrors: string[] = []
     page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
@@ -55,26 +58,39 @@ export class BrowserEngine {
     } catch {}
     const duration = Date.now() - t0
 
+    const navigationFailed = statusCode < 200 || statusCode >= 400
+    const consoleFailed = consoleErrors.length > 2
+    let screenshotEvidence: Evidence[] = []
+    if (navigationFailed || consoleFailed) {
+      try {
+        const screenshot = await page.screenshot({ type: 'png', fullPage: false })
+        screenshotEvidence = [{ type: 'screenshot', payload: { screenshotBuffer: screenshot.toString('base64'), url, viewport: 'desktop' } }]
+      } catch (error) {
+        console.error('[BrowserEngine] Screenshot capture failed:', error)
+      }
+    }
     await page.close()
 
-    return [
-      this.makeCheck(
+    const results: Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[] = []
+    if (modules.navigation) results.push(this.makeCheck(
         'http_status', 'navigation',
-        statusCode >= 200 && statusCode < 400 ? 'passed' : 'failed',
+        navigationFailed ? 'failed' : 'passed',
         'HTTP Status',
         `Page returned HTTP ${statusCode}`,
         statusCode >= 400 ? 'critical' : null,
-        duration
-      ),
-      this.makeCheck(
+        duration,
+        navigationFailed ? [{ type: 'network', payload: { url, statusCode } }, ...screenshotEvidence] : undefined,
+      ))
+    if (modules.consoleErrors) results.push(this.makeCheck(
         'console_errors', 'browser',
         consoleErrors.length === 0 ? 'passed' : consoleErrors.length <= 2 ? 'warning' : 'failed',
         'Console Errors',
         consoleErrors.length === 0 ? 'No console errors' : `${consoleErrors.length} console error(s) found`,
-        consoleErrors.length > 2 ? 'major' : null,
-        duration
-      ),
-    ]
+        consoleFailed ? 'major' : null,
+        duration,
+        consoleFailed ? [{ type: 'console', payload: { url, errors: consoleErrors } }, ...screenshotEvidence] : undefined,
+      ))
+    return results
   }
 
   async testForms(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
@@ -151,6 +167,15 @@ export class BrowserEngine {
         document.documentElement.scrollWidth > document.documentElement.clientWidth
       ).catch(() => false)
 
+      let screenshotEvidence: Evidence[] = []
+      if (hasOverflow) {
+        try {
+          const screenshot = await page.screenshot({ type: 'png', fullPage: false })
+          screenshotEvidence = [{ type: 'screenshot', payload: { screenshotBuffer: screenshot.toString('base64'), url, viewport: vp.name } }]
+        } catch (error) {
+          console.error('[BrowserEngine] Responsive screenshot capture failed:', error)
+        }
+      }
       await page.close()
       const duration = Date.now() - t0
 
@@ -161,7 +186,9 @@ export class BrowserEngine {
         hasOverflow ? `Horizontal overflow detected at ${vp.width}px` : `No overflow at ${vp.width}px`,
         hasOverflow ? 'major' : null,
         duration,
-        [{ type: 'viewport', payload: { name: vp.name, width: vp.width, height: vp.height } }]
+        hasOverflow
+          ? [{ type: 'viewport', payload: { name: vp.name, width: vp.width, height: vp.height } }, ...screenshotEvidence]
+          : undefined,
       ))
     }
 
@@ -340,12 +367,13 @@ export class BrowserEngine {
           action.details?.waitUntil === 'networkidle' || action.details?.waitUntil === 'load'
             ? action.details.waitUntil
             : 'domcontentloaded'
-        const response = await page.goto(action.target, {
+        const targetUrl = new URL(action.target, page.url() || undefined).toString()
+        const response = await page.goto(targetUrl, {
           waitUntil,
           timeout: 20000,
         })
         stepResult.resultPayload = {
-          url: action.target,
+          url: targetUrl,
           status: response?.status(),
           finalUrl: page.url(),
         }

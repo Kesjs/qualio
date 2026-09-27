@@ -2,6 +2,8 @@
 
 export type ScanStatus =
   | 'created'
+  | 'queued'
+  | 'running'
   | 'discovering'
   | 'crawling'
   | 'browser_testing'
@@ -25,6 +27,8 @@ export type Viewport = 'mobile' | 'tablet' | 'desktop'
 export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screenshot' | 'measurement' | 'viewport'
 export type IssueStatus = 'open' | 'fixed' | 'ignored' | 'resolved' | 'new' | 'persistent'
 export type Confidence = 'high' | 'medium' | 'low'
+export type ScanModule = 'pages' | 'cta' | 'forms' | 'consoleErrors' | 'mobileResponsive'
+export const DEFAULT_SCAN_MODULES: ScanModule[] = ['pages', 'cta', 'forms', 'consoleErrors', 'mobileResponsive']
 
 // Types pour les User Journeys (Phase 3)
 export type JourneyStepStatus = 'pass' | 'fail' | 'not_reached' | 'skip'

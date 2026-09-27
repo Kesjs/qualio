@@ -19,7 +19,6 @@ import { parseIssueDiagnostic } from '@/lib/qa/ai'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
-import { MOCK_BUGS } from '@/lib/mock/qa-mock-data'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -28,17 +27,13 @@ export default function BugsPage() {
   const [search, setSearch] = useState('')
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'major' | 'minor'>('all')
 
-  const { data: issues = [], isLoading } = useQuery({
+  const { data: issues = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['all-issues'],
     queryFn: async () => {
-      try {
-        const res = await fetch('/api/issues')
-        if (!res.ok) return MOCK_BUGS
-        const data = await res.json()
-        return Array.isArray(data) && data.length > 0 ? data : MOCK_BUGS
-      } catch {
-        return MOCK_BUGS
-      }
+      const res = await fetch('/api/issues')
+      if (!res.ok) throw new Error('Impossible de charger les incidents')
+      const data = await res.json()
+      return Array.isArray(data) ? data : []
     },
   })
 
@@ -214,6 +209,17 @@ export default function BugsPage() {
               </div>
             ))}
           </div>
+        ) : isError ? (
+          <EmptyState
+            title="Impossible de charger les incidents"
+            message="Les données réelles sont momentanément indisponibles. Réessayez dans un instant."
+            actionLabel="Réessayer"
+            actionIcon={ArrowPathIcon}
+            onActionClick={() => refetch()}
+            mainIcon={ExclamationTriangleIcon}
+                      iconVariant="orange"
+            className="my-8"
+          />
         ) : filteredIssues.length === 0 ? (
           <EmptyState
             title="Aucun incident correspondant"
