@@ -27,6 +27,39 @@ function Check({ active }: { active: boolean }) {
   );
 }
 
+function InfoTooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex", cursor: "help" }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+      onClick={() => setShow(!show)}
+    >
+      <span style={{
+        textDecoration: "underline dotted",
+        textUnderlineOffset: 3,
+        textDecorationColor: C.granite,
+      }}>
+        {children}
+      </span>
+      {show && (
+        <span style={{
+          position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+          transform: "translateX(-50%)", background: C.canvas, color: C.bone,
+          padding: "10px 14px", borderRadius: 6, fontSize: 12, lineHeight: 1.4,
+          width: 220, textAlign: "left", zIndex: 20,
+          fontFamily: "'Manrope',sans-serif", fontWeight: 400,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+          border: `1px solid ${C.carbon}`,
+        }}>
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function Pricing() {
   const [annual, setAnnual] = useState(false);
   const ref = useRef(null);
@@ -41,7 +74,9 @@ export function Pricing() {
     { key: t.planFeatures.scansPerMonth, vals: ["5", t.planValues.unlimited, t.planValues.unlimited] },
     { key: t.planFeatures.pagesPerScan,  vals: ["10", "100", t.planValues.unlimited] },
     { key: t.planFeatures.aiDiagnosis,   vals: [t.planValues.aiBasic, t.planValues.aiFull, t.planValues.aiFullPlus] },
-    { key: t.planFeatures.evidence,      vals: [t.planValues.evidenceBasic, t.planValues.evidenceFull, t.planValues.evidenceVideo] },
+    { key: t.planFeatures.evidence,      vals: [t.planValues.evidenceBasic, t.planValues.evidenceFull, t.planValues.evidenceVideo], tooltip: t.planFeatures.evidenceTooltip },
+    { key: t.planFeatures.report,        vals: [t.planValues.reportNone, t.planValues.reportShareable, t.planValues.reportBranded], tooltip: t.planFeatures.reportTooltip },
+    { key: t.planFeatures.beforeAfter,   vals: [false, true, true], tooltip: t.planFeatures.beforeAfterTooltip },
     { key: t.planFeatures.history,       vals: [t.planValues.historyStarter, t.planValues.historyPro, t.planValues.historyTeam] },
     { key: t.planFeatures.integrations,  vals: [false, "Slack, GitHub", "Slack, GitHub, Jira, PagerDuty"] },
     { key: t.planFeatures.prioritySupport,vals: [false, false, t.planValues.supportTeam] },
@@ -214,29 +249,46 @@ export function Pricing() {
 
               {/* Feature list */}
               <div style={{ flex:1 }}>
-                {featureMatrix.map(f => (
-                  <div key={f.key} style={{
-                    display:"flex", alignItems:"center", justifyContent:"space-between",
-                    padding:"7px 0",
-                    borderBottom:`1px solid ${planModel.highlight ? "rgba(0,0,0,0.06)" : C.carbon}`,
-                    gap:12,
-                  }}>
-                    <span style={{ fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:400,
-                      color: planModel.highlight ? C.graphite : C.granite }}>
-                      {f.key}
-                    </span>
-                    <span style={{
-                      fontFamily:"'JetBrains Mono',monospace",fontSize:12,
-                      color: typeof f.vals[i] === "string"
-                        ? (planModel.highlight ? C.canvas : C.stone)
-                        : "transparent",
-                      letterSpacing:"-0.02em",
-                      display:"flex", alignItems:"center", gap:6,
+                {featureMatrix.map(f => {
+                  const isEvidenceRow = f.key === t.planFeatures.evidence;
+                  const isReportRow = f.key === t.planFeatures.report;
+                  const isBeforeAfterRow = f.key === t.planFeatures.beforeAfter;
+                  const showValueTooltip = isEvidenceRow && i === 2 && f.tooltip;
+                  const showLabelTooltip = (isReportRow || isBeforeAfterRow) && f.tooltip;
+                  return (
+                    <div key={f.key} style={{
+                      display:"flex", alignItems:"center", justifyContent:"space-between",
+                      padding:"7px 0",
+                      borderBottom:`1px solid ${planModel.highlight ? "rgba(0,0,0,0.06)" : C.carbon}`,
+                      gap:12,
                     }}>
-                      {typeof f.vals[i] === "string" ? f.vals[i] : <Check active={f.vals[i] as boolean} />}
-                    </span>
-                  </div>
-                ))}
+                      <span style={{ fontFamily:"'Manrope',sans-serif",fontSize:13,fontWeight:400,
+                        color: planModel.highlight ? C.graphite : C.granite }}>
+                        {showLabelTooltip ? (
+                          <InfoTooltip text={f.tooltip as string}>{f.key}</InfoTooltip>
+                        ) : (
+                          f.key
+                        )}
+                      </span>
+                      <span style={{
+                        fontFamily:"'JetBrains Mono',monospace",fontSize:12,
+                        color: typeof f.vals[i] === "string"
+                          ? (planModel.highlight ? C.canvas : C.stone)
+                          : "transparent",
+                        letterSpacing:"-0.02em",
+                        display:"flex", alignItems:"center", gap:6,
+                      }}>
+                        {showValueTooltip ? (
+                          <InfoTooltip text={f.tooltip as string}>{f.vals[i] as string}</InfoTooltip>
+                        ) : typeof f.vals[i] === "string" ? (
+                          f.vals[i]
+                        ) : (
+                          <Check active={f.vals[i] as boolean} />
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )})}

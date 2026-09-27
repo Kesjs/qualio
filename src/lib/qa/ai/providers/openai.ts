@@ -51,7 +51,7 @@ export class OpenAIQAProvider implements QAAIProvider {
                 },
                 impact: {
                   type: 'string',
-                  description: 'L\'impact métier ou utilisateur direct (ex: Les visiteurs ne peuvent pas acheter).'
+                  description: 'L\'impact métier ou utilisateur direct (ex: Les visiteurs ne peuvent pas acheter). Doit être rédigé pour un lecteur non-technique, sans jargon (HTTP, API, sélecteur DOM). Formule en termes d\'action utilisateur empêchée (acheter, s\'inscrire, contacter, naviguer). Si un viewport est spécifié dans test_context, l\'intégrer explicitement (ex: "Sur mobile, les visiteurs ne peuvent pas valider leur commande"). Ne jamais inventer de chiffres ou pourcentages.'
                 },
                 probable_cause: {
                   type: ['string', 'null'],

@@ -20,11 +20,12 @@ export class MockQAProvider implements QAAIProvider {
     }
 
     // Default valid scenario
+    const viewportPrefix = input.test_context?.viewport ? `Sur ${input.test_context.viewport.name}, ` : ''
     const diag: QAAIDiagnostic = {
       title: 'MOCK DIAGNOSTIC',
       severity: 'major',
       summary: 'Mock summary',
-      impact: 'Mock impact',
+      impact: `${viewportPrefix}les visiteurs ne peuvent pas accomplir l'action prévue.`,
       probable_cause: 'Mock cause',
       recommendation: 'Mock recommendation',
       confidence: 0.9,

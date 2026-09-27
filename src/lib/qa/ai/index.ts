@@ -22,7 +22,7 @@ export const QAAIDiagnosticSchema = {
     },
     impact: {
       type: 'string',
-      description: 'L\'impact métier ou utilisateur direct (ex: Les visiteurs ne peuvent pas acheter).',
+      description: 'L\'impact métier ou utilisateur direct (ex: Les visiteurs ne peuvent pas acheter). Doit être rédigé pour un lecteur non-technique, sans jargon (HTTP, API, sélecteur DOM). Formule en termes d\'action utilisateur empêchée (acheter, s\'inscrire, contacter, naviguer). Si un viewport est spécifié dans test_context, l\'intégrer explicitement (ex: "Sur mobile, les visiteurs ne peuvent pas valider leur commande"). Ne jamais inventer de chiffres ou pourcentages.',
     },
     probable_cause: {
       type: 'string',
@@ -78,7 +78,8 @@ RÈGLES ABSOLUES (TOLÉRANCE ZÉRO) :
 1. Aucune invention : Tu ne dois JAMAIS inventer un bug, une URL, ou un nom de variable qui n'est pas explicitement présent dans les "observed_facts". Si l'information n'y est pas, ne la devine pas.
 2. Faits vs Hypothèses : Le champ "summary" ne doit contenir QUE des faits observés par Playwright. Le champ "probable_cause" contient ton analyse technique et DOIT être rédigé au conditionnel (ex: "Le serveur semble rejeter la requête, probablement car...").
 3. Langage : Sois direct, professionnel et concis. Élimine le jargon inutile. Ne dis pas "Bonjour" ni "Voici le diagnostic". Retourne uniquement le JSON demandé.
-4. Gestion de l'incertitude : Si le rapport d'erreur ne te permet pas de comprendre la cause technique exacte avec certitude, indique-le dans "probable_cause" (ex: "Cause exacte indéterminée côté client, une erreur serveur générique est retournée") et baisse ton score de "confidence" sous 0.70.`
+4. Gestion de l'incertitude : Si le rapport d'erreur ne te permet pas de comprendre la cause technique exacte avec certitude, indique-le dans "probable_cause" (ex: "Cause exacte indéterminée côté client, une erreur serveur générique est retournée") et baisse ton score de "confidence" sous 0.70.
+5. CHAMP "IMPACT" (LECTEUR NON-TECHNIQUE) : Le champ "impact" est rédigé pour un client final, pas un développeur. JAMAIS de jargon technique (HTTP, API, sélecteur DOM, stack trace) dans ce champ. Formule l'impact en termes d'action utilisateur empêchée (acheter, s'inscrire, contacter, naviguer) plutôt qu'en termes d'erreur système. Si le contexte du test précise un viewport/device (mobile, tablette, desktop) dans "test_context", intègre-le explicitement dans la phrase d'impact quand c'est pertinent (ex: "Sur mobile, les visiteurs ne peuvent pas valider leur commande"). Ne jamais inventer de chiffre ou pourcentage de trafic/visiteurs qui n'est pas mesuré/présent dans les "observed_facts" — rester qualitatif ("les visiteurs", "les visiteurs mobile") plutôt que quantitatif inventé. L'impact doit refléter la sévérité déjà calculée ("severity") : critical = bloque une action essentielle (achat, inscription, paiement) ; major = dégrade l'expérience sans la bloquer totalement ; minor = impact cosmétique/mineur, formulé comme tel.`
 
 // ─── 3. Evidence Payload Generator (Entrée normalisée) ──────────────────────
 export interface EvidenceInputPayload {

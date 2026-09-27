@@ -166,9 +166,14 @@ export const translations = {
         pagesPerScan: "Pages / scan",
         aiDiagnosis: "AI diagnosis",
         evidence: "Evidence",
+        report: "Client report",
+        beforeAfter: "Before / After",
         history: "History",
         integrations: "Integrations",
-        prioritySupport: "Priority support"
+        prioritySupport: "Priority support",
+        reportTooltip: "A shareable link with the full scan results — send it directly to your client as proof of what was fixed.",
+        beforeAfterTooltip: "See the screenshot from before the fix and after the fix, side by side, for any resolved issue.",
+        evidenceTooltip: "A short recorded replay of the actual browser session that hit the failing step — not just a static screenshot."
       },
       planValues: {
         unlimited: "Unlimited",
@@ -178,6 +183,9 @@ export const translations = {
         evidenceBasic: "Screenshot only",
         evidenceFull: "Screenshot + Network + Console",
         evidenceVideo: "Full suite + video replay",
+        reportNone: "Dashboard only",
+        reportShareable: "Shareable link",
+        reportBranded: "Branded + PDF export",
         historyStarter: "7 days",
         historyPro: "90 days + diffs",
         historyTeam: "1 year + diffs",
@@ -435,9 +443,14 @@ export const translations = {
         pagesPerScan: "Pages / scan",
         aiDiagnosis: "Diagnostic IA",
         evidence: "Preuves collectées",
+        report: "Rapport client",
+        beforeAfter: "Avant / Après",
         history: "Historique des scans",
         integrations: "Intégrations",
-        prioritySupport: "Support prioritaire"
+        prioritySupport: "Support prioritaire",
+        reportTooltip: "Un lien partageable avec le résultat complet du scan — à envoyer directement à votre client comme preuve de ce qui a été corrigé.",
+        beforeAfterTooltip: "Voyez la capture d'écran avant correction et après correction, côte à côte, pour tout incident résolu.",
+        evidenceTooltip: "Un court replay enregistré de la session navigateur réelle qui a rencontré l'étape en échec — pas juste une capture statique."
       },
       planValues: {
         unlimited: "Illimité",
@@ -447,6 +460,9 @@ export const translations = {
         evidenceBasic: "Captures d'écran uniquement",
         evidenceFull: "Captures d'écran + Réseau + Console",
         evidenceVideo: "Suite complète + replay vidéo",
+        reportNone: "Dashboard uniquement",
+        reportShareable: "Lien partageable",
+        reportBranded: "Brandé + export PDF",
         historyStarter: "7 jours",
         historyPro: "90 jours + diffs",
         historyTeam: "1 an + diffs",

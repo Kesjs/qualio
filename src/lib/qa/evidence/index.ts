@@ -7,6 +7,11 @@ export interface Incident {
   title: string
   severity: IssueSeverity
   checks: CheckResult[]
+  viewport?: {
+    name: string
+    width: number
+    height: number
+  }
 }
 
 export class EvidenceEngine {
@@ -23,12 +28,32 @@ export class EvidenceEngine {
       // This is a simplistic correlation strategy. In a real world, this could involve more heuristics.
       const groupingKey = `${check.category}_${check.pageId}_${check.key}`
 
+      // Extract viewport from evidence if available
+      let viewportFromCheck: { name: string; width: number; height: number } | undefined
+      if (check.evidence) {
+        const viewportEvidence = check.evidence.find(ev => ev.type === 'viewport')
+        if (viewportEvidence?.payload && typeof viewportEvidence.payload === 'object') {
+          const payload = viewportEvidence.payload as any
+          if (payload.name && payload.width && payload.height) {
+            viewportFromCheck = {
+              name: payload.name,
+              width: payload.width,
+              height: payload.height
+            }
+          }
+        }
+      }
+
       if (incidentsMap.has(groupingKey)) {
         const existing = incidentsMap.get(groupingKey)!
         existing.checks.push(check)
         // Upgrade severity if current check is critical and existing is not
         if (check.severity === 'critical' && existing.severity !== 'critical') {
           existing.severity = 'critical'
+        }
+        // Add viewport if not already present
+        if (viewportFromCheck && !existing.viewport) {
+          existing.viewport = viewportFromCheck
         }
       } else {
         incidentsMap.set(groupingKey, {
@@ -38,6 +63,7 @@ export class EvidenceEngine {
           title: check.title || 'Unknown Issue',
           severity: check.severity as IssueSeverity,
           checks: [check],
+          viewport: viewportFromCheck,
         })
       }
     }

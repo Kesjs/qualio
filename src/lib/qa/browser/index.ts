@@ -1,6 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import type { QAConfigManager } from '../config'
-import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, JourneyDefinition, JourneyResult, JourneyStepResult, JourneyActionType } from '../types'
+import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, JourneyDefinition, JourneyResult, JourneyStepResult, JourneyActionType, Evidence } from '../types'
 
 export class BrowserEngine {
   private config: QAConfigManager
@@ -36,9 +36,10 @@ export class BrowserEngine {
     title: string,
     message: string,
     severity: IssueSeverity | null = null,
-    duration = 0
+    duration = 0,
+    evidence?: Evidence[]
   ): Omit<CheckResult, 'id' | 'scanId' | 'pageId'> {
-    return { key, category, status, title, message, severity, duration }
+    return { key, category, status, title, message, severity, duration, evidence }
   }
 
   async testNavigation(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
@@ -159,7 +160,8 @@ export class BrowserEngine {
         `Responsive — ${vp.name} (${vp.width}px)`,
         hasOverflow ? `Horizontal overflow detected at ${vp.width}px` : `No overflow at ${vp.width}px`,
         hasOverflow ? 'major' : null,
-        duration
+        duration,
+        [{ type: 'viewport', payload: { name: vp.name, width: vp.width, height: vp.height } }]
       ))
     }
 

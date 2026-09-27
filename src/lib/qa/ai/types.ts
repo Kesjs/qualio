@@ -7,6 +7,13 @@ export interface QAIncidentInput {
     title: string
     severity: string
   }
+  test_context?: {
+    viewport?: {
+      name: string
+      width: number
+      height: number
+    }
+  }
   observed_facts: {
     playwright_results: Array<{
       id: string

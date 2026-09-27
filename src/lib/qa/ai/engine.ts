@@ -33,6 +33,9 @@ export class AIEngine {
         title: incident.title,
         severity: incident.severity,
       },
+      test_context: incident.viewport ? {
+        viewport: incident.viewport
+      } : undefined,
       observed_facts: {
         playwright_results: incident.checks.map(c => ({
           id: c.id,
