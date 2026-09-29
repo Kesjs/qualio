@@ -6,8 +6,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
   ChevronRightIcon,
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
   BellIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
@@ -82,11 +80,22 @@ export function Header({
             aria-label={isCollapsed ? 'Déplier la barre latérale' : 'Réduire la barre latérale'}
             className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 border border-gray-200/90 text-gray-500 hover:text-gray-900 hover:bg-gray-100 hover:border-gray-300 shadow-2xs transition-all cursor-pointer dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white dark:hover:bg-[#1E212A] dark:hover:border-white/20"
           >
-            {isCollapsed ? (
-              <ChevronDoubleRightIcon className="h-4 w-4" />
-            ) : (
-              <ChevronDoubleLeftIcon className="h-4 w-4" />
-            )}
+            <svg
+              aria-hidden="true"
+              className="h-[18px] w-[18px]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.25" />
+              <path strokeLinecap="round" d="M9 5v14" />
+              {isCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="m13 9 3 3-3 3" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="m16 9-3 3 3 3" />
+              )}
+            </svg>
           </button>
         )}
 
