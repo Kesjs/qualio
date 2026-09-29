@@ -13,7 +13,7 @@ const COLS = [
       { label:"How it works",href:"#how-it-works" },
       { label:"Pricing",    href:"#pricing" },
       { label:"FAQ",        href:"#faq" },
-      { label:"Status",     href:"https://status.qualio.dev" },
+      { label:"System status", href:"https://status.qualio.dev" },
       { label:"Go to Dashboard", href:"/dashboard" },
     ],
   },
