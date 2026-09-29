@@ -13,9 +13,6 @@ const C = {
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "FAQ", href: "#faq" },
-  { label: "Status", href: "https://status.qualio.dev", external: true },
 ];
 
 export function Navbar() {
@@ -135,7 +132,6 @@ export function Navbar() {
             >
               {NAV_LINKS.map(l => (
                 <a key={l.href} href={l.href}
-                  {...(l.external ? { target: "_blank", rel: "noreferrer" } : {})}
                   style={{
                     color: C.granite, fontSize: 13, fontWeight: 500,
                     whiteSpace: "nowrap", letterSpacing: "0.01em",
