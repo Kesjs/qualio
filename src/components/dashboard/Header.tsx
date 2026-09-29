@@ -25,7 +25,7 @@ interface HeaderProps {
 function getBreadcrumb(pathname: string) {
   if (pathname === '/dashboard') return { title: 'Overview', parent: null }
   if (pathname === '/dashboard/sites') return { title: 'Sites', parent: null }
-  if (pathname.startsWith('/dashboard/sites/')) return { title: 'Workspace Site', parent: { label: 'Sites', href: '/dashboard/sites' } }
+  if (pathname.startsWith('/dashboard/sites/')) return { title: 'Détail du site', parent: { label: 'Sites', href: '/dashboard/sites' } }
   if (pathname === '/dashboard/scans') return { title: 'Scans', parent: null }
   if (pathname === '/dashboard/bugs') return { title: 'Bugs', parent: null }
   if (pathname === '/dashboard/settings') return { title: 'Settings', parent: null }

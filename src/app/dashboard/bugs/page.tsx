@@ -79,7 +79,7 @@ export default function BugsPage() {
   const hasActiveFilters = search.trim() !== '' || filterSeverity !== 'all'
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-5 max-w-7xl mx-auto pb-16">
       {/* 1. Header (Bolder typographic scale & authoritative hierarchy) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -195,7 +195,7 @@ export default function BugsPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:border-white/[0.08] space-y-4 animate-pulse"
+                className="rounded-xl border border-gray-200/80 bg-white p-5 dark:bg-[#181B21] dark:border-white/[0.08] space-y-4 animate-pulse"
               >
                 <div className="flex justify-between items-center">
                   <div className="flex gap-2">
@@ -238,6 +238,7 @@ export default function BugsPage() {
         ) : (
           filteredIssues.map((bug: any) => {
             const diag = parseIssueDiagnostic(bug)
+            const siteId = bug.site_id || bug.site?.id
             const timeAgo = bug.created_at
               ? formatDistanceToNow(new Date(bug.created_at), { addSuffix: true, locale: fr })
               : 'Récemment'
@@ -245,7 +246,7 @@ export default function BugsPage() {
             return (
               <div
                 key={bug.id}
-                className="relative rounded-2xl border border-gray-200/90 bg-white p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-gray-300 dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all duration-200 space-y-4 group"
+                className="relative rounded-xl border border-gray-200/90 bg-white p-4 sm:p-5 hover:border-gray-300 dark:bg-[#181B21] dark:border-white/[0.08] dark:hover:border-white/20 transition-colors duration-200 space-y-4 group"
               >
                 {/* Meta Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 border-b border-gray-100 dark:border-white/[0.06]">
@@ -306,7 +307,7 @@ export default function BugsPage() {
                 {/* Bug Title & Summary */}
                 <div>
                   <h3 className="text-base font-bold text-gray-900 dark:text-zinc-100 group-hover:text-[#ee6018] dark:group-hover:text-[#ff7836] transition-colors leading-snug">
-                    <Link href={`/dashboard/sites/${bug.site_id}`} className="hover:underline">
+                    <Link href={siteId ? `/dashboard/sites/${siteId}` : '/dashboard/sites'} className="hover:underline">
                       {diag.title}
                     </Link>
                   </h3>
@@ -337,7 +338,7 @@ export default function BugsPage() {
                   </div>
 
                   <Link
-                    href={`/dashboard/sites/${bug.site_id}`}
+                    href={siteId ? `/dashboard/sites/${siteId}` : '/dashboard/sites'}
                     className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-950 dark:bg-white text-white dark:text-gray-950 text-xs font-semibold hover:bg-gray-800 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all shrink-0 self-end sm:self-center"
                   >
                     <span>Inspecter</span>

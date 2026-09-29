@@ -221,8 +221,23 @@ export class QAOrchestrator {
       for (const incident of newIncidents) {
         let title = incident.title
         let severity = incident.severity
-        let description = 'Diagnostic IA indisponible.'
-        let suggestion = 'Investigate the reported errors manually.'
+        const observedFacts = incident.checks
+          .map((check) => check.message || `${check.category}/${check.key}`)
+          .filter(Boolean)
+        let description = JSON.stringify({
+          title,
+          severity,
+          summary: observedFacts.length > 0
+            ? `Faits observés : ${observedFacts.join(' ')}`
+            : 'Une anomalie a été détectée par les vérifications automatisées.',
+          impact: severity === 'critical'
+            ? 'Une action importante du site peut être bloquée pour les visiteurs.'
+            : 'L’expérience utilisateur peut être dégradée sur le parcours contrôlé.',
+          probable_cause: 'La cause exacte n’a pas pu être confirmée automatiquement ; une investigation technique est nécessaire.',
+          recommendation: 'Reproduire le contrôle indiqué et corriger la cause signalée avant une nouvelle vérification.',
+          confidence: 0.45,
+        })
+        let suggestion = 'Reproduire le contrôle indiqué et corriger la cause signalée avant une nouvelle vérification.'
         let confidence: any = 'low'
         let status = 'new'
         let aiTokensInput, aiTokensOutput, aiDurationMs, aiCostUsd, aiModel
@@ -417,7 +432,10 @@ export class QAOrchestrator {
           payload: { note: 'No evidence was captured for this incident by the check that reported it.' },
         })
       }
-      await this.supabase.from('evidence').insert(evRows as any)
+      const { error: evidenceError } = await this.supabase.from('evidence').insert(evRows as any)
+      if (evidenceError) {
+        throw new Error(`Failed to save evidence: ${evidenceError.message}`)
+      }
     }
   }
 
@@ -481,13 +499,9 @@ export class QAOrchestrator {
   }
 
   private async finalizeScan(scanId: string, result: ScanResult) {
-    let summary = result.summary
-    if (result.aiCallsCount && result.aiCallsCount > 0) {
-      const costStr = result.aiCostUsd !== undefined ? `$${result.aiCostUsd.toFixed(6)}` : 'coût inconnu'
-      summary += ` [AI: ${result.aiCallsCount} call(s), ${result.aiTokensInput ?? 0} in / ${result.aiTokensOutput ?? 0} out, ${costStr}]`
-    }
-
-    await this.supabase.from('scans').update({
+    // Keep the user-facing summary clean. AI usage belongs in dedicated
+    // columns and must never leak into the release decision shown in the UI.
+    const { error } = await this.supabase.from('scans').update({
       pages_discovered: result.pagesDiscovered,
       checks_total: result.checksTotal,
       checks_passed: result.checksPassed,
@@ -495,8 +509,17 @@ export class QAOrchestrator {
       checks_failed: result.checksFailed,
       critical_count: result.criticalCount,
       major_count: result.majorCount,
-      summary,
+      summary: result.summary,
+      ai_calls_count: result.aiCallsCount ?? 0,
+      ai_tokens_input: result.aiTokensInput ?? 0,
+      ai_tokens_output: result.aiTokensOutput ?? 0,
+      ai_cost_usd: result.aiCostUsd ?? 0,
+      ai_duration_ms: result.aiDurationMs ?? 0,
     } as any).eq('id', scanId)
+
+    if (error) {
+      throw new Error(`Failed to finalize scan: ${error.message}`)
+    }
   }
 
   private async updateSiteLastScan(siteId: string, scanId: string) {

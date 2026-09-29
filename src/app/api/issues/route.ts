@@ -8,14 +8,33 @@ export async function GET(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Fetch all issues for the user's sites
+    // Resolve the user's scans first. `issues` belongs to a scan, not directly
+    // to a site, so asking PostgREST for issues -> sites is not a valid relation.
+    const { data: scans, error: scansError } = await supabase
+      .from('scans')
+      .select(`
+        id,
+        site_id,
+        sites!scans_site_id_fkey (id, user_id, url, name, environment)
+      `)
+      .eq('user_id', user.id)
+
+    if (scansError) {
+      console.error('Error fetching scans for issues:', scansError)
+      return NextResponse.json({ error: scansError.message }, { status: 500 })
+    }
+
+    const scanIds = (scans ?? []).map((scan) => scan.id)
+    if (scanIds.length === 0) return NextResponse.json([])
+
     const { data: issues, error } = await supabase
       .from('issues')
       .select(`
         *,
-        site:sites!inner (id, user_id, url, name)
+        page:pages (url),
+        evidence (*)
       `)
-      .eq('sites.user_id', user.id)
+      .in('scan_id', scanIds)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -23,7 +42,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(issues)
+    const sitesByScanId = new Map(
+      (scans ?? []).map((scan) => [scan.id, scan.sites])
+    )
+
+    // Keep the response shape consumed by the Bugs page while deriving the
+    // site through the real scan relationship.
+    const normalizedIssues = (issues ?? []).map((issue) => ({
+      ...issue,
+      site: sitesByScanId.get(issue.scan_id) ?? null,
+      url: issue.page?.url ?? null,
+    }))
+
+    return NextResponse.json(normalizedIssues)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

@@ -12,6 +12,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          plan: string
+          scans_count: number
+          max_scans: number
+          staging_header: string | null
+          created_at: string
+        }
+        Insert: {
+          id: string
+          plan?: string
+          scans_count?: number
+          max_scans?: number
+          staging_header?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          plan?: string
+          scans_count?: number
+          max_scans?: number
+          staging_header?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       checks: {
         Row: {
           category: string
@@ -195,6 +222,7 @@ export type Database = {
           consent_confirmed_at: string | null
           created_at: string | null
           critical_count: number | null
+          current_step: string | null
           error: string | null
           id: string
           major_count: number | null
@@ -225,6 +253,7 @@ export type Database = {
           consent_confirmed_at?: string | null
           created_at?: string | null
           critical_count?: number | null
+          current_step?: string | null
           error?: string | null
           id?: string
           major_count?: number | null
@@ -255,6 +284,7 @@ export type Database = {
           consent_confirmed_at?: string | null
           created_at?: string | null
           critical_count?: number | null
+          current_step?: string | null
           error?: string | null
           id?: string
           major_count?: number | null
@@ -396,7 +426,7 @@ export type Database = {
       sites: {
         Row: {
           created_at: string | null
-          environment: string | null
+          environment: string
           id: string
           journey_definitions: Json
           last_scan_id: string | null
@@ -407,7 +437,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          environment?: string | null
+          environment?: string
           id?: string
           journey_definitions?: Json
           last_scan_id?: string | null
@@ -418,7 +448,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          environment?: string | null
+          environment?: string
           id?: string
           journey_definitions?: Json
           last_scan_id?: string | null

@@ -47,7 +47,7 @@ export default function ScansPage() {
       statusFilter === 'all' ||
       (statusFilter === 'regression' && (scan.critical_count ?? 0) > 0) ||
       (statusFilter === 'healthy' && scan.status === 'completed' && (scan.critical_count ?? 0) === 0) ||
-      (statusFilter === 'running' && ['queued', 'running', 'crawling', 'discovering', 'auditing'].includes(scan.status))
+      (statusFilter === 'running' && ['queued', 'running', 'crawling', 'discovering', 'auditing', 'browser_testing', 'analyzing', 'reporting'].includes(scan.status))
 
     return matchesSearch && matchesStatus
   })
@@ -72,7 +72,7 @@ export default function ScansPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-5 max-w-7xl mx-auto pb-16">
       {/* 1. Header (Clean authoritative SaaS layout) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -171,7 +171,19 @@ export default function ScansPage() {
       </div>
 
       {/* 3. Scans Table */}
-      <div className="rounded-2xl border border-gray-200/90 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden dark:bg-[#16181E] dark:border-white/[0.08] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+      {isError ? (
+        <EmptyState
+          title="Impossible de charger les scans"
+          message="L'historique réel n'est pas disponible pour le moment. Réessayez dans quelques instants."
+          actionLabel="Réessayer"
+          actionIcon={ArrowPathIcon}
+          onActionClick={() => refetch()}
+          mainIcon={ExclamationTriangleIcon}
+          iconVariant="orange"
+          className="my-8"
+        />
+      ) : (
+        <div className="rounded-xl border border-gray-200/90 bg-white overflow-hidden dark:bg-[#181B21] dark:border-white/[0.08]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-50/70 border-b border-gray-100 text-gray-400 font-semibold uppercase tracking-wider text-[10px] dark:bg-[#111216]/60 dark:border-white/[0.06] dark:text-zinc-500">
@@ -195,21 +207,6 @@ export default function ScansPage() {
                     </div>
                   </td>
                 </tr>
-              ) : isError ? (
-                <tr>
-                  <td colSpan={7} className="py-8 px-4">
-                    <EmptyState
-                      title="Impossible de charger les scans"
-                      message="L'historique réel n'est pas disponible pour le moment. Réessayez dans quelques instants."
-                      actionLabel="Réessayer"
-                      actionIcon={ArrowPathIcon}
-                      onActionClick={() => refetch()}
-                      mainIcon={ExclamationTriangleIcon}
-                      iconVariant="orange"
-                      className="max-w-xl mx-auto border-0 bg-transparent shadow-none p-6 sm:p-8"
-                    />
-                  </td>
-                </tr>
               ) : filteredScans.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 px-4">
@@ -229,9 +226,10 @@ export default function ScansPage() {
                 </tr>
               ) : (
                 filteredScans.map((scan: any) => {
-                  const isRunning = ['queued', 'running', 'crawling', 'discovering', 'auditing'].includes(scan.status)
+                  const isRunning = ['queued', 'running', 'crawling', 'discovering', 'auditing', 'browser_testing', 'analyzing', 'reporting'].includes(scan.status)
                   const hasRegression = (scan.critical_count ?? 0) > 0
                   const isFailed = scan.status === 'failed' || scan.status === 'error'
+                  const isCompleted = scan.status === 'completed'
 
                   return (
                     <tr
@@ -303,10 +301,14 @@ export default function ScansPage() {
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/25">
                             <span>Échec run</span>
                           </span>
-                        ) : (
+                        ) : isCompleted ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/25">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             <span>Réussi</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200/70 dark:bg-white/[0.08] dark:text-zinc-300 dark:border-white/[0.12]">
+                            <span>{scan.status || 'Inconnu'}</span>
                           </span>
                         )}
                       </td>
@@ -322,7 +324,7 @@ export default function ScansPage() {
                           href={`/dashboard/sites/${scan.site_id}`}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-[#ee6018] hover:text-[#d95514] dark:text-[#ff7836] dark:hover:text-[#ee6018]"
                         >
-                          <span>Workspace</span>
+                          <span>Voir le détail</span>
                           <ArrowUpRightIcon className="h-3.5 w-3.5" />
                         </Link>
                       </td>
@@ -333,7 +335,8 @@ export default function ScansPage() {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

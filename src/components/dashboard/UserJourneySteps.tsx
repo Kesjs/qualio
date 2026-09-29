@@ -137,7 +137,7 @@ export function UserJourneySteps({
                 {/* Message d'erreur si échec */}
                 {step.error_message && (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-medium">
-                    ⚠️ {step.error_message}
+                    Erreur : {step.error_message}
                   </p>
                 )}
               </div>

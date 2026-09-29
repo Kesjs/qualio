@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
   GlobeAltIcon,
@@ -16,8 +16,12 @@ import {
   ArrowTopRightOnSquareIcon,
   UserCircleIcon,
   DocumentTextIcon,
+  PlusIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { useSites, SiteWithLastScan } from '@/lib/hooks/useSites'
+import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 
 interface SidebarProps {
   isCollapsed?: boolean
@@ -44,8 +48,13 @@ const navSections = [
 
 export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: sites } = useSites()
   const [searchQuery, setSearchQuery] = useState('')
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false)
+  const [isAddSiteOpen, setIsAddSiteOpen] = useState(false)
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null)
   const [userName, setUserName] = useState('Qualio Studio')
   const [userEmail, setUserEmail] = useState('admin@qualio.dev')
 
@@ -69,6 +78,13 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
     loadUser()
   }, [])
 
+  useEffect(() => {
+    if (!sites?.length) return
+    const storedId = window.localStorage.getItem('qualio:selected-site')
+    const nextId = storedId && sites.some((site) => site.id === storedId) ? storedId : sites[0].id
+    setSelectedSiteId(nextId)
+  }, [sites])
+
   // Close profile dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -81,6 +97,8 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   }, [])
 
   const initials = userName.slice(0, 2).toUpperCase()
+  const selectedSite = sites?.find((site) => site.id === selectedSiteId) ?? sites?.[0]
+  const selectedSiteHost = selectedSite ? getSiteHostname(selectedSite.url) : null
 
   return (
     <aside
@@ -112,6 +130,59 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
             )}
           </Link>
         </div>
+
+        {/* Current site context switcher */}
+        {!isCollapsed && (
+          <div className="relative border-b border-gray-200/60 px-3 py-3 dark:border-white/[0.08]">
+            <button
+              type="button"
+              onClick={() => setIsSiteMenuOpen((open) => !open)}
+              className="flex w-full items-center gap-2.5 rounded-md border border-gray-200/80 bg-white px-2.5 py-2 text-left transition-colors hover:border-gray-300 dark:border-white/[0.08] dark:bg-[#16181E] dark:hover:border-white/20"
+              aria-expanded={isSiteMenuOpen}
+              aria-label="Changer de site"
+            >
+              <SiteFavicon site={selectedSite} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[9px] font-semibold uppercase tracking-[0.1em] text-gray-400 dark:text-zinc-500">Site actif</span>
+                <span className="mt-0.5 block truncate text-xs font-semibold text-gray-900 dark:text-zinc-100">{selectedSite?.name || selectedSiteHost || 'Aucun site'}</span>
+              </span>
+              <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform dark:text-zinc-500 ${isSiteMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isSiteMenuOpen && (
+              <div className="absolute left-3 right-3 top-full z-40 mt-2 overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-xl dark:border-white/[0.1] dark:bg-[#16181E]">
+                <div className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-zinc-500">Vos sites</div>
+                <div className="max-h-56 overflow-y-auto">
+                  {sites?.map((site) => (
+                    <button
+                      key={site.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSiteId(site.id)
+                        window.localStorage.setItem('qualio:selected-site', site.id)
+                        setIsSiteMenuOpen(false)
+                        router.push(`/dashboard/sites/${site.id}`)
+                      }}
+                      className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors ${selectedSite?.id === site.id ? 'bg-gray-100 dark:bg-white/[0.07]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.05]'}`}
+                    >
+                      <SiteFavicon site={site} size="sm" />
+                      <span className="min-w-0 flex-1 truncate text-xs font-medium text-gray-700 dark:text-zinc-300">{site.name || getSiteHostname(site.url)}</span>
+                      <span className="text-[9px] uppercase text-gray-400 dark:text-zinc-500">{site.environment || 'prod'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 border-t border-gray-100 pt-1 dark:border-white/[0.07]">
+                  <Link href="/dashboard/sites" onClick={() => setIsSiteMenuOpen(false)} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/[0.05]">
+                    <GlobeAltIcon className="h-3.5 w-3.5 text-gray-400" /> Gérer les sites
+                  </Link>
+                  <button type="button" onClick={() => { setIsSiteMenuOpen(false); setIsAddSiteOpen(true) }} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-[#e86a2a] hover:bg-orange-50 dark:hover:bg-[#ee6018]/10">
+                    <PlusIcon className="h-3.5 w-3.5" /> Ajouter un site
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ─── Search Bar IN Sidebar (Crisp Borders) ────────────────────────── */}
         <div className="px-3 py-3">
@@ -164,7 +235,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                       href={item.href}
                       prefetch={true}
                       title={isCollapsed ? item.label : undefined}
-                      className={`group relative flex items-center rounded-xl transition-all duration-150 ${
+                      className={`group relative flex items-center rounded-md transition-all duration-150 ${
                         isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs'
                       } ${
                         isActive
@@ -260,7 +331,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
         <button
           type="button"
           onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-          className={`flex w-full items-center rounded-lg bg-white border border-gray-200/80 p-1.5 text-left hover:border-gray-300 shadow-2xs transition-all cursor-pointer dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 ${
+          className={`flex w-full items-center rounded-md bg-white border border-gray-200/80 p-1.5 text-left hover:border-gray-300 shadow-2xs transition-all cursor-pointer dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 ${
             isCollapsed ? 'justify-center' : 'justify-between'
           }`}
         >
@@ -287,6 +358,21 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
           )}
         </button>
       </div>
+      <AddSiteModal isOpen={isAddSiteOpen} onClose={() => setIsAddSiteOpen(false)} onSuccess={(siteId) => { setSelectedSiteId(siteId); window.localStorage.setItem('qualio:selected-site', siteId); setIsAddSiteOpen(false) }} />
     </aside>
+  )
+}
+
+function getSiteHostname(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+}
+
+function SiteFavicon({ site, size = 'md' }: { site?: SiteWithLastScan; size?: 'sm' | 'md' }) {
+  const favicon = site ? `${site.url.replace(/\/$/, '')}/favicon.ico` : null
+  return (
+    <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-white/[0.08] dark:bg-white/[0.04] ${size === 'sm' ? 'h-6 w-6' : 'h-7 w-7'}`}>
+      {favicon ? <img src={favicon} alt="" className="h-4 w-4 object-contain grayscale opacity-80" onError={(event) => { event.currentTarget.style.display = 'none'; event.currentTarget.nextElementSibling?.removeAttribute('hidden') }} /> : null}
+      <GlobeAltIcon className={`h-4 w-4 text-gray-400 ${favicon ? 'hidden' : ''}`} />
+    </span>
   )
 }

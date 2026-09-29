@@ -22,7 +22,7 @@ export default function DashboardLayout({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   return (
-    <div className="flex h-screen w-full bg-white text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#0B0C0E] dark:text-zinc-100 transition-colors">
+    <div className="flex h-[100dvh] min-h-[100dvh] w-full bg-white text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#0B0C0E] dark:text-zinc-100 transition-colors">
       {/* ─── Desktop Sidebar ─────────────────────────────────────────── */}
       <div className="hidden md:flex h-full shrink-0 border-r border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#0B0C0E]">
         <Sidebar

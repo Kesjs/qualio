@@ -154,6 +154,19 @@ export default function OverviewPage() {
     }
   }
 
+  const getEnvironmentLabel = (site: SiteWithLastScan) =>
+    site.environment === 'staging' ? 'Staging' : 'Production'
+
+  const getScanSummary = (site: SiteWithLastScan) => {
+    const summary = site.last_scan?.summary?.trim()
+    if (summary) return summary
+
+    const failedChecks = site.last_scan?.checks_failed ?? 0
+    return failedChecks > 0
+      ? `${failedChecks} contrôle${failedChecks > 1 ? 's' : ''} en échec lors du dernier scan.`
+      : 'Régression détectée lors du dernier scan.'
+  }
+
   const isLoading = sitesLoading || scansLoading
 
   return (
@@ -362,7 +375,7 @@ export default function OverviewPage() {
                     </p>
                   </div>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-300 tabular-nums">
-                    {kpiData.regressionSites.length + kpiData.warningSites.length + kpiData.unscannedSites.length} cible(s)
+                    {kpiData.regressionSites.length + kpiData.warningSites.length + kpiData.unscannedSites.length} site{(kpiData.regressionSites.length + kpiData.warningSites.length + kpiData.unscannedSites.length) > 1 ? 's' : ''} à vérifier
                   </span>
                 </div>
 
@@ -380,12 +393,12 @@ export default function OverviewPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
+                    <div className="space-y-2.5">
                       {/* 1. Sites en régression */}
                       {kpiData.regressionSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex items-center justify-between p-3.5 rounded-xl border border-rose-200/80 bg-rose-50/50 dark:border-rose-500/25 dark:bg-rose-500/[0.08] transition-all duration-150 hover:shadow-xs"
+                          className="flex flex-col gap-3 p-3.5 rounded-xl border border-rose-200/80 bg-rose-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-rose-500/25 dark:bg-rose-500/[0.08] transition-all duration-150 hover:shadow-xs"
                         >
                           <div className="min-w-0 pr-3">
                             <div className="flex items-center gap-2">
@@ -396,23 +409,31 @@ export default function OverviewPage() {
                                 Bloquant
                               </span>
                             </div>
-                            <p className="text-xs font-semibold text-rose-700 dark:text-rose-400 mt-1">
-                              {site.last_scan?.critical_count ?? 1} anomalie(s) critique(s) détectée(s)
+                            <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 mt-1 line-clamp-1">
+                              {getScanSummary(site)}
                             </p>
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono text-rose-800/80 dark:text-rose-200/75">
+                              <span>{getEnvironmentLabel(site)}</span>
+                              <span aria-hidden="true">·</span>
+                              <span>{site.last_scan?.critical_count ?? 1} critique{(site.last_scan?.critical_count ?? 1) > 1 ? 's' : ''}</span>
+                              {site.last_scan?.completed_at && <><span aria-hidden="true">·</span><span>scanné {formatDistanceToNow(new Date(site.last_scan.completed_at), { addSuffix: true, locale: fr })}</span></>}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                             <button
                               type="button"
                               onClick={() => handleLaunchScanClick(site)}
-                              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-rose-300 text-rose-700 hover:bg-rose-100/60 dark:bg-[#1E2028] dark:border-rose-500/40 dark:text-rose-300 dark:hover:bg-rose-500/20 active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                              aria-label={`Configurer un re-test pour ${site.name || site.url}`}
+                              className="min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-[#ee6018] text-white hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
                             >
                               Re-tester
                             </button>
                             <Link
                               href={`/dashboard/sites/${site.id}`}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
-                              title="Ouvrir le workspace"
+                              aria-label={`Voir le détail de ${site.name || site.url}`}
+                              className="min-h-10 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-950 dark:text-zinc-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] transition-colors"
                             >
+                              <span>Voir</span>
                               <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                             </Link>
                           </div>
@@ -423,7 +444,7 @@ export default function OverviewPage() {
                       {kpiData.warningSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex items-center justify-between p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 dark:border-amber-500/25 dark:bg-amber-500/[0.08] transition-all duration-150 hover:shadow-xs"
+                          className="flex flex-col gap-3 p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/25 dark:bg-amber-500/[0.08] transition-all duration-150 hover:shadow-xs"
                         >
                           <div className="min-w-0 pr-3">
                             <div className="flex items-center gap-2">
@@ -437,11 +458,14 @@ export default function OverviewPage() {
                             <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mt-1">
                               {site.last_scan?.checks_warning ?? 0} point(s) d'attention non bloquant(s)
                             </p>
+                            <p className="mt-1 text-[11px] font-mono text-amber-800/80 dark:text-amber-200/75">
+                              {getEnvironmentLabel(site)}{site.last_scan?.completed_at ? ` · scanné ${formatDistanceToNow(new Date(site.last_scan.completed_at), { addSuffix: true, locale: fr })}` : ''}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                             <Link
                               href={`/dashboard/sites/${site.id}`}
-                              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100/60 dark:bg-[#1E2028] dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/20 active:scale-[0.97] transition-all duration-150"
+                              className="min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100/60 dark:bg-[#1E2028] dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150"
                             >
                               Consulter
                             </Link>
@@ -453,7 +477,7 @@ export default function OverviewPage() {
                       {kpiData.unscannedSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-gray-50/70 dark:border-white/[0.08] dark:bg-white/[0.03] transition-colors"
+                          className="flex flex-col gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/70 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08] dark:bg-white/[0.03] transition-colors"
                         >
                           <div className="min-w-0 pr-3">
                             <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
@@ -466,9 +490,10 @@ export default function OverviewPage() {
                           <button
                             type="button"
                             onClick={() => handleLaunchScanClick(site)}
-                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 dark:bg-[#1E2028] dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                            aria-label={`Lancer le premier audit pour ${site.name || site.url}`}
+                            className="self-end sm:self-auto min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 dark:bg-[#1E2028] dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
                           >
-                            Lancer
+                            Lancer le premier audit
                           </button>
                         </div>
                       ))}
@@ -494,7 +519,11 @@ export default function OverviewPage() {
 
                 {/* Histogramme Dynamique Réel */}
                 <div className="mt-5 h-40 flex items-end justify-between gap-3 pt-2 pb-1 border-b border-gray-100 dark:border-white/[0.06]">
-                  {dailyActivity.map((dayItem) => (
+                  {dailyActivity.every((dayItem) => dayItem.count === 0) ? (
+                    <div className="flex h-full w-full items-center justify-center text-center">
+                      <p className="max-w-xs text-xs text-gray-500 dark:text-zinc-500">Aucune session Playwright sur cette période. Lancez un scan pour alimenter cette vue.</p>
+                    </div>
+                  ) : dailyActivity.map((dayItem) => (
                     <div
                       key={dayItem.date.toISOString()}
                       className="flex-1 flex flex-col items-center h-full justify-end group relative"

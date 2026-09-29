@@ -35,6 +35,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     supabase.from('checks').select('*').eq('scan_id', scanId).order('category').order('status'),
   ])
 
+  const queryError = pagesRes.error || issuesRes.error || checksRes.error
+  if (queryError) {
+    return NextResponse.json({ error: queryError.message }, { status: 500 })
+  }
+
   return NextResponse.json({
     scan,
     pages: pagesRes.data ?? [],

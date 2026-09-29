@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -17,6 +17,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   GlobeAltIcon,
+  MapIcon,
   CameraIcon,
   CommandLineIcon,
   Square3Stack3DIcon,
@@ -28,7 +29,7 @@ import { useScanResults, useScanStatus, IssueRow, PageRow, CheckRow } from '@/li
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EvidenceDrawer, EvidenceDetail } from '@/components/dashboard/EvidenceDrawer'
 import { ScreenshotIndicator } from '@/components/dashboard/ScreenshotIndicator'
-import { useIssueScreenshots } from '@/lib/hooks/useScreenshots'
+import { useIssueScreenshots, useScanJourneysSummary } from '@/lib/hooks/useScreenshots'
 import { parseIssueDiagnostic, QAAIDiagnostic } from '@/lib/qa/ai'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -92,15 +93,15 @@ function IssueCard({
             }`}
           >
             {diag.severity === 'critical'
-              ? '🔴 Critique'
+              ? 'Critique'
               : diag.severity === 'major'
-              ? '🟠 Majeur'
-              : '🟡 Mineur'}
+              ? 'Majeur'
+              : 'Mineur'}
           </span>
 
           {/* Status Badge */}
           {issue.status === 'new' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200/60 dark:border-purple-500/20">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-zinc-400 border border-gray-200/60 dark:border-white/[0.08]">
               <SparklesIcon className="h-3 w-3" />
               Nouveau
             </span>
@@ -198,7 +199,7 @@ function IssueCard({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
                 >
                   <CameraIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                  <span>📸 Screenshot</span>
+                  <span>Screenshot</span>
                 </button>
               )}
 
@@ -209,7 +210,7 @@ function IssueCard({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
                 >
                   <GlobeAltIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                  <span>🌐 Network</span>
+                  <span>Réseau</span>
                 </button>
               )}
 
@@ -220,7 +221,7 @@ function IssueCard({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
                 >
                   <CommandLineIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                  <span>💻 Console</span>
+                  <span>Console</span>
                 </button>
               )}
 
@@ -242,7 +243,7 @@ function IssueCard({
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#16181E] text-xs font-semibold text-gray-700 dark:text-gray-200 hover:border-[#ee6018] hover:text-[#ee6018] dark:hover:text-[#ee6018] transition-colors cursor-pointer shadow-2xs"
                 >
                   <InformationCircleIcon className="h-3.5 w-3.5 text-[#ee6018]" />
-                  <span>🔍 Autre preuve</span>
+                  <span>Autre preuve</span>
                 </button>
               )}
             </div>
@@ -264,7 +265,7 @@ export default function SiteWorkspacePage() {
 
   // Modals & Active Tab
   const [isRunScanOpen, setIsRunScanOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'bugs' | 'pages' | 'checks'>('bugs')
+  const [activeTab, setActiveTab] = useState<'bugs' | 'journeys' | 'pages' | 'checks'>('bugs')
 
   // Evidence Drawer state
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false)
@@ -289,19 +290,37 @@ export default function SiteWorkspacePage() {
   const previousScan = scans[1] ?? null
 
   const isScanRunning = latestScan
-    ? ['running', 'crawling', 'discovering', 'auditing', 'browser_testing', 'created'].includes(latestScan.status)
+    ? ['queued', 'running', 'discovering', 'crawling', 'auditing', 'browser_testing', 'analyzing', 'reporting', 'created'].includes(latestScan.status)
     : false
 
   // Live polling if scan is in progress
   const { data: liveStatus } = useScanStatus(latestScan?.id ?? null, isScanRunning)
 
+  // The site query contains the scan snapshot. Refresh it as soon as the
+  // polling endpoint reaches a terminal state so results, counters and the
+  // comparison widget are loaded without requiring a manual page refresh.
+  useEffect(() => {
+    const terminalStatuses = ['completed', 'failed', 'partial', 'blocked']
+    if (
+      liveStatus &&
+      terminalStatuses.includes(liveStatus.status) &&
+      liveStatus.status !== latestScan?.status
+    ) {
+      void refetchSite()
+    }
+  }, [liveStatus, latestScan?.status, refetchSite])
+
   // Fetch full results for the latest scan
   const { data: scanResults, isLoading: isResultsLoading } = useScanResults(
     latestScan?.id ?? null,
-    latestScan?.status
+    liveStatus?.status ?? latestScan?.status
   )
 
   const { data: prevScanResults } = useScanResults(previousScan?.id ?? null, previousScan?.status)
+  const { data: journeySummaries = [], isLoading: isJourneysLoading } = useScanJourneysSummary(
+    latestScan?.id ?? null,
+    !!latestScan && latestScan.status === 'completed'
+  )
 
   const rawIssues = scanResults?.issues ?? []
   const pages = scanResults?.pages ?? []
@@ -461,7 +480,7 @@ export default function SiteWorkspacePage() {
           <div className="h-8 w-32 bg-gray-200 dark:bg-white/[0.05] rounded-t-md"></div>
         </div>
         {/* Content Skeleton */}
-        <div className="h-96 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#16181E]"></div>
+        <div className="h-48 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#181B21]"></div>
       </div>
     )
   }
@@ -505,7 +524,9 @@ export default function SiteWorkspacePage() {
     : 'Récemment'
 
   // Executive summary text computation
-  const aiSummaryText = useMemo(() => {
+  // This is derived display text, not state. Keep it as a plain computation so
+  // the loading/error early returns above never change the hook order.
+  const aiSummaryText = (() => {
     if (isHealthy) {
       return 'Aucune anomalie détectée lors de ce scan. Les parcours critiques sont fonctionnels.'
     }
@@ -522,10 +543,10 @@ export default function SiteWorkspacePage() {
         .join(' ')
     }
     return 'L\'analyse Playwright a identifié des anomalies techniques nécessitant une intervention pour préserver l\'intégrité des parcours utilisateurs.'
-  }, [isHealthy, latestScan, issues])
+  })()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ─── Breadcrumb Navigation ─────────────────────────────────────────── */}
       <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
         <Link
@@ -562,17 +583,17 @@ export default function SiteWorkspacePage() {
               ) : isHealthy ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>🟢 SAIN</span>
+                  <span>SAIN</span>
                 </span>
               ) : hasRegressions ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono tracking-wider bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                   <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                  <span>🔴 RÉGRESSION</span>
+                  <span>RÉGRESSION</span>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   <span className="h-2 w-2 rounded-full bg-amber-500" />
-                  <span>🟡 ATTENTION</span>
+                  <span>ATTENTION</span>
                 </span>
               )}
 
@@ -714,6 +735,53 @@ export default function SiteWorkspacePage() {
         </div>
       </div>
 
+      {/* ─── D. HISTORIQUE DES SCANS ───────────────────────────────────────── */}
+      <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#16181E] p-5 shadow-xs">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-white/[0.06]">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white font-sans">
+              HISTORIQUE DES SCANS
+            </h2>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+              Les dernières exécutions de ce site et leur résultat.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono text-gray-400 dark:text-gray-500">
+            {scans.length} exécution{scans.length === 1 ? '' : 's'}
+          </span>
+        </div>
+        {scans.length === 0 ? (
+          <p className="py-5 text-xs text-gray-500 dark:text-gray-400">Aucun scan n’a encore été exécuté.</p>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+            {scans.slice(0, 5).map((scan, index) => {
+              const statusLabel = scan.status === 'completed' ? 'Terminé' : scan.status === 'failed' ? 'Échec' : scan.status === 'partial' ? 'Partiel' : scan.status === 'blocked' ? 'Bloqué' : 'En cours'
+              const statusClass = scan.status === 'completed'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40'
+                : scan.status === 'failed' || scan.status === 'blocked'
+                  ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'
+              return (
+                <div key={scan.id} className="flex items-center justify-between gap-3 py-3 first:pt-4 last:pb-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`inline-flex px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-wide shrink-0 ${statusClass}`}>
+                      {statusLabel}
+                    </span>
+                    <span className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                      {index === 0 ? 'Dernier scan' : `Scan précédent ${index}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 text-[11px] font-mono text-gray-400 dark:text-gray-500">
+                    <span>{scan.checks_passed ?? 0}/{scan.checks_total ?? 0} checks</span>
+                    <span>{formatDistanceToNow(new Date(scan.completed_at || scan.created_at || Date.now()), { addSuffix: true, locale: fr })}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       {/* ─── 3. LES ONGLETS (NAVIGATION PROFONDE) ───────────────────────────── */}
       <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#16181E] shadow-xs overflow-hidden">
         {/* Tab Headers Bar */}
@@ -737,6 +805,22 @@ export default function SiteWorkspacePage() {
                 }`}
               >
                 {issues.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('journeys')}
+              className={`py-3.5 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+                activeTab === 'journeys'
+                  ? 'border-[#ee6018] text-[#ee6018]'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <MapIcon className="h-3.5 w-3.5" />
+              <span>PARCOURS</span>
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums font-bold bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-gray-400">
+                {journeySummaries.length}
               </span>
             </button>
 
@@ -859,7 +943,49 @@ export default function SiteWorkspacePage() {
           </div>
         )}
 
-        {/* ─── ONGLET 2: PAGES EXPLORÉES (VUE TABULAIRE) ────────────────────── */}
+        {/* ─── ONGLET 2: PARCOURS UTILISATEUR ──────────────────────────────── */}
+        {activeTab === 'journeys' && (
+          <div className="p-5 space-y-3">
+            {isJourneysLoading ? (
+              <div className="flex items-center gap-2 py-8 justify-center text-xs text-gray-500 dark:text-gray-400">
+                <ArrowPathIcon className="h-4 w-4 animate-spin text-[#ee6018]" />
+                Chargement des parcours...
+              </div>
+            ) : journeySummaries.length === 0 ? (
+              <div className="py-10 text-center">
+                <MapIcon className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Aucun parcours enregistré</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-sm mx-auto">
+                  Les parcours exécutés apparaîtront ici avec leurs étapes et leurs preuves.
+                </p>
+              </div>
+            ) : (
+              journeySummaries.map((journey) => {
+                const isPassed = journey.status === 'pass'
+                const isFailed = journey.status === 'fail'
+                return (
+                  <div key={journey.journey_name} className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isPassed ? <CheckCircleIcon className="h-5 w-5 text-emerald-500 shrink-0" /> : isFailed ? <XCircleIcon className="h-5 w-5 text-rose-500 shrink-0" /> : <ExclamationTriangleIcon className="h-5 w-5 text-amber-500 shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{journey.journey_name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {journey.steps_passed}/{journey.steps_total} étapes réussies
+                          {journey.steps_failed > 0 ? ` · ${journey.steps_failed} échec${journey.steps_failed > 1 ? 's' : ''}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide shrink-0 ${isPassed ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40' : isFailed ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'}`}>
+                      {isPassed ? 'Réussi' : isFailed ? 'Échec' : 'Partiel'}
+                    </span>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* ─── ONGLET 3: PAGES EXPLORÉES (VUE TABULAIRE) ────────────────────── */}
         {activeTab === 'pages' && (
           <div className="p-5 space-y-4">
             {/* Search & Filters */}
@@ -977,7 +1103,7 @@ export default function SiteWorkspacePage() {
           </div>
         )}
 
-        {/* ─── ONGLET 3: TESTS PLAYWRIGHT (LA VÉRITÉ BRUTE) ─────────────────── */}
+        {/* ─── ONGLET 4: TESTS PLAYWRIGHT (LA VÉRITÉ BRUTE) ─────────────────── */}
         {activeTab === 'checks' && (
           <div className="p-5 space-y-4">
             {/* Search & Filters */}

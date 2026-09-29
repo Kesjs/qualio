@@ -82,7 +82,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-5 max-w-6xl pb-12">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white font-sans">
@@ -118,11 +118,11 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div className="flex-1">
-          <div className="rounded-2xl border border-gray-200/80 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:border-white/[0.08] overflow-hidden transition-all">
+          <div className="rounded-xl border border-gray-200/80 bg-white dark:bg-[#181B21] dark:border-white/[0.08] overflow-hidden transition-colors">
             
             {/* Profil Tab */}
             {activeTab === 'profile' && (
-              <div className="p-6 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="p-5 md:p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Informations Personnelles</h2>
                   <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
@@ -160,7 +160,7 @@ export default function SettingsPage() {
 
             {/* Notifications Tab */}
             {activeTab === 'notifications' && (
-              <div className="p-6 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="p-5 md:p-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
                   <h2 className="text-base font-bold text-gray-900 dark:text-white">Préférences de notification</h2>
                   <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
