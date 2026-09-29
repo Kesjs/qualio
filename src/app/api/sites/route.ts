@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { url, name, environment } = body
+  const { url, name, environment, stackType, repositoryProvider } = body
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 })
@@ -60,6 +60,8 @@ export async function POST(req: NextRequest) {
       url: normalizedUrl,
       name: name || new URL(normalizedUrl).hostname,
       environment: environment === 'staging' ? 'staging' : 'production',
+      stack_type: ['nextjs', 'react_vite', 'shopify', 'webflow', 'wordpress'].includes(stackType) ? stackType : 'unknown',
+      repository_provider: ['github', 'gitlab', 'bitbucket'].includes(repositoryProvider) ? repositoryProvider : 'none',
     })
     .select('*')
     .single()

@@ -4,6 +4,7 @@ import { QAAIProvider, QAIncidentInput } from './types'
 import { OpenAIQAProvider } from './providers/openai'
 import { GeminiQAProvider } from './providers/gemini'
 import { MockQAProvider } from './providers/mock'
+import { redactSensitiveData } from '../security/redact-sensitive-data'
 
 export class AIEngine {
   private provider: QAAIProvider
@@ -26,6 +27,8 @@ export class AIEngine {
   public async diagnoseIncident(incident: Incident): Promise<QAAIDiagnostic | null> {
     const t0 = Date.now()
     // Prepare structured payload for the AI
+    const firstEvidence = incident.checks.flatMap((check) => check.evidence ?? [])[0]
+    const evidencePayload = firstEvidence?.payload ?? {}
     const payload: QAIncidentInput = {
       incident: {
         id: incident.id,
@@ -34,8 +37,13 @@ export class AIEngine {
         severity: incident.severity,
       },
       test_context: incident.viewport ? {
-        viewport: incident.viewport
-      } : undefined,
+        viewport: incident.viewport,
+        url: typeof evidencePayload.url === 'string' ? evidencePayload.url : undefined,
+        test_action: typeof evidencePayload.action === 'string' ? evidencePayload.action : undefined,
+      } : {
+        url: typeof evidencePayload.url === 'string' ? evidencePayload.url : undefined,
+        test_action: typeof evidencePayload.action === 'string' ? evidencePayload.action : undefined,
+      },
       observed_facts: {
         playwright_results: incident.checks.map(c => ({
           id: c.id,
@@ -43,7 +51,7 @@ export class AIEngine {
           message: c.message,
           title: c.title,
           key: c.key,
-          evidence: c.evidence,
+          evidence: redactSensitiveData(c.evidence ?? []) as Array<{ type: string; payload: Record<string, unknown> }>,
         }))
       }
     }
@@ -58,9 +66,18 @@ export class AIEngine {
           return null
         }
 
+        // Keep diagnostics created before the correction-prompt contract backwards compatible.
+        // New providers populate these fields; legacy providers receive conservative fallbacks.
+        diagnostic.expected ??= 'The tested user action should complete successfully.'
+        diagnostic.actual ??= diagnostic.summary
+        diagnostic.repro_steps ??= []
+        diagnostic.locate_hints ??= []
+        diagnostic.acceptance_check ??= 'Repeat the observed action and confirm the expected user-visible result.'
+        diagnostic.uncertainties ??= ['The diagnostic predates the correction-prompt context contract.']
+
         // Evidence ID validation
         const inputEvidenceIds = new Set(payload.observed_facts.playwright_results.map(r => r.id))
-        const hasInvalidEvidence = diagnostic.evidence?.some((ev: any) => !inputEvidenceIds.has(ev.id))
+        const hasInvalidEvidence = diagnostic.evidence?.some((ev) => !inputEvidenceIds.has(ev.id))
         if (hasInvalidEvidence) {
           console.error('[AI Engine] REJECT DIAGNOSTIC: Fake evidence ID detected', diagnostic.evidence)
           return null
@@ -82,4 +99,3 @@ export class AIEngine {
     return null
   }
 }
-

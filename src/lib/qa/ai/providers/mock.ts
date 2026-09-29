@@ -29,6 +29,12 @@ export class MockQAProvider implements QAAIProvider {
       probable_cause: 'Mock cause',
       recommendation: 'Mock recommendation',
       confidence: 0.9,
+      expected: 'L’action doit produire le résultat prévu.',
+      actual: 'L’action a échoué pendant le contrôle.',
+      repro_steps: ['Ouvrir la page contrôlée', 'Exécuter l’action testée'],
+      locate_hints: ['Rechercher le texte ou le sélecteur observé dans le dépôt.'],
+      acceptance_check: 'Le même contrôle réussit sans erreur.',
+      uncertainties: [],
       evidence: input.observed_facts.playwright_results.map(r => ({
         id: r.id,
         type: 'playwright',
@@ -52,7 +58,7 @@ export class MockQAProvider implements QAAIProvider {
     }
 
     if (scenario === 'incomplete') {
-      // @ts-ignore
+      // @ts-expect-error Intentional invalid response used by the validation test.
       delete diag.title
     }
     

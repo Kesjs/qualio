@@ -1,5 +1,7 @@
 // Types pour le moteur QA Qualio
 
+import type { FixContext } from '../fix-context/types'
+
 export type ScanStatus =
   | 'created'
   | 'queued'
@@ -101,6 +103,10 @@ export interface PageResult {
   links: string[]
   images: string[]
   forms: FormInfo[]
+  /** Lightweight public signals used to identify the site's stack. */
+  htmlSnippet?: string
+  scriptUrls?: string[]
+  repositoryLinks?: string[]
 }
 
 export interface CheckResult {
@@ -134,6 +140,7 @@ export interface Issue {
   confidence: Confidence
   status: IssueStatus
   evidence: Evidence[]
+  fixContext?: FixContext
   aiTokensInput?: number
   aiTokensOutput?: number
   aiCostUsd?: number

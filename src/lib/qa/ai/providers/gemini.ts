@@ -54,6 +54,12 @@ export class GeminiQAProvider implements QAAIProvider {
             type: Type.NUMBER,
             description: 'Score de certitude de l\'IA entre 0.0 et 1.0 (ex: 0.95).'
           },
+          expected: { type: Type.STRING, description: 'Comportement attendu d’après le contrôle exécuté.' },
+          actual: { type: Type.STRING, description: 'Comportement réellement observé.' },
+          repro_steps: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Étapes de reproduction fondées sur les faits.' },
+          locate_hints: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Pistes de recherche sans fichier inventé.' },
+          acceptance_check: { type: Type.STRING, description: 'Critère mesurable de validation.' },
+          uncertainties: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Informations non confirmées.' },
           evidence: {
             type: Type.ARRAY,
             items: {
@@ -77,7 +83,13 @@ export class GeminiQAProvider implements QAAIProvider {
           'impact',
           'recommendation',
           'confidence',
-          'evidence'
+          'evidence',
+          'expected',
+          'actual',
+          'repro_steps',
+          'locate_hints',
+          'acceptance_check',
+          'uncertainties'
         ],
       }
 

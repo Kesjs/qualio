@@ -120,6 +120,7 @@ export type Database = {
           confidence: string | null
           created_at: string | null
           description: string | null
+          fix_context: Json
           id: string
           page_id: string | null
           scan_id: string
@@ -138,6 +139,7 @@ export type Database = {
           confidence?: string | null
           created_at?: string | null
           description?: string | null
+          fix_context?: Json
           id?: string
           page_id?: string | null
           scan_id: string
@@ -156,6 +158,7 @@ export type Database = {
           confidence?: string | null
           created_at?: string | null
           description?: string | null
+          fix_context?: Json
           id?: string
           page_id?: string | null
           scan_id?: string
@@ -431,6 +434,8 @@ export type Database = {
           journey_definitions: Json
           last_scan_id: string | null
           name: string | null
+          repository_provider: string
+          stack_type: string
           updated_at: string | null
           url: string
           user_id: string
@@ -442,6 +447,8 @@ export type Database = {
           journey_definitions?: Json
           last_scan_id?: string | null
           name?: string | null
+          repository_provider?: string
+          stack_type?: string
           updated_at?: string | null
           url: string
           user_id: string
@@ -453,6 +460,8 @@ export type Database = {
           journey_definitions?: Json
           last_scan_id?: string | null
           name?: string | null
+          repository_provider?: string
+          stack_type?: string
           updated_at?: string | null
           url?: string
           user_id?: string

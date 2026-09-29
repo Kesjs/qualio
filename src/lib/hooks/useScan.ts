@@ -44,6 +44,7 @@ export interface IssueRow {
   created_at: string | null
   page?: { url: string } | null
   evidence?: Array<{ id: string; type: string; payload: any }> | null
+  fix_context?: import('@/lib/supabase/database.types').Json | null
 }
 
 export interface CheckRow {

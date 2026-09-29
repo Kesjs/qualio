@@ -1,4 +1,4 @@
-import { QAAIDiagnostic } from './index'
+import type { QAAIDiagnostic } from './index'
 
 export interface QAIncidentInput {
   incident: {
@@ -8,6 +8,8 @@ export interface QAIncidentInput {
     severity: string
   }
   test_context?: {
+    url?: string
+    test_action?: string
     viewport?: {
       name: string
       width: number
@@ -21,7 +23,7 @@ export interface QAIncidentInput {
       message: string
       title: string
       key: string
-      evidence?: any[]
+      evidence?: Array<{ type: string; payload: Record<string, unknown> }>
     }>
   }
 }

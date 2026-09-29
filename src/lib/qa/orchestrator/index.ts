@@ -11,6 +11,9 @@ import { EvidenceEngine, Incident } from '../evidence'
 import { DiffEngine } from '../diff'
 import { AIEngine } from '../ai/engine'
 import { persistJourneyResults } from '../journeys/persistence'
+import type { FixContext } from '../fix-context/types'
+import { isFixContext, toFixContextJson } from '../fix-context/types'
+import { detectRepositoryProvider, detectSiteStack } from '../stack-detection/detect-site-stack'
 interface ScanOptions {
   scanId?: string
   siteId: string
@@ -36,6 +39,39 @@ function parseJourneys(value: unknown, baseUrl: string): JourneyDefinition[] {
       startUrl: new URL(journey.startUrl || '/', baseUrl).toString(),
     } as JourneyDefinition]
   })
+}
+
+function evidenceString(incident: Incident, key: string): string | null {
+  for (const evidence of incident.checks.flatMap((check) => check.evidence ?? [])) {
+    const value = evidence.payload[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function buildFallbackFixContext(incident: Incident, pageUrl: string | null): FixContext {
+  const observed = incident.checks.map((check) => check.message).filter(Boolean)
+  const target = evidenceString(incident, 'selector') ?? evidenceString(incident, 'target')
+  const visibleText = evidenceString(incident, 'visibleText') ?? evidenceString(incident, 'text')
+  return {
+    expected: 'Le contrôle doit terminer l’action prévue sans erreur.',
+    actual: observed.length ? observed.join(' ') : 'Le contrôle automatisé a détecté un échec.',
+    repro_steps: [
+      `Ouvrir ${pageUrl ?? 'la page concernée'}`,
+      target ? `Interagir avec ${target}` : `Reproduire le contrôle ${incident.category}`,
+    ],
+    locate_hints: [
+      visibleText ? `Rechercher le texte « ${visibleText} » dans le dépôt` : 'Rechercher la route et l’élément concernés dans le dépôt',
+      target ? `Rechercher le sélecteur ${target}` : 'Identifier le composant rendu sur la page concernée',
+      'Vérifier le gestionnaire d’événement et la navigation ou requête associée',
+    ],
+    acceptance_check: 'Le même contrôle réussit après déploiement sans erreur console ou réseau.',
+    page_url: pageUrl,
+    viewport: incident.viewport ?? null,
+    selector: target,
+    visible_text: visibleText,
+    uncertainties: ['La cause technique exacte doit être confirmée dans le dépôt du client.'],
+  }
 }
 
 export class QAOrchestrator {
@@ -116,6 +152,7 @@ export class QAOrchestrator {
       await this.updateStatus(scanId, 'crawling')
       const crawl = await withTimeout(this.crawler.crawl(url), 45000, 'Crawler')
       const crawledPages = await this.saveCrawledPages(scanId, crawl.pages)
+      await this.updateSiteTechnology(siteId, crawl.pages)
       result.pages = crawledPages
       result.pagesDiscovered = crawledPages.length
 
@@ -182,7 +219,8 @@ export class QAOrchestrator {
             category: d.category as any, severity: d.severity as any,
             title: d.title, description: d.description || '',
             suggestion: d.suggestion || '', confidence: d.confidence as any,
-            status: d.status as any, evidence: [] // We don't strictly need previous evidence for the diff
+            status: d.status as any, evidence: [],
+            fixContext: isFixContext(d.fix_context) ? d.fix_context : undefined,
           }))
         }
       }
@@ -239,7 +277,9 @@ export class QAOrchestrator {
         })
         let suggestion = 'Reproduire le contrôle indiqué et corriger la cause signalée avant une nouvelle vérification.'
         let confidence: any = 'low'
-        let status = 'new'
+        const pageUrl = crawledPages.find((page) => page.id === incident.pageId)?.url ?? null
+        let fixContext = buildFallbackFixContext(incident, pageUrl)
+        const status = 'new'
         let aiTokensInput, aiTokensOutput, aiDurationMs, aiCostUsd, aiModel
         
         // AI Diagnosis
@@ -255,10 +295,25 @@ export class QAOrchestrator {
             probable_cause: diagnostic.probable_cause,
             recommendation: diagnostic.recommendation,
             confidence: diagnostic.confidence,
+            expected: diagnostic.expected ?? 'The tested user action should complete successfully.',
+            actual: diagnostic.actual ?? diagnostic.summary,
+            repro_steps: diagnostic.repro_steps ?? [],
+            locate_hints: diagnostic.locate_hints ?? [],
+            acceptance_check: diagnostic.acceptance_check ?? 'Repeat the observed action and confirm the expected user-visible result.',
+            uncertainties: diagnostic.uncertainties ?? [],
             _meta: diagnostic._meta
           })
           suggestion = diagnostic.recommendation
           confidence = String(diagnostic.confidence)
+          fixContext = {
+            ...fixContext,
+            expected: diagnostic.expected ?? 'The tested user action should complete successfully.',
+            actual: diagnostic.actual ?? diagnostic.summary,
+            repro_steps: diagnostic.repro_steps ?? [],
+            locate_hints: diagnostic.locate_hints ?? [],
+            acceptance_check: diagnostic.acceptance_check ?? 'Repeat the observed action and confirm the expected user-visible result.',
+            uncertainties: diagnostic.uncertainties ?? [],
+          }
           
           if (diagnostic._meta) {
             aiTokensInput = diagnostic._meta.tokens_input
@@ -295,6 +350,7 @@ export class QAOrchestrator {
           confidence,
           status: status as any,
           evidence: incident.checks.flatMap(c => c.evidence || []),
+          fixContext,
           aiTokensInput, aiTokensOutput, aiDurationMs, aiCostUsd, aiModel
         })
       }
@@ -403,6 +459,23 @@ export class QAOrchestrator {
       suggestion: i.suggestion,
       confidence: i.confidence,
       status: i.status
+      ,fix_context: toFixContextJson(i.fixContext ?? {
+        expected: 'Le contrôle doit réussir.',
+        actual: i.description,
+        repro_steps: [],
+        locate_hints: ['Rechercher la page et le contrôle concernés dans le dépôt.'],
+        acceptance_check: 'Relancer le contrôle et vérifier qu’il réussit.',
+        page_url: null,
+        viewport: null,
+        selector: null,
+        visible_text: null,
+        uncertainties: ['Contexte ancien ou incomplet.'],
+      }),
+      ai_tokens_input: i.aiTokensInput ?? 0,
+      ai_tokens_output: i.aiTokensOutput ?? 0,
+      ai_cost_usd: i.aiCostUsd ?? null,
+      ai_duration_ms: i.aiDurationMs ?? 0,
+      ai_model: i.aiModel ?? null,
     }))
     if (!rows.length) return
     const { data, error } = await this.supabase.from('issues').insert(rows as any).select('id')
@@ -526,5 +599,18 @@ export class QAOrchestrator {
     await this.supabase.from('sites').update({
       last_scan_id: scanId, updated_at: new Date().toISOString(),
     } as any).eq('id', siteId)
+  }
+
+  private async updateSiteTechnology(siteId: string, pages: PageResult[]) {
+    const homepage = pages.find((page) => page.depth === 0) ?? pages[0]
+    if (!homepage) return
+    const detection = detectSiteStack(homepage)
+    const repositoryProvider = detectRepositoryProvider(pages.flatMap((page) => page.repositoryLinks ?? []))
+    const update: Record<string, unknown> = {
+      stack_type: detection.stackType,
+      updated_at: new Date().toISOString(),
+    }
+    if (repositoryProvider !== 'none') update.repository_provider = repositoryProvider
+    await this.supabase.from('sites').update(update as any).eq('id', siteId)
   }
 }

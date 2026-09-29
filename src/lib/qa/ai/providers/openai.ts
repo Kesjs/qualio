@@ -65,6 +65,12 @@ export class OpenAIQAProvider implements QAAIProvider {
                   type: 'number',
                   description: 'Score de certitude de l\'IA entre 0.0 et 1.0 (ex: 0.95).'
                 },
+                expected: { type: 'string', description: 'Comportement attendu d’après le contrôle exécuté.' },
+                actual: { type: 'string', description: 'Comportement réellement observé.' },
+                repro_steps: { type: 'array', items: { type: 'string' }, description: 'Étapes de reproduction fondées sur les faits.' },
+                locate_hints: { type: 'array', items: { type: 'string' }, description: 'Pistes de recherche sans nom de fichier inventé.' },
+                acceptance_check: { type: 'string', description: 'Critère mesurable de validation après correction.' },
+                uncertainties: { type: 'array', items: { type: 'string' }, description: 'Informations non confirmées.' },
                 evidence: {
                   type: 'array',
                   items: {
@@ -87,7 +93,13 @@ export class OpenAIQAProvider implements QAAIProvider {
                 'probable_cause',
                 'recommendation',
                 'confidence',
-                'evidence'
+                'evidence',
+                'expected',
+                'actual',
+                'repro_steps',
+                'locate_hints',
+                'acceptance_check',
+                'uncertainties'
               ],
               additionalProperties: false
             }

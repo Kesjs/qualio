@@ -36,6 +36,12 @@ export const QAAIDiagnosticSchema = {
       type: 'number',
       description: 'Score de certitude de l\'IA entre 0.0 et 1.0 (ex: 0.95).',
     },
+    expected: { type: 'string', description: 'Comportement attendu, fondé sur le check ou le parcours exécuté.' },
+    actual: { type: 'string', description: 'Comportement réellement observé, sans invention.' },
+    repro_steps: { type: 'array', items: { type: 'string' }, description: 'Étapes ordonnées et observables pour reproduire.' },
+    locate_hints: { type: 'array', items: { type: 'string' }, description: 'Recherches à effectuer dans le dépôt, sans nom de fichier inventé.' },
+    acceptance_check: { type: 'string', description: 'Critère mesurable à vérifier après correction.' },
+    uncertainties: { type: 'array', items: { type: 'string' }, description: 'Informations absentes ou non confirmées.' },
   },
   required: [
     'title',
@@ -45,6 +51,12 @@ export const QAAIDiagnosticSchema = {
     'probable_cause',
     'recommendation',
     'confidence',
+    'expected',
+    'actual',
+    'repro_steps',
+    'locate_hints',
+    'acceptance_check',
+    'uncertainties',
   ],
   additionalProperties: false,
 } as const
@@ -57,6 +69,12 @@ export interface QAAIDiagnostic {
   probable_cause: string | null
   recommendation: string
   confidence: number // 0.0 to 1.0
+  expected?: string
+  actual?: string
+  repro_steps?: string[]
+  locate_hints?: string[]
+  acceptance_check?: string
+  uncertainties?: string[]
   evidence?: {
     id: string
     type: 'playwright' | 'network' | 'console' | 'screenshot' | 'dom' | 'trace'
@@ -79,7 +97,8 @@ RÈGLES ABSOLUES (TOLÉRANCE ZÉRO) :
 2. Faits vs Hypothèses : Le champ "summary" ne doit contenir QUE des faits observés par Playwright. Le champ "probable_cause" contient ton analyse technique et DOIT être rédigé au conditionnel (ex: "Le serveur semble rejeter la requête, probablement car...").
 3. Langage : Sois direct, professionnel et concis. Élimine le jargon inutile. Ne dis pas "Bonjour" ni "Voici le diagnostic". Retourne uniquement le JSON demandé.
 4. Gestion de l'incertitude : Si le rapport d'erreur ne te permet pas de comprendre la cause technique exacte avec certitude, indique-le dans "probable_cause" (ex: "Cause exacte indéterminée côté client, une erreur serveur générique est retournée") et baisse ton score de "confidence" sous 0.70.
-5. CHAMP "IMPACT" (LECTEUR NON-TECHNIQUE) : Le champ "impact" est rédigé pour un client final, pas un développeur. JAMAIS de jargon technique (HTTP, API, sélecteur DOM, stack trace) dans ce champ. Formule l'impact en termes d'action utilisateur empêchée (acheter, s'inscrire, contacter, naviguer) plutôt qu'en termes d'erreur système. Si le contexte du test précise un viewport/device (mobile, tablette, desktop) dans "test_context", intègre-le explicitement dans la phrase d'impact quand c'est pertinent (ex: "Sur mobile, les visiteurs ne peuvent pas valider leur commande"). Ne jamais inventer de chiffre ou pourcentage de trafic/visiteurs qui n'est pas mesuré/présent dans les "observed_facts" — rester qualitatif ("les visiteurs", "les visiteurs mobile") plutôt que quantitatif inventé. L'impact doit refléter la sévérité déjà calculée ("severity") : critical = bloque une action essentielle (achat, inscription, paiement) ; major = dégrade l'expérience sans la bloquer totalement ; minor = impact cosmétique/mineur, formulé comme tel.`
+5. CHAMP "IMPACT" (LECTEUR NON-TECHNIQUE) : Le champ "impact" est rédigé pour un client final, pas un développeur. JAMAIS de jargon technique (HTTP, API, sélecteur DOM, stack trace) dans ce champ. Formule l'impact en termes d'action utilisateur empêchée (acheter, s'inscrire, contacter, naviguer) plutôt qu'en termes d'erreur système. Si le contexte du test précise un viewport/device (mobile, tablette, desktop) dans "test_context", intègre-le explicitement dans la phrase d'impact quand c'est pertinent. Ne jamais inventer de chiffre ou pourcentage de trafic/visiteurs.
+6. CONTEXTE DE CORRECTION : expected et actual doivent être distincts. repro_steps ne contient que des actions présentes dans le check ou ses preuves. locate_hints commence par des verbes de recherche ou de vérification et ne cite jamais un fichier non observé. acceptance_check est précis et mesurable. Toute information manquante doit être inscrite dans uncertainties.`
 
 // ─── 3. Evidence Payload Generator (Entrée normalisée) ──────────────────────
 export interface EvidenceInputPayload {
@@ -168,6 +187,12 @@ export function parseIssueDiagnostic(issue: {
           probable_cause: parsed.probable_cause,
           recommendation: parsed.recommendation || issue.suggestion || 'Vérifier la configuration du composant.',
           confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.94,
+          expected: parsed.expected || 'Le contrôle doit produire le comportement attendu sans erreur.',
+          actual: parsed.actual || parsed.summary,
+          repro_steps: Array.isArray(parsed.repro_steps) ? parsed.repro_steps : [],
+          locate_hints: Array.isArray(parsed.locate_hints) ? parsed.locate_hints : [],
+          acceptance_check: parsed.acceptance_check || parsed.recommendation || 'Relancer le contrôle et vérifier qu’il réussit.',
+          uncertainties: Array.isArray(parsed.uncertainties) ? parsed.uncertainties : [],
           _meta: parsed._meta
         }
       }
@@ -253,5 +278,11 @@ export function parseIssueDiagnostic(issue: {
     probable_cause: probableCause,
     recommendation,
     confidence,
+    expected: 'Le contrôle doit terminer le parcours sans erreur.',
+    actual: rawDesc,
+    repro_steps: [],
+    locate_hints: ['Rechercher la route, le texte visible ou le sélecteur associé au contrôle.', 'Vérifier le gestionnaire et la requête déclenchés par cette action.'],
+    acceptance_check: 'Reproduire le contrôle puis vérifier qu’il réussit sans erreur console ou réseau.',
+    uncertainties: ['Les étapes exactes et la cause technique doivent être confirmées à partir des preuves disponibles.'],
   }
 }

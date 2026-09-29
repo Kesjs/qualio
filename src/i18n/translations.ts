@@ -6,12 +6,12 @@ export const translations = {
       badge: "Your website QA workspace",
       titleStart: "Ship updates without",
       titleHighlight: "holding your breath.",
-      description: "An AI agent tests your entire site in 60 seconds flat. Fix what matters, we handle the paranoia.",
+      description: "Qualio explores key user journeys in a real browser, gathers evidence, and turns each issue into a correction prompt your team can use.",
       ctaPrimary: "Run your first scan",
       ctaSecondary: "Watch demo",
       stats: {
-        checks: { value: "42+", label: "checks / scan" },
-        speed: { value: "<60s", label: "first result" },
+        checks: { value: "Real", label: "browser journeys" },
+        speed: { value: "AI", label: "correction prompt" },
         sdk: { value: "0", label: "code needed" },
       },
       tabs: {
@@ -40,19 +40,19 @@ export const translations = {
       inputLabel: "Website URL",
       inputPlaceholder: "https://your-site.com",
       buttonIdle: "Create account and scan →",
-      buttonLoading: "Scanning…",
+      buttonLoading: "Preparing workspace…",
       buttonDone: "Scan complete — view results",
-      caption: "42 checks · AI diagnosis · ~60 seconds",
+      caption: "Browser scan · Evidence · Correction prompt",
       checks: ["Links", "Buttons", "Forms", "Console", "Network", "Responsive"],
       stats: [
-        { value: "<60s", label: "first result" },
-        { value: "42+", label: "checks run" },
+        { value: "Real", label: "browser session" },
+        { value: "AI", label: "actionable prompt" },
         { value: "0", label: "code changes" },
       ],
     },
     logoStrip: {
       stats: [
-        "42+ live browser checks",
+        "Live browser journeys",
         "AI impact diagnosis",
         "Zero code to install"
       ],
@@ -74,7 +74,7 @@ export const translations = {
     howItWorks: {
       badge: "How it works",
       titleStart: "From URL to surgical",
-      titleHighlight: "diagnosis in 60 seconds.",
+      titleHighlight: "diagnosis and a correction prompt.",
       steps: [
         {
           label: "Submit URL",
@@ -84,17 +84,17 @@ export const translations = {
         {
           label: "Playwright runs",
           title: "Real browser. Full interaction.",
-          body: "Playwright opens your site, clicks every CTA, submits every form, follows every link. Network and console captured throughout."
+          body: "Playwright explores reachable pages and key interactions. Network activity, console output, and screenshots are captured as evidence."
         },
         {
           label: "AI reads evidence",
-          title: "40 errors → 5 diagnostics.",
-          body: "AI receives screenshots, network logs, and DOM snapshots — and returns impact, cause, and confidence. Never invents causes."
+          title: "Evidence → structured diagnosis.",
+          body: "AI uses the collected evidence to describe impact, probable cause, reproduction steps, and uncertainties."
         },
         {
-          label: "Fix. Re-scan. Diff.",
-          title: "Deploy. Re-scan. Verify.",
-          body: "After your fix, click Re-scan. Qualio diffs the new results against the previous scan — resolved vs new regressions, instantly visible."
+          label: "Copy. Fix. Re-scan.",
+          title: "Use the prompt. Then verify.",
+          body: "Copy the generated correction prompt into your coding assistant, deploy the change, and re-scan to verify the result. Qualio never accesses your repository."
         }
       ]
     },
@@ -106,13 +106,13 @@ export const translations = {
         {
           label: "Scanner",
           title: "Real browser. Real interactions.",
-          body: "Playwright visits every page, clicks every CTA, submits every form. No synthetic pings — actual interaction with full network and console capture.",
-          metricLabel: "checks per scan"
+          body: "Playwright explores reachable pages and key interactions. No synthetic pings — actual browser activity with network and console capture.",
+          metricLabel: "browser-based"
         },
         {
           label: "Intelligence",
           title: "AI diagnosis.\nNot logs.",
-          body: "Impact, cause, confidence — per issue. AI receives raw browser evidence and explains the business consequence, not the stack trace.",
+          body: "Impact, probable cause, confidence, reproduction steps, and a copy-ready correction prompt for each issue.",
           metricLabel: "signal to noise"
         },
         {
@@ -146,7 +146,7 @@ export const translations = {
         eyebrow: "What you receive",
         title: "Evidence you can act on.",
         description: "Every issue comes with the context your team needs to reproduce it, prioritize it, and verify the fix after deployment.",
-        items: ["Screenshot of the failing step", "Impact on the user journey", "Likely cause with confidence level", "Network, console, and DOM evidence", "Resolved vs new regressions after a re-scan"]
+        items: ["Screenshot of the failing step", "Impact and reproduction steps", "Likely cause with confidence level", "Copy-ready correction prompt", "Resolved vs new regressions after a re-scan"]
       }
     },
     onboarding: {
@@ -186,28 +186,19 @@ export const translations = {
       consent: "I confirm that I am authorized to test this site.",
     },
     pricing: {
-      badge: "Pricing",
-      titleStart: "Simple pricing, based on",
-      titleHighlight: "sites and scan volume.",
+      badge: "Early access",
+      titleStart: "Try the complete Qualio flow",
+      titleHighlight: "while pricing is being finalized.",
       toggleMonthly: "Monthly",
       toggleAnnual: "Annual",
       mostPopularBadge: "Most popular",
-      footerNote: "No credit card required for Starter · Annual billing · Cancel anytime",
+      accessLabel: "Free during early access",
+      footerNote: "No credit card required · Pricing will be announced before paid plans launch",
       plans: [
         {
-          label: "Starter",
-          desc: "Run your first scan. No card required.",
-          cta: "Start for free"
-        },
-        {
-          label: "Pro",
-          desc: "For teams monitoring several sites every week.",
-          cta: "Start 14-day trial"
-        },
-        {
-          label: "Team",
-          desc: "For teams that need exports and full regression history.",
-          cta: "Start 14-day trial"
+          label: "Qualio early access",
+          desc: "Create an account, add a site, run a scan, inspect the evidence, and copy the generated correction prompt.",
+          cta: "Create my account"
         }
       ],
       planFeatures: {
@@ -226,6 +217,12 @@ export const translations = {
         evidenceTooltip: "Screenshots, network requests, console output, and DOM state captured around the failing step."
       },
       planValues: {
+        site: "Site workspace",
+        browserScan: "Real-browser scan",
+        aiDiagnosis: "Evidence-based AI diagnosis",
+        evidence: "Screenshots, network, and console evidence",
+        fixPrompt: "Copy-ready correction prompt",
+        scanHistory: "Scan history and re-scan",
         unlimited: "Unlimited",
         aiBasic: "Basic",
         aiFull: "Full — impact + cause + fix",
@@ -255,7 +252,7 @@ export const translations = {
         },
         {
           q: "What exactly does 'real browser interaction' mean?",
-          a: "Qualio opens your pages in a headless Chromium browser, clicks every button that looks like a CTA, submits forms with test data, follows links, and records everything — network requests, console output, DOM state, screenshots. No synthetic HTTP pings."
+          a: "Qualio opens reachable pages in a headless Chromium browser, exercises selected interactions, and records useful evidence such as requests, console output, DOM state, and screenshots."
         },
         {
           q: "How is AI diagnosis different from reading console errors myself?",
@@ -267,7 +264,7 @@ export const translations = {
         },
         {
           q: "How often can I run scans?",
-          a: "On Pro and Team, unlimited scans. On Starter, 5 scans per month. You can trigger a scan manually at any time or set up a scheduled cadence (daily, weekly). CI/CD webhooks are on the Team roadmap."
+          a: "During early access, scans are available without a paid plan. Usage limits and paid pricing will be announced before billing is enabled."
         },
         {
           q: "What happens after I fix an issue?",
@@ -348,12 +345,12 @@ export const translations = {
       badge: "Votre espace de QA pour le web",
       titleStart: "Déployez enfin sans",
       titleHighlight: "retenir votre souffle.",
-      description: "Un agent teste l'intégralité de votre site en 60 secondes chrono. Corrigez ce qui compte, on gère la paranoïa.",
+      description: "Qualio explore les parcours clés dans un vrai navigateur, collecte les preuves et transforme chaque problème en prompt de correction exploitable.",
       ctaPrimary: "Lancer un premier scan",
       ctaSecondary: "Voir la démo",
       stats: {
-        checks: { value: "42+", label: "tests / scan" },
-        speed: { value: "<60s", label: "chrono" },
+        checks: { value: "Réels", label: "parcours navigateur" },
+        speed: { value: "IA", label: "prompt de correction" },
         sdk: { value: "0", label: "code requis" },
       },
       tabs: {
@@ -378,23 +375,23 @@ export const translations = {
       badge: "Sans carte bancaire",
       titleStart: "Vous construisez.",
       titleHighlight: "On s'assure que rien ne casse.",
-      description: "De vrais clics sur chaque page, un diagnostic clair en cas d'erreur, zéro ligne de code à installer. C'est tout.",
+      description: "De vraies interactions navigateur, des preuves lisibles et un prompt de correction à copier. Aucun SDK à installer.",
       inputLabel: "URL du site web",
       inputPlaceholder: "https://votre-site.com",
       buttonIdle: "Créer mon compte et lancer le scan →",
-      buttonLoading: "Scan en cours…",
+      buttonLoading: "Préparation de l’espace…",
       buttonDone: "Scan terminé — voir les résultats",
-      caption: "42 vérifications · Diagnostic IA · ~60 secondes",
+      caption: "Scan navigateur · Preuves · Prompt de correction",
       checks: ["Liens", "Boutons", "Formulaires", "Console", "Réseau", "Responsive"],
       stats: [
-        { value: "<60s", label: "premier résultat" },
-        { value: "42+", label: "points vérifiés" },
+        { value: "Réel", label: "navigateur" },
+        { value: "IA", label: "prompt exploitable" },
         { value: "0", label: "ligne de code" },
       ],
     },
     logoStrip: {
       stats: [
-        "42+ tests réels en navigateur",
+        "Parcours réels en navigateur",
         "Diagnostic d'impact par IA",
         "0 ligne de code à installer"
       ],
@@ -416,7 +413,7 @@ export const translations = {
     howItWorks: {
       badge: "Comment ça marche",
       titleStart: "De l'URL au diagnostic",
-      titleHighlight: "chirurgical en 60 secondes.",
+      titleHighlight: "et au prompt de correction.",
       steps: [
         {
           label: "1. Entrez l'URL",
@@ -426,17 +423,17 @@ export const translations = {
         {
           label: "2. Playwright s'exécute",
           title: "Vrai navigateur. Vraies interactions.",
-          body: "Playwright ouvre votre site, clique sur chaque bouton, remplit chaque formulaire et suit chaque lien. Les requêtes réseau et les logs console sont capturés."
+          body: "Playwright explore les pages accessibles et les interactions clés. Le réseau, la console et les captures d’écran servent de preuves."
         },
         {
           label: "3. L'IA analyse les preuves",
-          title: "40 erreurs brutes → 5 diagnostics.",
-          body: "L'IA analyse captures d'écran, logs réseau et DOM pour extraire l'impact utilisateur, la cause probable et son niveau de confiance. Zéro hallucination."
+          title: "Preuves → diagnostic structuré.",
+          body: "L’IA utilise les preuves collectées pour décrire l’impact, la cause probable, les étapes de reproduction et les incertitudes."
         },
         {
-          label: "4. Re-scannez. Validez.",
-          title: "Déployez. Re-scannez. Validez.",
-          body: "Après votre correctif, cliquez sur Re-scanner. Qualio compare le nouveau scan avec le précédent : visualisez immédiatement ce qui est résolu et les éventuelles régressions."
+          label: "4. Copiez. Corrigez. Re-scannez.",
+          title: "Utilisez le prompt, puis validez.",
+          body: "Copiez le prompt de correction dans votre assistant de code, déployez puis relancez le scan. Qualio n’accède jamais à votre dépôt."
         }
       ]
     },
@@ -448,13 +445,13 @@ export const translations = {
         {
           label: "Scanner",
           title: "Vrai navigateur.\nVraies interactions.",
-          body: "Playwright visite chaque page, clique sur chaque bouton et teste chaque formulaire. Pas de simples pings HTTP : de vraies interactions avec capture complète du réseau et de la console.",
-          metricLabel: "points vérifiés / scan"
+          body: "Playwright explore les pages accessibles et les interactions clés. Pas de simples pings HTTP : de vraies actions avec capture du réseau et de la console.",
+          metricLabel: "dans un vrai navigateur"
         },
         {
           label: "Intelligence",
           title: "Diagnostic par IA.\nPas des logs bruts.",
-          body: "Impact, cause, niveau de confiance : pour chaque bug. L'IA traite les preuves brutes et vous explique les conséquences réelles pour vos utilisateurs, pas une stack trace incompréhensible.",
+          body: "Impact, cause probable, niveau de confiance, reproduction et prompt de correction prêt à copier pour chaque problème.",
           metricLabel: "du bruit au signal utile"
         },
         {
@@ -488,7 +485,7 @@ export const translations = {
         eyebrow: "Ce que vous recevez",
         title: "Des preuves directement exploitables.",
         description: "Chaque problème contient le contexte nécessaire pour le reproduire, le prioriser et vérifier sa correction après déploiement.",
-        items: ["Capture d'écran de l'étape en échec", "Impact sur le parcours utilisateur", "Cause probable et niveau de confiance", "Preuves réseau, console et DOM", "Bugs résolus et nouvelles régressions après re-scan"]
+        items: ["Capture d'écran de l'étape en échec", "Impact et étapes de reproduction", "Cause probable et niveau de confiance", "Prompt de correction prêt à copier", "Bugs résolus et nouvelles régressions après re-scan"]
       }
     },
     onboarding: {
@@ -528,28 +525,19 @@ export const translations = {
       consent: "Je confirme être autorisé à tester ce site.",
     },
     pricing: {
-      badge: "Tarifs",
-      titleStart: "Des tarifs simples, selon vos",
-      titleHighlight: "sites et votre volume de scans.",
+      badge: "Accès anticipé",
+      titleStart: "Testez tout le parcours Qualio",
+      titleHighlight: "pendant la finalisation des tarifs.",
       toggleMonthly: "Mensuel",
       toggleAnnual: "Annuel",
       mostPopularBadge: "Le plus populaire",
-      footerNote: "Aucune carte bancaire pour Starter · Facturation annuelle · Résiliation à tout moment",
+      accessLabel: "Gratuit pendant l’accès anticipé",
+      footerNote: "Aucune carte bancaire · Les tarifs seront annoncés avant le lancement des offres payantes",
       plans: [
         {
-          label: "Starter",
-          desc: "Lancez votre premier scan. Aucune carte requise.",
-          cta: "Commencer gratuitement"
-        },
-        {
-          label: "Pro",
-          desc: "Pour les équipes qui surveillent plusieurs sites chaque semaine.",
-          cta: "Essai gratuit de 14 jours"
-        },
-        {
-          label: "Team",
-          desc: "Pour les équipes qui veulent exporter et suivre toutes les régressions.",
-          cta: "Essai gratuit de 14 jours"
+          label: "Accès anticipé Qualio",
+          desc: "Créez un compte, ajoutez un site, lancez un scan, consultez les preuves et copiez le prompt de correction généré.",
+          cta: "Créer mon compte"
         }
       ],
       planFeatures: {
@@ -568,6 +556,12 @@ export const translations = {
         evidenceTooltip: "Captures d'écran, requêtes réseau, console et état du DOM autour de l'étape en échec."
       },
       planValues: {
+        site: "Espace de travail par site",
+        browserScan: "Scan dans un vrai navigateur",
+        aiDiagnosis: "Diagnostic IA fondé sur les preuves",
+        evidence: "Captures, réseau et console",
+        fixPrompt: "Prompt de correction prêt à copier",
+        scanHistory: "Historique et re-scan",
         unlimited: "Illimité",
         aiBasic: "Basique",
         aiFull: "Complet — impact + cause + correctif",
@@ -597,7 +591,7 @@ export const translations = {
         },
         {
           q: "Que signifie exactement « vraies interactions en navigateur » ?",
-          a: "Qualio ouvre vos pages dans un navigateur Chromium réel, clique sur tous les boutons CTA, soumet les formulaires avec des données de test, suit les liens et enregistre tout : requêtes réseau, logs console, état du DOM et captures d'écran. Zéro simulation par pings superficiels."
+          a: "Qualio ouvre les pages accessibles dans Chromium, teste des interactions sélectionnées et conserve les preuves utiles : requêtes, console, état du DOM et captures d'écran."
         },
         {
           q: "En quoi le diagnostic IA est-il différent de lire moi-même les erreurs console ?",
@@ -609,7 +603,7 @@ export const translations = {
         },
         {
           q: "À quelle fréquence puis-je lancer des scans ?",
-          a: "Les forfaits Pro et Team incluent des scans illimités. Le forfait Starter en propose 5 par mois. Vous pouvez déclencher un scan manuellement quand vous le souhaitez ou planifier une fréquence automatique (quotidienne, hebdomadaire). L'intégration webhooks CI/CD arrive prochainement sur le plan Team."
+          a: "Pendant l’accès anticipé, les scans sont disponibles sans offre payante. Les limites d’usage et les tarifs seront annoncés avant l’activation de la facturation."
         },
         {
           q: "Que se passe-t-il après avoir corrigé un bug ?",

@@ -28,10 +28,10 @@ const TERMINAL_LOGS = [
     { c:C.graphite, t:"  Confidence· Medium" },
   ],
   [
-    { c:C.green,  t:"✓  /pricing CTA → working (resolved)" },
-    { c:C.green,  t:"✓  /contact form → working (resolved)" },
-    { c:C.orange, t:"↑  /login redirect → new issue" },
-    { c:C.stone,  t:"⊖  0 critical issues remaining" },
+    { c:C.stone,  t:"Copy correction prompt → coding assistant" },
+    { c:C.green,  t:"✓  Deploy fix → re-scan started" },
+    { c:C.green,  t:"✓  /pricing CTA → resolved" },
+    { c:C.orange, t:"↑  /login redirect → regression" },
   ],
 ];
 

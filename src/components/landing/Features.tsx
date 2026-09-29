@@ -9,7 +9,7 @@ const C = { canvas:"#000000", carbon:"#141414", ash:"#1a1a1a", graphite:"#262626
 
 /* ─── FEATURE BENTO — animated with useInView ─── */
 const FEATURES_STATIC = [
-  { id: "playwright", size: "wide", visual: <ScanVisual />, metricValue: "42+" },
+  { id: "playwright", size: "wide", visual: <ScanVisual />, metricValue: "Live" },
   { id: "ai",         size: "normal", visual: <AiVisual />, metricValue: "5×" },
   { id: "evidence",   size: "normal", visual: null,         metricValue: "3" },
   { id: "history",    size: "normal", visual: <HistoryVisual />, metricValue: null },

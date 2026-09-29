@@ -6,6 +6,8 @@ export interface SiteDetail {
   url: string
   name: string | null
   environment?: string | null
+  stack_type?: string | null
+  repository_provider?: string | null
   user_id: string
   created_at: string | null
   updated_at: string | null

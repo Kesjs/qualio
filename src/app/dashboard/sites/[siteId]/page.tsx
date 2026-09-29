@@ -23,6 +23,7 @@ import {
   Square3Stack3DIcon,
   InformationCircleIcon,
   ExclamationCircleIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline'
 import { useSite } from '@/lib/hooks/useSite'
 import { useScanResults, useScanStatus, IssueRow, PageRow, CheckRow } from '@/lib/hooks/useScan'
@@ -34,6 +35,7 @@ import { useIssueScreenshots, useScanJourneysSummary } from '@/lib/hooks/useScre
 import { parseIssueDiagnostic, QAAIDiagnostic } from '@/lib/qa/ai'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { FixPromptDialog } from '@/components/dashboard/FixPromptDialog'
 
 // ─── Issue Card Component avec Screenshot Indicator ───────────────────────────
 
@@ -45,6 +47,7 @@ interface IssueCardProps {
   confidencePct: number
   toggleBugAccordion: (issueId: string) => void
   handleOpenEvidence: (issue: IssueRow, type: EvidenceDetail['type']) => void
+  onOpenFixPrompt: (issue: IssueRow) => void
 }
 
 function IssueCard({
@@ -55,6 +58,7 @@ function IssueCard({
   confidencePct,
   toggleBugAccordion,
   handleOpenEvidence,
+  onOpenFixPrompt,
 }: IssueCardProps) {
   // Charger les screenshots de cet incident
   const { data: screenshots } = useIssueScreenshots(issue.id, true)
@@ -192,6 +196,14 @@ function IssueCard({
             </span>
 
             <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => onOpenFixPrompt(issue)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#ee6018] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#d95514]"
+              >
+                <WrenchScrewdriverIcon className="h-3.5 w-3.5" />
+                <span>Copier le prompt de correction</span>
+              </button>
               {/* Dynamic Evidence Buttons based on real data */}
               {(issue.evidence || []).some((e: any) => e.type === 'screenshot') && (
                 <button
@@ -270,6 +282,7 @@ export default function SiteWorkspacePage() {
 
   // Evidence Drawer state
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false)
+  const [fixPromptIssue, setFixPromptIssue] = useState<IssueRow | null>(null)
   const [currentEvidence, setCurrentEvidence] = useState<EvidenceDetail | null>(null)
   const [availableEvidences, setAvailableEvidences] = useState<EvidenceDetail[]>([])
 
@@ -944,6 +957,7 @@ export default function SiteWorkspacePage() {
                       confidencePct={confidencePct}
                       toggleBugAccordion={toggleBugAccordion}
                       handleOpenEvidence={handleOpenEvidence}
+                      onOpenFixPrompt={setFixPromptIssue}
                     />
                   )
                 })}
@@ -1247,10 +1261,14 @@ export default function SiteWorkspacePage() {
         availableEvidences={availableEvidences}
         onSelectEvidence={(ev) => setCurrentEvidence(ev)}
       />
+      <FixPromptDialog
+        issueId={fixPromptIssue?.id ?? null}
+        issueTitle={fixPromptIssue?.title}
+        onClose={() => setFixPromptIssue(null)}
+      />
     </div>
   )
 }
-
 
 
 

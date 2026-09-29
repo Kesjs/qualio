@@ -10,11 +10,6 @@ const C = {
   granite: "#8a8380", stone: "#b8b3b0", bone: "#eeeeee", chalk: "#fafafa", orange: "#ee6018", green: "#a0ca92"
 };
 
-const NAV_LINKS = [
-  { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
-];
-
 export function Navbar() {
   const { language } = useLanguage();
   const [atTop, setAtTop] = useState(true);
@@ -73,6 +68,11 @@ export function Navbar() {
   const floating = !atTop;
   const compact = floating && dir === "down";
   const dashboardLabel = language === "fr" ? "Tableau de bord" : "Dashboard";
+  const navLinks = language === "fr"
+    ? [{ label: "Fonctionnalités", href: "#features" }, { label: "Tarifs", href: "#pricing" }]
+    : [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }];
+  const loginLabel = language === "fr" ? "Se connecter" : "Log in";
+  const startLabel = language === "fr" ? "Lancer un scan" : "Start a scan";
 
   return (
     <>
@@ -130,7 +130,7 @@ export function Navbar() {
                 marginLeft: 48 // Pushed to the left near the logo
               }}
             >
-              {NAV_LINKS.map(l => (
+              {navLinks.map(l => (
                 <a key={l.href} href={l.href}
                   style={{
                     color: C.granite, fontSize: 13, fontWeight: 500,
@@ -169,7 +169,7 @@ export function Navbar() {
                     }}
                     onMouseEnter={e => { (e.target as HTMLElement).style.color = C.bone; }}
                     onMouseLeave={e => { (e.target as HTMLElement).style.color = C.stone; }}>
-                    Log in
+                    {loginLabel}
                   </a>
                 )}
                 
@@ -204,7 +204,7 @@ export function Navbar() {
                   transform: "skewX(-20deg)", zIndex: 0
                 }}
               />
-              <span style={{ position: "relative", zIndex: 1 }}>{user ? dashboardLabel : (mobile ? "Scan →" : "Start free scan")}</span>
+              <span style={{ position: "relative", zIndex: 1 }}>{user ? dashboardLabel : (mobile ? "Scan →" : startLabel)}</span>
               {!mobile && !user && (
                 <motion.span
                   variants={{
@@ -260,7 +260,7 @@ export function Navbar() {
             backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
           }}
         >
-          {NAV_LINKS.map(l => (
+          {navLinks.map(l => (
             <a key={l.href} href={l.href}
               onClick={() => setMenuOpen(false)}
               style={{

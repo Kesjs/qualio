@@ -67,6 +67,8 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
         url: trimmedUrl,
         name: name.trim() || undefined,
         environment,
+        stackType: 'unknown',
+        repositoryProvider: 'none',
       },
       {
         onSuccess: (newSite) => {
@@ -187,6 +189,10 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
                 Staging
               </button>
             </div>
+          </div>
+
+          <div className="rounded-lg border border-[#ee6018]/15 bg-[#ee6018]/5 px-3 py-2.5 text-[11px] leading-relaxed text-gray-600 dark:text-zinc-300">
+            La stack technique sera détectée automatiquement lors du premier scan à partir des signaux publics du site. Qualio ne demande aucun accès au dépôt et ne lit jamais le code source.
           </div>
 
           {/* Footer Actions */}

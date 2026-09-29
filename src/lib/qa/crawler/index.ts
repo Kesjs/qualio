@@ -63,6 +63,14 @@ export class CrawlerEngine {
         const responseTime = Date.now() - t0
         const finalUrl = page.url()
         const title = await page.title().catch(() => '')
+        const htmlSnippet = await page.content().then((html) => html.slice(0, 200_000)).catch(() => '')
+        const scriptUrls = await page.$$eval('script[src]', scripts =>
+          scripts.map(script => (script as HTMLScriptElement).src).filter(Boolean).slice(0, 100)
+        ).catch(() => [] as string[])
+        const repositoryLinks = await page.$$eval('a[href]', anchors =>
+          anchors.map(anchor => (anchor as HTMLAnchorElement).href)
+            .filter(href => /github\.com|gitlab\.com|bitbucket\.org/i.test(href)).slice(0, 20)
+        ).catch(() => [] as string[])
 
         // Extract links (same origin only)
         const links = await page.$$eval('a[href]', (anchors, baseOrigin) =>
@@ -112,6 +120,9 @@ export class CrawlerEngine {
           links,
           images,
           forms,
+          htmlSnippet,
+          scriptUrls,
+          repositoryLinks,
         }
         pages.push(pageResult)
 

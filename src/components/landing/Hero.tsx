@@ -330,7 +330,9 @@ export function Hero() {
             {/* CTAs */}
             <div data-a style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
               <GetStartedButton href="/login?mode=register">{hero.ctaPrimary}</GetStartedButton>
-
+              <a href="#how-it-works" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "11px 16px", border: `1px solid ${C.ash}`, borderRadius: 6, color: C.stone, textDecoration: "none", fontFamily: "'Manrope',sans-serif", fontSize: 14 }}>
+                {hero.ctaSecondary} <span aria-hidden="true">↓</span>
+              </a>
             </div>
 
             {/* Solution 1: Sleek Linear/Raycast-style Reassurance Bar */}

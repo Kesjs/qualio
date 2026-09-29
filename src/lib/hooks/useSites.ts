@@ -10,6 +10,8 @@ export interface SiteWithLastScan {
   url: string
   name: string | null
   environment?: 'production' | 'staging' | null
+  stack_type?: 'nextjs' | 'react_vite' | 'shopify' | 'webflow' | 'wordpress' | 'unknown'
+  repository_provider?: 'github' | 'gitlab' | 'bitbucket' | 'none'
   created_at: string | null
   updated_at: string | null
   last_scan_id: string | null
@@ -42,6 +44,8 @@ async function createSiteAPI(data: {
   url: string
   name?: string
   environment?: 'production' | 'staging'
+  stackType?: SiteWithLastScan['stack_type']
+  repositoryProvider?: SiteWithLastScan['repository_provider']
 }): Promise<SiteWithLastScan> {
   const res = await fetch('/api/sites', {
     method: 'POST',

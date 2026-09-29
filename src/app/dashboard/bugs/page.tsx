@@ -14,6 +14,7 @@ import {
   ArrowUpRightIcon,
   ShieldCheckIcon,
   ArrowPathIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline'
 import { parseIssueDiagnostic } from '@/lib/qa/ai'
 import Link from 'next/link'
@@ -22,12 +23,14 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { FixPromptDialog } from '@/components/dashboard/FixPromptDialog'
 
 export default function BugsPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'major' | 'minor'>('all')
   const [page, setPage] = useState(1)
+  const [fixPromptIssue, setFixPromptIssue] = useState<{ id: string; title: string } | null>(null)
   const pageSize = 10
 
   const { data: issues = [], isLoading, isError, refetch } = useQuery({
@@ -347,13 +350,23 @@ export default function BugsPage() {
                     <span className="leading-relaxed font-medium">{diag.recommendation}</span>
                   </div>
 
-                  <Link
-                    href={siteId ? `/dashboard/sites/${siteId}` : '/dashboard/sites'}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-950 dark:bg-white text-white dark:text-gray-950 text-xs font-semibold hover:bg-gray-800 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all shrink-0 self-end sm:self-center"
-                  >
-                    <span>Inspecter</span>
-                    <ArrowUpRightIcon className="h-3 w-3 opacity-70" />
-                  </Link>
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setFixPromptIssue({ id: bug.id, title: diag.title })}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#ee6018] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#d95514] active:scale-[0.98]"
+                    >
+                      <WrenchScrewdriverIcon className="h-3.5 w-3.5" />
+                      <span>Prompt de correction</span>
+                    </button>
+                    <Link
+                      href={siteId ? `/dashboard/sites/${siteId}` : '/dashboard/sites'}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-950 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-gray-800 active:scale-[0.98] dark:bg-white dark:text-gray-950 dark:hover:bg-zinc-200"
+                    >
+                      <span>Inspecter</span>
+                      <ArrowUpRightIcon className="h-3 w-3 opacity-70" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             )
@@ -368,6 +381,11 @@ export default function BugsPage() {
           </>
         )}
       </div>
+      <FixPromptDialog
+        issueId={fixPromptIssue?.id ?? null}
+        issueTitle={fixPromptIssue?.title}
+        onClose={() => setFixPromptIssue(null)}
+      />
     </div>
   )
 }
