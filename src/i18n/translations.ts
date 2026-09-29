@@ -8,7 +8,6 @@ export const translations = {
       titleHighlight: "holding your breath.",
       description: "Qualio explores key user journeys in a real browser, gathers evidence, and turns each issue into a correction prompt your team can use.",
       ctaPrimary: "Run your first scan",
-      ctaSecondary: "Watch demo",
       stats: {
         checks: { value: "Real", label: "browser journeys" },
         speed: { value: "AI", label: "correction prompt" },
@@ -347,7 +346,6 @@ export const translations = {
       titleHighlight: "retenir votre souffle.",
       description: "Qualio explore les parcours clés dans un vrai navigateur, collecte les preuves et transforme chaque problème en prompt de correction exploitable.",
       ctaPrimary: "Lancer un premier scan",
-      ctaSecondary: "Voir la démo",
       stats: {
         checks: { value: "Réels", label: "parcours navigateur" },
         speed: { value: "IA", label: "prompt de correction" },

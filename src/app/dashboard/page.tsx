@@ -18,6 +18,7 @@ import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/Pagination'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow, format, subDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -248,7 +249,27 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* ─── B. Zero-Data State (EmptyState Standardisé) ────────────────────── */}
+      {/* ─── B. Data Loading State: shell first, real content after queries ──── */}
+      {isLoading && (
+        <div className="space-y-6" aria-label="Chargement des données du tableau de bord">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200/80 bg-gray-200/80 dark:border-white/[0.08] dark:bg-white/[0.08] lg:grid-cols-4">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="space-y-3 bg-white p-4 dark:bg-[#181B21]">
+                <Skeleton className="h-3 w-24 bg-gray-200/80 dark:bg-white/[0.08]" />
+                <Skeleton className="h-7 w-16 bg-gray-200/80 dark:bg-white/[0.08]" />
+                <Skeleton className="h-2 w-full bg-gray-200/80 dark:bg-white/[0.08]" />
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+            <Skeleton className="h-72 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
+            <Skeleton className="h-72 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
+          </div>
+          <Skeleton className="h-80 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
+        </div>
+      )}
+
+      {/* ─── C. Zero-Data State (EmptyState Standardisé) ────────────────────── */}
       {!sitesLoading && (!sites || sites.length === 0) && (
         <EmptyState
           mainIcon={GlobeAltIcon}
@@ -261,21 +282,11 @@ export default function OverviewPage() {
         />
       )}
 
-      {/* ─── C. Dashboard Principal (Si des sites existent) ────────────────── */}
-      {sites && sites.length > 0 && (
+      {/* ─── D. Dashboard Principal (Si des sites existent) ────────────────── */}
+      {!isLoading && sites && sites.length > 0 && (
         <>
           {/* Grille des 4 KPIs Principaux (Colorize & Bolder) */}
-          {isLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className={`h-24 bg-white p-4 dark:bg-[#181B21] animate-pulse ${i > 1 ? 'border-l border-gray-200/80 dark:border-white/[0.08]' : ''}`}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
+          <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
               {/* 1. Sites Surveillés */}
               <Link
                 href="/dashboard/sites"
@@ -389,8 +400,7 @@ export default function OverviewPage() {
                   </div>
                 </div>
               </Link>
-            </div>
-          )}
+          </div>
 
           {/* ─── D. Colonnes Opérationnelles (Clarify & Bolder & Adapt) ──────── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
