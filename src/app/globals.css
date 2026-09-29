@@ -150,6 +150,12 @@ html:not(.dark), body:not(.dark) {
   }
 }
 
+/* Keep the custom Qualio password toggle as the only reveal control. */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}
+
 /* Auth Panel - Desktop only visibility */
 @media (min-width: 1024px) {
   .auth-right-panel {
