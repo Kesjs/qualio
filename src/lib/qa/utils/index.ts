@@ -11,6 +11,14 @@ export function validateUrl(url: string): { valid: boolean; error?: string } {
   }
 }
 
+/** Accepts a bare domain from a human and turns it into a scan-ready URL. */
+export function normalizeUserUrl(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return trimmed
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  return normalizeUrl(withProtocol).replace(/\/$/, '')
+}
+
 export function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url)

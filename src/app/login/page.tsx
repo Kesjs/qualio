@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthLayout, AuthInput, AuthButton, AuthDivider } from '@/components/auth/AuthLayout'
+import { ChatEmptyState, type SuggestedPrompt } from '@/components/ui/chat-empty-state'
 import { OtpInput } from '@/components/auth/OtpInput'
 import { useOtpAuth } from '@/hooks/useOtpAuth'
 import { useLanguage } from '@/context/LanguageContext'
@@ -18,7 +19,7 @@ const C = {
   ash: '#222222', stone: '#b8b3b0', carbon: '#0d0d0d',
 }
 
-type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email'
+type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'welcome'
 
 // Bouton Google SSO
 function GoogleButton({ onClick, loading, label }: { onClick: () => void; loading: boolean, label: string }) {
@@ -50,7 +51,6 @@ function GoogleButton({ onClick, loading, label }: { onClick: () => void; loadin
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<AuthMode>(
     (searchParams.get('mode') as AuthMode) || 'password'
@@ -61,13 +61,32 @@ export default function LoginPage() {
 
   const { isLoading: otpLoading, requestOtp, verifyOtp } = useOtpAuth()
 
+  const redirectPath = (() => {
+    const requestedPath = searchParams.get('redirectTo')
+    return requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
+      ? requestedPath
+      : '/dashboard'
+  })()
+
+  async function redirectAfterAuth() {
+    const supabase = getSupabaseBrowserClient()
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) {
+      throw error ?? new Error('Session unavailable after sign-in')
+    }
+
+    // A full navigation gives Supabase SSR time to persist the refreshed
+    // session cookies before the protected-route proxy checks them.
+    window.location.replace(redirectPath)
+  }
+
   // Redirect si déjà connecté
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
-    supabase.auth.getSession().then(({ data }: Awaited<ReturnType<typeof supabase.auth.getSession>>) => {
-      if (data?.session?.user) router.replace('/dashboard')
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) window.location.replace(redirectPath)
     })
-  }, [router])
+  }, [redirectPath])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -76,6 +95,7 @@ export default function LoginPage() {
   const [otpError, setOtpError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [welcomeChoice, setWelcomeChoice] = useState<string | null>(null)
 
   // --- Password sign-in ---
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -87,7 +107,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       toast.success(t.success.signedIn)
-      router.replace('/dashboard')
+      await redirectAfterAuth()
     } catch (err: any) {
       toast.error(err?.message === 'Invalid login credentials' ? t.errors.incorrect : err?.message || t.errors.signinFailed)
     } finally {
@@ -110,7 +130,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
       toast.success(t.success.accountCreated)
-      setMode('verify-email')
+      setMode('welcome')
     } catch (err: any) {
       toast.error(err?.message || t.errors.registerFailed)
     } finally {
@@ -153,7 +173,11 @@ export default function LoginPage() {
     setOtpError(false)
     const ok = await verifyOtp(otpEmail, code)
     if (ok) {
-      router.replace('/dashboard')
+      try {
+        await redirectAfterAuth()
+      } catch {
+        setOtpError(true)
+      }
     } else {
       setOtpError(true)
     }
@@ -180,7 +204,19 @@ export default function LoginPage() {
   let modeKey: keyof typeof t = mode as keyof typeof t;
   if (mode === 'otp-verify') modeKey = 'otpVerify';
   if (mode === 'verify-email') modeKey = 'verifyEmail';
+  if (mode === 'welcome') modeKey = 'welcome';
   const currentModeCopy = t[modeKey] as { title: string; description: string };
+
+  const welcomePrompts: SuggestedPrompt[] = [
+    { id: 'public-site', label: t.welcome.prompts.publicSite },
+    { id: 'staging', label: t.welcome.prompts.staging },
+    { id: 'regressions', label: t.welcome.prompts.regressions },
+  ]
+
+  function handleWelcomePrompt(prompt: SuggestedPrompt) {
+    setWelcomeChoice(prompt.id)
+    window.sessionStorage.setItem('qualio_signup_intent', prompt.id)
+  }
 
   return (
     <AuthLayout title={currentModeCopy.title} description={currentModeCopy.description} showBack>
@@ -276,6 +312,26 @@ export default function LoginPage() {
                 </p>
                 <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>
                   {t.labels.backToSignIn}
+                </AuthButton>
+              </div>
+            )}
+
+            {/* Post-registration questions — replaces the signup form only. */}
+            {mode === 'welcome' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                <ChatEmptyState
+                  title={t.welcome.question}
+                  subtitle={t.welcome.subtitle}
+                  prompts={welcomePrompts}
+                  onSelectPrompt={handleWelcomePrompt}
+                />
+                {welcomeChoice && (
+                  <p style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#a0ca92', margin: 0, textAlign: 'center' }}>
+                    {t.welcome.selected}
+                  </p>
+                )}
+                <AuthButton variant="ghost" type="button" onClick={() => setMode('verify-email')}>
+                  {t.welcome.continue}
                 </AuthButton>
               </div>
             )}

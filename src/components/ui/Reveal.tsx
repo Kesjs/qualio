@@ -35,12 +35,12 @@ export function Reveal({
   };
 
   return (
-    <div style={{ position: "relative", width, overflow: "hidden" }} className={className}>
+    <div style={{ position: "relative", width }} className={className}>
       <motion.div
         initial={{
           opacity: 0,
           ...directions[direction],
-          filter: blur ? "blur(8px)" : "none",
+          filter: blur ? "blur(4px)" : "none",
         }}
         whileInView={{
           opacity: 1,
@@ -48,9 +48,9 @@ export function Reveal({
           x: 0,
           filter: "blur(0px)",
         }}
-        viewport={{ once: true, margin: "-40px" }}
+        viewport={{ once: true, margin: "0px" }}
         transition={{
-          duration,
+          duration: Math.min(duration, 0.4),
           delay,
           ease: [0.4, 0, 0.2, 1],
         }}

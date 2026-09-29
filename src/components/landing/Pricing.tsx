@@ -9,8 +9,8 @@ const C = { canvas:"#000000", carbon:"#141414", ash:"#1a1a1a", graphite:"#262626
 
 const PLAN_MODELS = [
   { id: "free", price: { monthly: 0, annual: 0 }, ctaStyle: "ghost" },
-  { id: "pro", price: { monthly: 29, annual: 23 }, ctaStyle: "light", highlight: true },
-  { id: "team", price: { monthly: 79, annual: 63 }, ctaStyle: "dark" },
+  { id: "pro", price: { monthly: 20, annual: 20 }, ctaStyle: "light", highlight: true },
+  { id: "team", price: { monthly: 60, annual: 60 }, ctaStyle: "dark" },
 ];
 
 function Check({ active }: { active: boolean }) {
@@ -74,12 +74,10 @@ export function Pricing() {
     { key: t.planFeatures.scansPerMonth, vals: ["5", t.planValues.unlimited, t.planValues.unlimited] },
     { key: t.planFeatures.pagesPerScan,  vals: ["10", "100", t.planValues.unlimited] },
     { key: t.planFeatures.aiDiagnosis,   vals: [t.planValues.aiBasic, t.planValues.aiFull, t.planValues.aiFullPlus] },
-    { key: t.planFeatures.evidence,      vals: [t.planValues.evidenceBasic, t.planValues.evidenceFull, t.planValues.evidenceVideo], tooltip: t.planFeatures.evidenceTooltip },
-    { key: t.planFeatures.report,        vals: [t.planValues.reportNone, t.planValues.reportShareable, t.planValues.reportBranded], tooltip: t.planFeatures.reportTooltip },
+    { key: t.planFeatures.evidence,      vals: [t.planValues.evidenceBasic, t.planValues.evidenceFull, t.planValues.evidenceFull], tooltip: t.planFeatures.evidenceTooltip },
+    { key: t.planFeatures.report,        vals: [t.planValues.reportNone, t.planValues.reportNone, t.planValues.reportPdf], tooltip: t.planFeatures.reportTooltip },
     { key: t.planFeatures.beforeAfter,   vals: [false, true, true], tooltip: t.planFeatures.beforeAfterTooltip },
     { key: t.planFeatures.history,       vals: [t.planValues.historyStarter, t.planValues.historyPro, t.planValues.historyTeam] },
-    { key: t.planFeatures.integrations,  vals: [false, "Slack, GitHub", "Slack, GitHub, Jira, PagerDuty"] },
-    { key: t.planFeatures.prioritySupport,vals: [false, false, t.planValues.supportTeam] },
   ];
 
   return (
@@ -226,7 +224,7 @@ export function Pricing() {
               </div>
 
               {/* CTA */}
-              <a href="/login?mode=register" style={{
+              <a href={`/login?mode=register&plan=${planModel.id}&billing=${annual ? "annual" : "monthly"}`} style={{
                 display:"flex", alignItems:"center", justifyContent:"center", gap:6,
                 padding:"10px 20px", borderRadius:3,
                 fontFamily:"'Manrope',sans-serif", fontSize:14, fontWeight: planModel.ctaStyle==="light"?500:400,

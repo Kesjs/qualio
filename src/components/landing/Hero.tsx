@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
+import CanvasText from "@/components/ui/canvas-text";
+import GetStartedButton from "@/components/ui/get-started-button";
 
 /* ─── Factory token constants ─── */
 const C = {
@@ -226,22 +228,10 @@ function HistoryPanel() {
 export function Hero() {
   const { t } = useLanguage();
   const hero = t.hero;
+  const shouldReduceMotion = useReducedMotion();
 
   const [activeTab, setActiveTab] = useState(0);
   const ref = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const els = ref.current?.querySelectorAll<HTMLElement>("[data-a]");
-    els?.forEach((el, i) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(18px)";
-      setTimeout(() => {
-        el.style.transition = "opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1)";
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
-      }, 60 + i * 100);
-    });
-  }, []);
 
   const tabs = [
     {
@@ -324,7 +314,7 @@ export function Hero() {
               lineHeight: 1.05, letterSpacing: "-0.04em", color: C.bone, margin: 0,
               textShadow: "0 4px 24px rgba(0,0,0,0.5)"
             }}>
-              {hero.titleStart} <span style={{ color: C.orange }}>{hero.titleHighlight}</span>
+              {hero.titleStart}{" "}<CanvasText text={hero.titleHighlight} />
             </h1>
 
             {/* Body */}
@@ -339,47 +329,7 @@ export function Hero() {
 
             {/* CTAs */}
             <div data-a style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
-              <motion.a
-                href="/login?mode=register"
-                whileHover="hover"
-                initial="rest"
-                style={{
-                  position: "relative",
-                  display: "inline-flex", alignItems: "center", gap: 8,
-                  background: C.bone, color: C.canvas, borderRadius: 8,
-                  padding: "12px 24px", fontSize: 13, fontWeight: 600,
-                  lineHeight: 1, whiteSpace: "nowrap", textDecoration: "none",
-                  cursor: "pointer", overflow: "hidden",
-                  boxShadow: `0 0 0 1px ${C.bone}, 0 8px 24px -4px rgba(255, 255, 255, 0.15)`
-                }}
-              >
-                {/* Animated light beam sweep */}
-                <motion.div
-                  variants={{
-                    rest: { left: "-100%" },
-                    hover: { left: "100%" }
-                  }}
-                  transition={{ duration: 0.55, ease: "easeInOut" }}
-                  style={{
-                    position: "absolute", top: 0, bottom: 0, width: "25%",
-                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)",
-                    transform: "skewX(-20deg)", zIndex: 0
-                  }}
-                />
-                <span style={{ position: "relative", zIndex: 1 }}>{hero.ctaPrimary}</span>
-                <motion.span
-                  variants={{
-                    rest: { x: 0 },
-                    hover: { x: 4 }
-                  }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  style={{ display: "flex", alignItems: "center", position: "relative", zIndex: 1 }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M3 7h8M7.5 3.5L11 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </motion.span>
-              </motion.a>
+              <GetStartedButton href="/login?mode=register">{hero.ctaPrimary}</GetStartedButton>
 
             </div>
 
@@ -457,7 +407,7 @@ export function Hero() {
                 pointerEvents: "none",
               }}>
                 <motion.div
-                  animate={{ rotate: [0, 360] }}
+                  animate={shouldReduceMotion ? { rotate: 0 } : { rotate: [0, 360] }}
                   transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
                   style={{
                     position: "absolute",
@@ -478,7 +428,7 @@ export function Hero() {
                 pointerEvents: "none",
               }}>
                 <motion.div
-                  animate={{ rotate: [0, 360] }}
+                  animate={shouldReduceMotion ? { rotate: 0 } : { rotate: [0, 360] }}
                   transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
                   style={{
                     position: "absolute",

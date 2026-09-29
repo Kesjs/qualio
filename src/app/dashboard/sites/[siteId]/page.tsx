@@ -28,6 +28,7 @@ import { useSite } from '@/lib/hooks/useSite'
 import { useScanResults, useScanStatus, IssueRow, PageRow, CheckRow } from '@/lib/hooks/useScan'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EvidenceDrawer, EvidenceDetail } from '@/components/dashboard/EvidenceDrawer'
+import { Pagination } from '@/components/ui/Pagination'
 import { ScreenshotIndicator } from '@/components/dashboard/ScreenshotIndicator'
 import { useIssueScreenshots, useScanJourneysSummary } from '@/lib/hooks/useScreenshots'
 import { parseIssueDiagnostic, QAAIDiagnostic } from '@/lib/qa/ai'
@@ -276,6 +277,8 @@ export default function SiteWorkspacePage() {
   const [bugSeverityFilter, setBugSeverityFilter] = useState<'all' | 'critical' | 'major' | 'minor'>('all')
   const [activeDiffFilter, setActiveDiffFilter] = useState<'all' | 'new' | 'persistent' | 'resolved'>('all')
   const [bugSearch, setBugSearch] = useState('')
+  const [bugPage, setBugPage] = useState(1)
+  const bugPageSize = 10
   const [pageSearch, setPageSearch] = useState('')
   const [pageStatusFilter, setPageStatusFilter] = useState<'all' | '200' | '404' | '500'>('all')
   const [checkSearch, setCheckSearch] = useState('')
@@ -382,6 +385,12 @@ export default function SiteWorkspacePage() {
       return matchesSeverity && matchesSearch
     })
   }, [issues, bugSeverityFilter, bugSearch])
+
+  useEffect(() => {
+    setBugPage(1)
+  }, [bugSearch, bugSeverityFilter])
+
+  const paginatedIssues = filteredIssues.slice((bugPage - 1) * bugPageSize, bugPage * bugPageSize)
 
   // Filtered pages
   const filteredPages = useMemo(() => {
@@ -920,7 +929,7 @@ export default function SiteWorkspacePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredIssues.map((issue, index) => {
+                {paginatedIssues.map((issue, index) => {
                   const isExpanded = isBugExpanded(issue.id, index)
                   const diag: QAAIDiagnostic = parseIssueDiagnostic(issue)
                   const confidencePct = Math.round(diag.confidence * 100)
@@ -938,6 +947,13 @@ export default function SiteWorkspacePage() {
                     />
                   )
                 })}
+                <Pagination
+                  page={bugPage}
+                  pageSize={bugPageSize}
+                  total={filteredIssues.length}
+                  onPageChange={setBugPage}
+                  label="bugs"
+                />
               </div>
             )}
           </div>

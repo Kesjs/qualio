@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BugAntIcon,
@@ -19,6 +19,7 @@ import { parseIssueDiagnostic } from '@/lib/qa/ai'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -26,6 +27,8 @@ export default function BugsPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'major' | 'minor'>('all')
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   const { data: issues = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['all-issues'],
@@ -77,6 +80,12 @@ export default function BugsPage() {
   }
 
   const hasActiveFilters = search.trim() !== '' || filterSeverity !== 'all'
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, filterSeverity])
+
+  const paginatedIssues = filteredIssues.slice((page - 1) * pageSize, page * pageSize)
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-16">
@@ -236,7 +245,8 @@ export default function BugsPage() {
             className="my-8"
           />
         ) : (
-          filteredIssues.map((bug: any) => {
+          <>
+            {paginatedIssues.map((bug: any) => {
             const diag = parseIssueDiagnostic(bug)
             const siteId = bug.site_id || bug.site?.id
             const timeAgo = bug.created_at
@@ -347,7 +357,15 @@ export default function BugsPage() {
                 </div>
               </div>
             )
-          })
+            })}
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={filteredIssues.length}
+              onPageChange={setPage}
+              label="bugs"
+            />
+          </>
         )}
       </div>
     </div>

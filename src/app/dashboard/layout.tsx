@@ -23,10 +23,11 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-[100dvh] min-h-[100dvh] w-full bg-white text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#0B0C0E] dark:text-zinc-100 transition-colors">
-      {/* ─── Desktop Sidebar ─────────────────────────────────────────── */}
-      <div className="hidden md:flex h-full shrink-0 border-r border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#0B0C0E]">
+      {/* ─── Desktop Sidebar: same canvas as the main workspace ───────── */}
+      <div className="hidden md:flex h-full shrink-0 bg-white dark:bg-[#0B0C0E]">
         <Sidebar
           isCollapsed={isCollapsed}
+          onSearchClick={() => setIsCollapsed(false)}
         />
       </div>
 
@@ -38,7 +39,7 @@ export default function DashboardLayout({
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div className="fixed inset-y-0 left-0 max-w-full flex">
-            <div className="w-72 bg-[#F8F9FA] dark:bg-[#0B0C0E] dark:border-r dark:border-white/[0.08] shadow-2xl relative flex flex-col">
+            <div className="relative flex h-full w-64 flex-col">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -35,7 +36,7 @@ const navSections = [
       { label: 'Overview', href: '/dashboard', icon: HomeIcon },
       { label: 'Sites', href: '/dashboard/sites', icon: GlobeAltIcon },
       { label: 'Scans', href: '/dashboard/scans', icon: ClockIcon },
-      { label: 'Bugs', href: '/dashboard/bugs', icon: BugAntIcon, badge: '3' },
+      { label: 'Bugs', href: '/dashboard/bugs', icon: BugAntIcon },
     ],
   },
   {
@@ -50,6 +51,16 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { data: sites } = useSites()
+  const { data: issues } = useQuery({
+    queryKey: ['all-issues'],
+    queryFn: async () => {
+      const response = await fetch('/api/issues')
+      if (!response.ok) throw new Error('Impossible de charger les bugs')
+      const data = await response.json()
+      return Array.isArray(data) ? data : []
+    },
+    staleTime: 60 * 1000,
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false)
@@ -59,6 +70,16 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const [userEmail, setUserEmail] = useState('admin@qualio.dev')
 
   const profileRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const showTooltip = (label: string) => (
+    <span
+      role="tooltip"
+      className="pointer-events-none absolute left-full top-1/2 z-[60] ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-950 px-2.5 py-1.5 text-[11px] font-semibold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-white dark:text-gray-950"
+    >
+      {label}
+    </span>
+  )
 
   // Fetch real user
   useEffect(() => {
@@ -99,10 +120,11 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const initials = userName.slice(0, 2).toUpperCase()
   const selectedSite = sites?.find((site) => site.id === selectedSiteId) ?? sites?.[0]
   const selectedSiteHost = selectedSite ? getSiteHostname(selectedSite.url) : null
+  const unresolvedIssueCount = issues?.filter((issue: { status?: string }) => issue.status !== 'resolved' && issue.status !== 'ignored').length ?? 0
 
   return (
     <aside
-      className={`relative flex flex-col justify-between bg-[#F8F9FA] border-r border-gray-200/80 md:border-r-0 dark:bg-[#111216] dark:border-white/[0.08] dark:md:border-r-0 transition-all duration-300 ease-in-out shrink-0 h-full ${
+      className={`relative flex flex-col justify-between overflow-visible rounded-2xl bg-[#F8F9FA] border border-gray-200/80 dark:bg-[#111216] dark:border-white/[0.08] transition-all duration-300 ease-in-out shrink-0 h-full ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -175,7 +197,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                   <Link href="/dashboard/sites" onClick={() => setIsSiteMenuOpen(false)} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/[0.05]">
                     <GlobeAltIcon className="h-3.5 w-3.5 text-gray-400" /> Gérer les sites
                   </Link>
-                  <button type="button" onClick={() => { setIsSiteMenuOpen(false); setIsAddSiteOpen(true) }} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-[#e86a2a] hover:bg-orange-50 dark:hover:bg-[#ee6018]/10">
+                  <button type="button" onClick={() => { setIsSiteMenuOpen(false); setIsAddSiteOpen(true) }} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-[#ee6018] hover:bg-orange-50 dark:hover:bg-[#ee6018]/10">
                     <PlusIcon className="h-3.5 w-3.5" /> Ajouter un site
                   </button>
                 </div>
@@ -189,21 +211,26 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
           {isCollapsed ? (
             <button
               type="button"
-              onClick={onSearchClick}
-              title="Rechercher (⌘K)"
-              className="flex h-9 w-full items-center justify-center rounded-lg bg-white border border-gray-200/90 text-gray-400 hover:text-gray-900 hover:border-gray-300 shadow-2xs transition-all dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
+              onClick={() => {
+                onSearchClick?.()
+                window.setTimeout(() => searchInputRef.current?.focus(), 0)
+              }}
+              aria-label="Rechercher"
+              className="group relative flex h-9 w-full items-center justify-center rounded-md bg-white border border-gray-200/90 text-gray-400 hover:text-gray-900 hover:border-gray-300 shadow-2xs transition-all dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
             >
               <MagnifyingGlassIcon className="h-4 w-4" />
+              {showTooltip('Rechercher')}
             </button>
           ) : (
             <div className="relative w-full">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-zinc-500" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Recherche..."
-                className="w-full pl-8 pr-12 py-1.5 text-xs bg-white border border-gray-200/90 rounded-lg text-gray-900 placeholder:text-gray-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-[#ee6018] focus:border-[#ee6018] dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-[#ee6018] transition-all font-sans"
+                className="w-full pl-8 pr-12 py-1.5 text-xs bg-white border border-gray-200/90 rounded-md text-gray-900 placeholder:text-gray-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-[#ee6018] focus:border-[#ee6018] dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-[#ee6018] transition-all font-sans"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-50 border border-gray-200 text-[9px] font-semibold font-mono text-gray-400 dark:bg-[#111216] dark:border-white/[0.08] dark:text-zinc-500">
                 <span>⌘K</span>
@@ -234,12 +261,11 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                       key={item.label}
                       href={item.href}
                       prefetch={true}
-                      title={isCollapsed ? item.label : undefined}
                       className={`group relative flex items-center rounded-md transition-all duration-150 ${
                         isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs'
                       } ${
                         isActive
-                          ? 'bg-white text-gray-900 font-semibold border border-gray-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] dark:bg-[#16181E] dark:text-white dark:border-white/[0.1] dark:shadow-none'
+                          ? 'bg-white text-gray-900 font-semibold border border-gray-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] dark:bg-[#1B1E26] dark:text-white dark:border-white/[0.12] dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]'
                           : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50 border border-transparent font-medium dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.04]'
                       }`}
                     >
@@ -254,22 +280,24 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                         <span className="flex-1 truncate">{item.label}</span>
                       )}
 
-                      {!isCollapsed && item.badge && !isActive && (
+                      {!isCollapsed && item.label === 'Bugs' && unresolvedIssueCount > 0 && !isActive && (
                         <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-50 text-red-600 border border-red-200/60 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 mr-1.5">
-                          {item.badge}
+                          {unresolvedIssueCount > 99 ? '99+' : unresolvedIssueCount}
                         </span>
                       )}
 
-                      {/* Signature Active State: Right vertical accent indicator (NO pill border) */}
+                      {/* Signature active state: a rounded orange notch confirms the selected item. */}
                       {isActive && (
                         <span
-                          className={`rounded-sm bg-[#ee6018] shrink-0 ${
+                          className={`rounded-full bg-[#ee6018] shrink-0 shadow-[0_0_0_3px_rgba(238,96,24,0.12)] ${
                             isCollapsed
-                              ? 'absolute right-1 top-1/2 -translate-y-1/2 w-1 h-3.5'
-                              : 'absolute right-2 top-1/2 -translate-y-1/2 w-1 h-4'
+                              ? 'absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-4'
+                              : 'absolute right-2.5 top-1/2 -translate-y-1/2 w-1 h-5'
                           }`}
                         />
                       )}
+
+                      {isCollapsed && showTooltip(item.label)}
                     </Link>
                   )
                 })}

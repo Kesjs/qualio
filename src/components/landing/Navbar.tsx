@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import type { User } from "@supabase/supabase-js";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useLanguage } from "@/context/LanguageContext";
 
 const C = {
   canvas: "#000000", carbon: "#141414", ash: "#1a1a1a", graphite: "#262626",
@@ -11,12 +13,13 @@ const C = {
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Changelog", href: "/changelog" },
-  { label: "Docs", href: "/docs" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "FAQ", href: "#faq" },
   { label: "Status", href: "https://status.qualio.dev", external: true },
 ];
 
 export function Navbar() {
+  const { language } = useLanguage();
   const [atTop, setAtTop] = useState(true);
   const [dir, setDir] = useState<"up" | "down">("up");
   const [mobile, setMobile] = useState(false);
@@ -43,24 +46,36 @@ export function Navbar() {
     };
   }, []);
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
-    const fetchSession = async () => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    const syncUser = async () => {
       const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
       const supabase = getSupabaseBrowserClient();
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user || null);
 
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user || null);
+      // Validate the session instead of trusting a stale client-side session.
+      // This keeps the CTA aligned with the server-side dashboard guard.
+      const { data } = await supabase.auth.getUser();
+      if (active) setUser(data.user ?? null);
+
+      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (active) setUser(session?.user ?? null);
       });
-      return () => authListener.subscription.unsubscribe();
+      unsubscribe = () => authListener.subscription.unsubscribe();
     };
-    fetchSession();
+
+    void syncUser();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
   const floating = !atTop;
   const compact = floating && dir === "down";
+  const dashboardLabel = language === "fr" ? "Tableau de bord" : "Dashboard";
 
   return (
     <>
@@ -74,16 +89,20 @@ export function Navbar() {
         }}
       >
         <motion.div
+          initial={{ maxWidth: 1200, height: 68, marginTop: 0 }}
           animate={{
             maxWidth: floating ? 1080 : 1200,
             height: floating ? 56 : 68,
             marginTop: floating ? 16 : 0,
           }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} // Impeccable ease (smooth deceleration)
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           style={{
             pointerEvents: "auto",
             display: "flex", alignItems: "center", justifyContent: "flex-start", // Align left
             gap: 0, width: "100%",
+            maxWidth: 1200,
+            height: 68,
+            marginTop: 0,
             padding: "0 16px 0 24px",
             borderRadius: floating ? 16 : 0,
             borderBottom: floating ? `1px solid rgba(255,255,255,0.06)` : `1px solid rgba(255,255,255,0.04)`, // Subtle bottom border always visible
@@ -189,7 +208,7 @@ export function Navbar() {
                   transform: "skewX(-20deg)", zIndex: 0
                 }}
               />
-              <span style={{ position: "relative", zIndex: 1 }}>{user ? (mobile ? "Dashboard" : "Go to Dashboard") : (mobile ? "Scan →" : "Start free scan")}</span>
+              <span style={{ position: "relative", zIndex: 1 }}>{user ? dashboardLabel : (mobile ? "Scan →" : "Start free scan")}</span>
               {!mobile && !user && (
                 <motion.span
                   variants={{
@@ -209,6 +228,9 @@ export function Navbar() {
             {/* Mobile menu button */}
             {mobile && (
               <button
+                type="button"
+                aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={menuOpen}
                 onClick={() => setMenuOpen(!menuOpen)}
                 style={{
                   background: "transparent", border: `1px solid ${C.ash}`, borderRadius: 3,
@@ -274,7 +296,7 @@ export function Navbar() {
                 fontFamily: "'Manrope',sans-serif", fontSize: 14, fontWeight: 500,
                 textDecoration: "none"
               }}>
-                Go to Dashboard →
+                {dashboardLabel}
               </a>
             ) : (
               <>

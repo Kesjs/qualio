@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
-import { validateUrl } from '@/lib/qa/utils'
+import { normalizeUserUrl, validateUrl } from '@/lib/qa/utils'
 
 // GET /api/sites — list user's sites with latest scan
 export async function GET() {
@@ -34,11 +34,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { url, name, environment } = body
 
-  const validation = validateUrl(url)
-  if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 400 })
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+    }
 
-  // Normalize URL
-  const normalizedUrl = url.trim().replace(/\/$/, '')
+    const normalizedUrl = normalizeUserUrl(url)
+  const validation = validateUrl(normalizedUrl)
+  if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 400 })
 
   // Check if site already exists for this user
   const { data: existing } = await supabase

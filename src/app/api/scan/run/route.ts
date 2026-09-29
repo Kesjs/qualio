@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { QAOrchestrator } from '@/lib/qa'
 import { assertPublicScanUrl } from '@/lib/qa/ssrf'
 import { DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
-import { getSupabaseAdminClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 
 const STALE_WORKER_MS = 10 * 60 * 1000
 
@@ -35,12 +35,27 @@ async function recoverStaleScans(admin: ReturnType<typeof getSupabaseAdminClient
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const body = await req.json().catch(() => ({})) as { scanId?: string }
   const admin = getSupabaseAdminClient()
+
+  const isCronRequest = Boolean(cronSecret && authHeader === `Bearer ${cronSecret}`)
+  if (!isCronRequest) {
+    // The onboarding can kick off the worker for the scan just created by the
+    // signed-in user. It is deliberately limited to an explicit scanId and
+    // ownership check; queue processing without a scanId remains cron-only.
+    if (!body.scanId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = await getSupabaseServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: ownedScan } = await supabase
+      .from('scans')
+      .select('id')
+      .eq('id', body.scanId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!ownedScan) return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
+  }
+
   await recoverStaleScans(admin)
 
   let query = admin.from('scans').select('*')

@@ -39,7 +39,7 @@ export const translations = {
       description: "Real browser tests, plain-English bug reports, zero code to install. Clean and simple.",
       inputLabel: "Website URL",
       inputPlaceholder: "https://your-site.com",
-      buttonIdle: "Run free scan →",
+      buttonIdle: "Create account and scan →",
       buttonLoading: "Scanning…",
       buttonDone: "Scan complete — view results",
       caption: "42 checks · AI diagnosis · ~60 seconds",
@@ -135,14 +135,64 @@ export const translations = {
         }
       ]
     },
+    proofs: {
+      detect: {
+        eyebrow: "What Qualio detects",
+        title: "The failures users actually feel.",
+        description: "Qualio follows real browser journeys and surfaces the moments that block a signup, a form submission, or a conversion.",
+        items: ["Dead clicks and broken CTAs", "Forms that fail to submit", "Broken links and 404/500 responses", "JavaScript errors affecting the page", "Failed network requests and responsive issues"]
+      },
+      receive: {
+        eyebrow: "What you receive",
+        title: "Evidence you can act on.",
+        description: "Every issue comes with the context your team needs to reproduce it, prioritize it, and verify the fix after deployment.",
+        items: ["Screenshot of the failing step", "Impact on the user journey", "Likely cause with confidence level", "Network, console, and DOM evidence", "Resolved vs new regressions after a re-scan"]
+      }
+    },
+    onboarding: {
+      eyebrow: "First scan",
+      title: "Get your first QA signal.",
+      description: "Add a site and Qualio will test it like a real visitor — then take you straight to the workspace.",
+      siteName: "Site name",
+      siteNamePlaceholder: "Acme Marketing",
+      url: "Website URL or domain",
+      urlPlaceholder: "acme.com or https://acme.com",
+      urlHelp: "A domain is enough. We will format it automatically.",
+      environment: "Environment",
+      production: "Production",
+      staging: "Staging",
+      depth: "Scan depth",
+      quick: "Quick",
+      standard: "Standard",
+      full: "Full",
+      recommended: "Recommended",
+      launch: "Run my first scan",
+      checking: "Checking the domain…",
+      creating: "Preparing the workspace…",
+      errorUrl: "Enter a valid domain or URL, for example acme.com.",
+      errorGeneric: "We could not start the scan. Check the URL and try again.",
+      browserEmpty: "Your site preview will appear here",
+      browserHint: "Enter a domain to prepare the audit.",
+      browserBlocked: "This site does not allow an embedded preview.",
+      timelineTitle: "Qualio scan",
+      timelineReady: "Ready to test",
+      timelineConnecting: "Connecting to the site",
+      timelineDiscovering: "Discovering pages",
+      timelineTesting: "Testing real interactions",
+      timelineEvidence: "Collecting evidence",
+      timelineDiagnosis: "Preparing the diagnosis",
+      timelineComplete: "Scan ready",
+      openDashboard: "Open dashboard",
+      consent: "I confirm that I am authorized to test this site.",
+    },
     pricing: {
       badge: "Pricing",
-      titleStart: "Simple. No per-seat",
-      titleHighlight: "surprises.",
+      titleStart: "Simple pricing, based on",
+      titleHighlight: "sites and scan volume.",
       toggleMonthly: "Monthly",
       toggleAnnual: "Annual",
       mostPopularBadge: "Most popular",
-      footerNote: "No credit card required for Starter · Cancel anytime",
+      footerNote: "No credit card required for Starter · Annual billing · Cancel anytime",
       plans: [
         {
           label: "Starter",
@@ -151,12 +201,12 @@ export const translations = {
         },
         {
           label: "Pro",
-          desc: "For teams shipping weekly.",
+          desc: "For teams monitoring several sites every week.",
           cta: "Start 14-day trial"
         },
         {
           label: "Team",
-          desc: "For larger orgs with multiple sites.",
+          desc: "For teams that need exports and full regression history.",
           cta: "Start 14-day trial"
         }
       ],
@@ -171,9 +221,9 @@ export const translations = {
         history: "History",
         integrations: "Integrations",
         prioritySupport: "Priority support",
-        reportTooltip: "A shareable link with the full scan results — send it directly to your client as proof of what was fixed.",
+        reportTooltip: "Export the full scan results as a PDF for a clean record of what was found and fixed.",
         beforeAfterTooltip: "See the screenshot from before the fix and after the fix, side by side, for any resolved issue.",
-        evidenceTooltip: "A short recorded replay of the actual browser session that hit the failing step — not just a static screenshot."
+        evidenceTooltip: "Screenshots, network requests, console output, and DOM state captured around the failing step."
       },
       planValues: {
         unlimited: "Unlimited",
@@ -182,9 +232,10 @@ export const translations = {
         aiFullPlus: "Full + regression tracking",
         evidenceBasic: "Screenshot only",
         evidenceFull: "Screenshot + Network + Console",
-        evidenceVideo: "Full suite + video replay",
+        evidenceVideo: "Screenshot + Network + Console",
         reportNone: "Dashboard only",
-        reportShareable: "Shareable link",
+        reportPdf: "PDF export",
+        reportShareable: "Dashboard only",
         reportBranded: "Branded + PDF export",
         historyStarter: "7 days",
         historyPro: "90 days + diffs",
@@ -276,6 +327,19 @@ export const translations = {
         and: 'and',
         privacy: 'Privacy Policy',
         continueWithGoogle: 'Continue with Google'
+      },
+      welcome: {
+        title: 'Start with the right QA question',
+        description: 'Tell Qualio what you want to protect first. You can change this later.',
+        question: 'What do you want to verify first?',
+        subtitle: 'Choose the path that best matches your first Qualio scan.',
+        prompts: {
+          publicSite: 'My public website',
+          staging: 'A staging environment',
+          regressions: 'My critical regressions',
+        },
+        selected: 'Choice saved for your first scan.',
+        continue: 'Continue to email confirmation',
       }
     }
   },
@@ -317,7 +381,7 @@ export const translations = {
       description: "De vrais clics sur chaque page, un diagnostic clair en cas d'erreur, zéro ligne de code à installer. C'est tout.",
       inputLabel: "URL du site web",
       inputPlaceholder: "https://votre-site.com",
-      buttonIdle: "Lancer le scan gratuit →",
+      buttonIdle: "Créer mon compte et lancer le scan →",
       buttonLoading: "Scan en cours…",
       buttonDone: "Scan terminé — voir les résultats",
       caption: "42 vérifications · Diagnostic IA · ~60 secondes",
@@ -413,14 +477,64 @@ export const translations = {
         }
       ]
     },
+    proofs: {
+      detect: {
+        eyebrow: "Ce que Qualio détecte",
+        title: "Les erreurs que vos utilisateurs ressentent.",
+        description: "Qualio suit de vrais parcours navigateur et repère les étapes qui bloquent une inscription, un formulaire ou une conversion.",
+        items: ["Clics morts et CTA cassés", "Formulaires qui ne s'envoient pas", "Liens cassés et réponses 404/500", "Erreurs JavaScript qui affectent la page", "Requêtes réseau en échec et problèmes responsive"]
+      },
+      receive: {
+        eyebrow: "Ce que vous recevez",
+        title: "Des preuves directement exploitables.",
+        description: "Chaque problème contient le contexte nécessaire pour le reproduire, le prioriser et vérifier sa correction après déploiement.",
+        items: ["Capture d'écran de l'étape en échec", "Impact sur le parcours utilisateur", "Cause probable et niveau de confiance", "Preuves réseau, console et DOM", "Bugs résolus et nouvelles régressions après re-scan"]
+      }
+    },
+    onboarding: {
+      eyebrow: "Premier scan",
+      title: "Obtenez votre premier signal QA.",
+      description: "Ajoutez un site et Qualio le testera comme un vrai visiteur, puis vous conduira directement vers votre espace de travail.",
+      siteName: "Nom du site",
+      siteNamePlaceholder: "Acme Marketing",
+      url: "URL ou nom de domaine",
+      urlPlaceholder: "acme.com ou https://acme.com",
+      urlHelp: "Un nom de domaine suffit. Nous le formaterons automatiquement.",
+      environment: "Environnement",
+      production: "Production",
+      staging: "Staging",
+      depth: "Profondeur du scan",
+      quick: "Rapide",
+      standard: "Standard",
+      full: "Complet",
+      recommended: "Recommandé",
+      launch: "Lancer mon premier scan",
+      checking: "Vérification du domaine…",
+      creating: "Préparation de l’espace…",
+      errorUrl: "Saisissez un nom de domaine ou une URL valide, par exemple acme.com.",
+      errorGeneric: "Le scan n’a pas pu démarrer. Vérifiez l’URL puis réessayez.",
+      browserEmpty: "L’aperçu de votre site apparaîtra ici",
+      browserHint: "Saisissez un domaine pour préparer l’audit.",
+      browserBlocked: "Ce site n’autorise pas l’aperçu intégré.",
+      timelineTitle: "Scan Qualio",
+      timelineReady: "Prêt à tester",
+      timelineConnecting: "Connexion au site",
+      timelineDiscovering: "Exploration des pages",
+      timelineTesting: "Test des interactions réelles",
+      timelineEvidence: "Collecte des preuves",
+      timelineDiagnosis: "Préparation du diagnostic",
+      timelineComplete: "Scan prêt",
+      openDashboard: "Ouvrir le dashboard",
+      consent: "Je confirme être autorisé à tester ce site.",
+    },
     pricing: {
       badge: "Tarifs",
-      titleStart: "Simple et transparent. Zéro mauvaise",
-      titleHighlight: "surprise par utilisateur.",
+      titleStart: "Des tarifs simples, selon vos",
+      titleHighlight: "sites et votre volume de scans.",
       toggleMonthly: "Mensuel",
-      toggleAnnual: "Annuel (-20%)",
+      toggleAnnual: "Annuel",
       mostPopularBadge: "Le plus populaire",
-      footerNote: "Aucune carte bancaire requise pour le plan Starter · Résiliation en 1 clic",
+      footerNote: "Aucune carte bancaire pour Starter · Facturation annuelle · Résiliation à tout moment",
       plans: [
         {
           label: "Starter",
@@ -429,12 +543,12 @@ export const translations = {
         },
         {
           label: "Pro",
-          desc: "Pour les équipes qui déploient chaque semaine.",
+          desc: "Pour les équipes qui surveillent plusieurs sites chaque semaine.",
           cta: "Essai gratuit de 14 jours"
         },
         {
           label: "Team",
-          desc: "Pour les équipes gérant plusieurs sites et apps.",
+          desc: "Pour les équipes qui veulent exporter et suivre toutes les régressions.",
           cta: "Essai gratuit de 14 jours"
         }
       ],
@@ -449,9 +563,9 @@ export const translations = {
         history: "Historique des scans",
         integrations: "Intégrations",
         prioritySupport: "Support prioritaire",
-        reportTooltip: "Un lien partageable avec le résultat complet du scan — à envoyer directement à votre client comme preuve de ce qui a été corrigé.",
+        reportTooltip: "Exportez le résultat complet du scan en PDF pour garder une trace claire de ce qui a été trouvé et corrigé.",
         beforeAfterTooltip: "Voyez la capture d'écran avant correction et après correction, côte à côte, pour tout incident résolu.",
-        evidenceTooltip: "Un court replay enregistré de la session navigateur réelle qui a rencontré l'étape en échec — pas juste une capture statique."
+        evidenceTooltip: "Captures d'écran, requêtes réseau, console et état du DOM autour de l'étape en échec."
       },
       planValues: {
         unlimited: "Illimité",
@@ -460,9 +574,10 @@ export const translations = {
         aiFullPlus: "Complet + suivi des régressions",
         evidenceBasic: "Captures d'écran uniquement",
         evidenceFull: "Captures d'écran + Réseau + Console",
-        evidenceVideo: "Suite complète + replay vidéo",
+        evidenceVideo: "Capture + Réseau + Console",
         reportNone: "Dashboard uniquement",
-        reportShareable: "Lien partageable",
+        reportPdf: "Export PDF",
+        reportShareable: "Dashboard uniquement",
         reportBranded: "Brandé + export PDF",
         historyStarter: "7 jours",
         historyPro: "90 jours + diffs",
@@ -554,6 +669,19 @@ export const translations = {
         and: 'et notre',
         privacy: 'Politique de confidentialité',
         continueWithGoogle: 'Continuer avec Google'
+      },
+      welcome: {
+        title: 'Commencez par la bonne question QA',
+        description: 'Dites à Qualio ce que vous voulez protéger en premier. Vous pourrez changer ce choix plus tard.',
+        question: 'Que voulez-vous vérifier en premier ?',
+        subtitle: 'Choisissez le parcours qui correspond le mieux à votre premier scan Qualio.',
+        prompts: {
+          publicSite: 'Mon site public',
+          staging: 'Un environnement staging',
+          regressions: 'Mes régressions critiques',
+        },
+        selected: 'Choix enregistré pour votre premier scan.',
+        continue: 'Continuer vers la confirmation email',
       }
     }
   }

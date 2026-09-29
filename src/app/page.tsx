@@ -7,36 +7,23 @@ import { Pricing }     from "@/components/landing/Pricing";
 import { FAQ }         from "@/components/landing/FAQ";
 import { CTA }         from "@/components/landing/CTA";
 import { Footer }      from "@/components/landing/Footer";
-import { Reveal }      from "@/components/ui/Reveal";
+import { Proofs }       from "@/components/landing/Proofs";
 
 export default function HomePage() {
   return (
-    <div style={{ overflowX: "hidden", background: "#000000", minHeight: "100vh" }}>
+    <div className="landing-page" style={{ overflowX: "hidden", background: "#000000", minHeight: "100vh" }}>
       <Navbar />
       <main>
         <Hero />
-        <Reveal blur delay={0.2} yOffset={20}>
-          <LogoStrip />
-        </Reveal>
-        <Reveal blur yOffset={40}>
-          <HowItWorks />
-        </Reveal>
-        <Reveal blur yOffset={40}>
-          <Features />
-        </Reveal>
-        <Reveal blur yOffset={40}>
-          <Pricing />
-        </Reveal>
-        <Reveal blur yOffset={40}>
-          <FAQ />
-        </Reveal>
-        <Reveal blur yOffset={40}>
-          <CTA />
-        </Reveal>
+        <LogoStrip />
+        <HowItWorks />
+        <Features />
+        <Proofs />
+        <Pricing />
+        <FAQ />
+        <CTA />
       </main>
-      <Reveal blur yOffset={40}>
-        <Footer />
-      </Reveal>
+      <Footer />
     </div>
   );
 }

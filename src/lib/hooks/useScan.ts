@@ -153,6 +153,13 @@ export function useStartScan() {
       qc.invalidateQueries({ queryKey: ['site', data.siteId] })
       qc.invalidateQueries({ queryKey: ['sites'] })
       qc.invalidateQueries({ queryKey: ['scans'] })
+      // Start the real worker immediately for interactive dashboard scans.
+      // The scheduled worker remains the fallback for queued scans.
+      void fetch('/api/scan/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanId: data.scanId }),
+      }).catch(() => undefined)
     },
     onError: (err: Error) => toast.error(err.message),
   })

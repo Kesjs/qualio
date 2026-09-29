@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ClockIcon,
@@ -16,6 +16,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -23,6 +24,8 @@ export default function ScansPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   const { data: scans = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['all-scans'],
@@ -51,6 +54,12 @@ export default function ScansPage() {
 
     return matchesSearch && matchesStatus
   })
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, statusFilter])
+
+  const paginatedScans = filteredScans.slice((page - 1) * pageSize, page * pageSize)
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-'
@@ -225,7 +234,7 @@ export default function ScansPage() {
                   </td>
                 </tr>
               ) : (
-                filteredScans.map((scan: any) => {
+                paginatedScans.map((scan: any) => {
                   const isRunning = ['queued', 'running', 'crawling', 'discovering', 'auditing', 'browser_testing', 'analyzing', 'reporting'].includes(scan.status)
                   const hasRegression = (scan.critical_count ?? 0) > 0
                   const isFailed = scan.status === 'failed' || scan.status === 'error'
@@ -335,6 +344,13 @@ export default function ScansPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filteredScans.length}
+          onPageChange={setPage}
+          label="scans"
+        />
         </div>
       )}
     </div>

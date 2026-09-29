@@ -8,6 +8,7 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { useCreateSite } from '@/lib/hooks/useSites'
+import { normalizeUserUrl } from '@/lib/qa/utils'
 
 interface AddSiteModalProps {
   isOpen: boolean
@@ -40,7 +41,7 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
     setError(null)
 
     // Strict URL validation
-    const trimmedUrl = url.trim()
+    const trimmedUrl = normalizeUserUrl(url)
     if (!trimmedUrl) {
       setError("L'URL du site est requise.")
       return

@@ -6,8 +6,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
   ChevronRightIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
   BellIcon,
-  Bars3Icon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   Cog8ToothIcon,
@@ -81,7 +82,11 @@ export function Header({
             aria-label={isCollapsed ? 'Déplier la barre latérale' : 'Réduire la barre latérale'}
             className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 border border-gray-200/90 text-gray-500 hover:text-gray-900 hover:bg-gray-100 hover:border-gray-300 shadow-2xs transition-all cursor-pointer dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white dark:hover:bg-[#1E212A] dark:hover:border-white/20"
           >
-            <Bars3Icon className="h-4 w-4" />
+            {isCollapsed ? (
+              <ChevronDoubleRightIcon className="h-4 w-4" />
+            ) : (
+              <ChevronDoubleLeftIcon className="h-4 w-4" />
+            )}
           </button>
         )}
 

@@ -107,6 +107,24 @@ html:not(.dark), body:not(.dark) {
   color: rgb(var(--foreground));
 }
 
+.landing-page a:focus-visible,
+.landing-page button:focus-visible,
+.landing-page input:focus-visible {
+  outline: 2px solid #ee6018;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Shadcn variables for underlying standard components if any */
 @layer base {
   :root {

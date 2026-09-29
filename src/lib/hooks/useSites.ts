@@ -79,7 +79,7 @@ export function useCreateSite() {
       qc.setQueryData<SiteWithLastScan[]>(['sites'], (old) =>
         old ? [{ ...newSite, last_scan: null }, ...old] : [{ ...newSite, last_scan: null }]
       )
-      toast.success('Site added to workspace')
+      toast.success('Site ajouté à votre espace')
     },
     onError: (err: Error) => toast.error(err.message),
   })

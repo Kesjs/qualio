@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Select,
@@ -27,6 +27,7 @@ import { useSites, SiteWithLastScan } from '@/lib/hooks/useSites'
 import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -84,6 +85,8 @@ export default function SitesPage() {
   const [search, setSearch] = useState('')
   const [envFilter, setEnvFilter] = useState<'all' | 'production' | 'staging'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [scanModalSite, setScanModalSite] = useState<SiteWithLastScan | null>(null)
@@ -131,6 +134,12 @@ export default function SitesPage() {
 
   const hasActiveFilters = search.trim() !== '' || envFilter !== 'all' || statusFilter !== 'all'
 
+  useEffect(() => {
+    setPage(1)
+  }, [search, envFilter, statusFilter])
+
+  const paginatedSites = filteredSites.slice((page - 1) * pageSize, page * pageSize)
+
   const resetFilters = () => {
     setSearch('')
     setEnvFilter('all')
@@ -161,7 +170,7 @@ export default function SitesPage() {
         <button
           type="button"
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#e86a2a] hover:bg-[#d65d21] active:scale-[0.98] text-white text-xs font-semibold transition-all duration-150 cursor-pointer shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#ee6018] hover:bg-[#d95514] active:scale-[0.98] text-white text-xs font-semibold transition-all duration-150 cursor-pointer shrink-0"
         >
           <PlusIcon className="h-4 w-4" />
           <span>Ajouter un site</span>
@@ -391,7 +400,7 @@ export default function SitesPage() {
             <span>Site</span><span>Statut</span><span>Conformité</span><span className="text-right">Actions</span>
           </div>
           <div className="divide-y divide-gray-200/80 dark:divide-white/[0.07]">
-            {filteredSites.map((site) => {
+            {paginatedSites.map((site) => {
               const status = computeSiteStatus(site)
               const meta = getStatusMeta(status)
               const env = site.environment || 'production'
@@ -440,7 +449,7 @@ export default function SitesPage() {
                     <button type="button" disabled={status === 'running'} onClick={() => setScanModalSite(site)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.09] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.08]">
                       {status === 'running' ? <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" /> : <PlayIcon className="h-3 w-3 fill-current" />}{status === 'never_scanned' ? 'Lancer le scan' : status === 'running' ? 'En cours' : 'Re-tester'}
                     </button>
-                    <Link href={`/dashboard/sites/${site.id}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#e86a2a] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#d65d21]">Détails<ArrowUpRightIcon className="h-3.5 w-3.5 opacity-80" /></Link>
+                    <Link href={`/dashboard/sites/${site.id}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#ee6018] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#d95514]">Détails<ArrowUpRightIcon className="h-3.5 w-3.5 opacity-80" /></Link>
                   </div>
                 </div>
               )
@@ -452,7 +461,7 @@ export default function SitesPage() {
       {/* Legacy card layout retained as a safe fallback while the compact list is validated. */}
       {!isLoading && !error && filteredSites.length > 0 && (
         <div className="hidden space-y-3">
-          {filteredSites.map((site) => {
+          {paginatedSites.map((site) => {
             const status = computeSiteStatus(site)
             const env = site.environment || 'production'
             const lastScan = site.last_scan
@@ -666,7 +675,7 @@ export default function SitesPage() {
                     <button
                       type="button"
                       onClick={() => setScanModalSite(site)}
-                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#e86a2a] hover:bg-[#d65d21] active:scale-[0.98] text-white text-xs font-semibold transition-all duration-150 cursor-pointer"
+                        className="w-full inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#ee6018] hover:bg-[#d95514] active:scale-[0.98] text-white text-xs font-semibold transition-all duration-150 cursor-pointer"
                     >
                       <PlayIcon className="h-3.5 w-3.5 fill-current" />
                       <span>Lancer le premier scan</span>
@@ -706,6 +715,16 @@ export default function SitesPage() {
             )
           })}
         </div>
+      )}
+
+      {!isLoading && !error && filteredSites.length > 0 && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={filteredSites.length}
+          onPageChange={setPage}
+          label="sites"
+        />
       )}
 
       {/* Modals */}

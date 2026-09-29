@@ -1,19 +1,15 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
   GlobeAltIcon,
   ArrowPathIcon,
-  BugAntIcon,
-  ShieldCheckIcon,
   MagnifyingGlassIcon,
   ArrowTopRightOnSquareIcon,
   PlayIcon,
   PlusIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
-  XMarkIcon,
   ArrowUpRightIcon,
 } from '@heroicons/react/24/outline'
 import { useSites, SiteWithLastScan } from '@/lib/hooks/useSites'
@@ -21,7 +17,8 @@ import { useScans, ScanWithSite } from '@/lib/hooks/useScan'
 import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
 import { EmptyState } from '@/components/ui/empty-state'
-import { formatDistanceToNow, format, subDays, isSameDay } from 'date-fns'
+import { Pagination } from '@/components/ui/Pagination'
+import { formatDistanceToNow, format, subDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 export default function OverviewPage() {
@@ -33,6 +30,8 @@ export default function OverviewPage() {
   // Filtres table
   const [tableSearch, setTableSearch] = useState('')
   const [tableStatusFilter, setTableStatusFilter] = useState<'all' | 'success' | 'regression' | 'failed'>('all')
+  const [auditPage, setAuditPage] = useState(1)
+  const auditPageSize = 10
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isScanModalOpen, setIsScanModalOpen] = useState(false)
@@ -93,33 +92,53 @@ export default function OverviewPage() {
     }
   }, [sites, scans])
 
-  // ─── 2. Histogramme d'Activité Réelle (7 jours consécutifs) ────────────────
+  // ─── 2. Histogramme d'Activité Réelle (période sélectionnée) ──────────────
   const dailyActivity = useMemo(() => {
-    const days = [6, 5, 4, 3, 2, 1, 0].map((offset) => {
-      const date = subDays(new Date(), offset)
-      const dayLetter = format(date, 'EEEEE', { locale: fr }).toUpperCase()
-      const dayLabel = format(date, 'd MMM', { locale: fr })
-      const matchingScans =
-        scans?.filter(
-          (s) => s.created_at && isSameDay(new Date(s.created_at), date)
-        ) ?? []
+    const periodDays = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90
+    const bucketCount = 7
+    const bucketSize = Math.ceil(periodDays / bucketCount)
+    const now = new Date()
+
+    const days = Array.from({ length: bucketCount }, (_, index) => {
+      const endOffset = (bucketCount - 1 - index) * bucketSize
+      const startOffset = Math.min(periodDays - 1, endOffset + bucketSize - 1)
+      const startDate = subDays(now, startOffset)
+      const endDate = subDays(now, endOffset)
+      const startTime = new Date(startDate).setHours(0, 0, 0, 0)
+      const endTime = new Date(endDate).setHours(23, 59, 59, 999)
+      const matchingScans = scans?.filter((scan) => {
+        if (!scan.created_at) return false
+        const createdAt = new Date(scan.created_at).getTime()
+        return createdAt >= startTime && createdAt <= endTime
+      }) ?? []
+
+      const dayLetter = periodDays === 7
+        ? format(endDate, 'EEEEE', { locale: fr }).toUpperCase()
+        : `${format(startDate, 'd', { locale: fr })}–${format(endDate, 'd', { locale: fr })}`
+      const dayLabel = periodDays === 7
+        ? format(endDate, 'd MMM', { locale: fr })
+        : `${format(startDate, 'd MMM', { locale: fr })} – ${format(endDate, 'd MMM', { locale: fr })}`
 
       return {
         letter: dayLetter,
         label: dayLabel,
-        count: matchingScans.length,
-        date,
+        scanCount: matchingScans.length,
+        passed: matchingScans.reduce((total, scan) => total + (scan.checks_passed ?? 0), 0),
+        warning: matchingScans.reduce((total, scan) => total + (scan.checks_warning ?? 0), 0),
+        failed: matchingScans.reduce((total, scan) => total + (scan.checks_failed ?? scan.critical_count ?? 0), 0),
+        totalChecks: matchingScans.reduce((total, scan) => total + (scan.checks_total ?? 0), 0),
+        date: endDate,
       }
     })
 
-    const maxCount = Math.max(...days.map((d) => d.count), 1)
+    const maxChecks = Math.max(...days.map((d) => d.totalChecks), 1)
 
     return days.map((d, index) => ({
       ...d,
-      heightPercent: `${Math.max(Math.round((d.count / maxCount) * 100), 12)}%`,
+      heightPercent: `${d.totalChecks > 0 ? Math.max(Math.round((d.totalChecks / maxChecks) * 100), 12) : 12}%`,
       isToday: index === days.length - 1,
     }))
-  }, [scans])
+  }, [dateRange, scans])
 
   // ─── 3. Table des Scans Filtrée ───────────────────────────────────────────
   const filteredScans = useMemo(() => {
@@ -145,6 +164,12 @@ export default function OverviewPage() {
     })
   }, [scans, tableSearch, tableStatusFilter])
 
+  useEffect(() => {
+    setAuditPage(1)
+  }, [tableSearch, tableStatusFilter])
+
+  const paginatedScans = filteredScans.slice((auditPage - 1) * auditPageSize, auditPage * auditPageSize)
+
   const handleLaunchScanClick = (site?: SiteWithLastScan) => {
     if (!sites || sites.length === 0) {
       setIsAddModalOpen(true)
@@ -153,6 +178,7 @@ export default function OverviewPage() {
       setIsScanModalOpen(true)
     }
   }
+
 
   const getEnvironmentLabel = (site: SiteWithLastScan) =>
     site.environment === 'staging' ? 'Staging' : 'Production'
@@ -170,21 +196,21 @@ export default function OverviewPage() {
   const isLoading = sitesLoading || scansLoading
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* ─── A. Header & Action Directe (Bolder & Clarify & Adapt) ─────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-950 dark:text-white font-sans">
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans">
               Overview
             </h1>
             {sites && sites.length > 0 && (
-              <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-gray-100 text-gray-700 border border-gray-200/90 dark:bg-[#16181E] dark:text-zinc-300 dark:border-white/[0.12] tabular-nums">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200/80 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/[0.08] tabular-nums">
                 {sites.length} site{sites.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-zinc-400 mt-1 font-medium">
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-2xl leading-relaxed">
             Supervision continue et conformité QA automatisée de vos environnements Web.
           </p>
         </div>
@@ -198,6 +224,7 @@ export default function OverviewPage() {
                 key={r}
                 type="button"
                 onClick={() => setDateRange(r)}
+                aria-pressed={dateRange === r}
                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all duration-150 cursor-pointer ${
                   dateRange === r
                     ? 'bg-white text-gray-950 shadow-xs dark:bg-[#1E2028] dark:text-white'
@@ -226,9 +253,9 @@ export default function OverviewPage() {
         <EmptyState
           mainIcon={GlobeAltIcon}
           iconVariant="orange"
-          title="Aucun site sous surveillance"
-          message="Qualio a besoin d'au moins un site Web pour exécuter des vérifications Playwright et générer vos indicateurs de santé."
-          actionLabel="Ajouter un premier site"
+          title="Connectez votre premier site"
+          message="Ajoutez une URL publique ou de staging. Qualio lancera ensuite vos premiers contrôles Playwright et construira votre historique QA."
+          actionLabel="Ajouter un site"
           actionIcon={PlusIcon}
           onActionClick={() => setIsAddModalOpen(true)}
         />
@@ -239,111 +266,113 @@ export default function OverviewPage() {
         <>
           {/* Grille des 4 KPIs Principaux (Colorize & Bolder) */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-32 rounded-xl border border-gray-200/80 bg-white p-5 dark:bg-[#16181E] dark:border-white/[0.08] animate-pulse"
+                  className={`h-24 bg-white p-4 dark:bg-[#181B21] animate-pulse ${i > 1 ? 'border-l border-gray-200/80 dark:border-white/[0.08]' : ''}`}
                 />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
               {/* 1. Sites Surveillés */}
-              <div className="rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs hover:border-gray-300 dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between">
+              <Link
+                href="/dashboard/sites"
+                aria-label="Voir les sites surveillés"
+                className="group px-4 py-3 transition-colors hover:bg-gray-50/80 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#ee6018]/40 dark:hover:bg-white/[0.03]"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-gray-500 dark:text-zinc-500">
                     Sites surveillés
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-700 dark:bg-white/[0.06] dark:text-zinc-300">
-                    <GlobeAltIcon className="h-4 w-4 stroke-[2]" />
-                  </div>
                 </div>
-                <div className="mt-4 flex items-baseline justify-between">
-                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-950 dark:text-white font-sans tabular-nums">
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <span className="text-xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans tabular-nums">
                     {kpiData.totalSites}
                   </span>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-zinc-400">
+                  <div className="flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-zinc-400">
                     <span className="text-violet-600 dark:text-violet-400">{kpiData.prodSites} prod</span>
                     <span>·</span>
                     <span>{kpiData.stagingSites} staging</span>
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* 2. Vérifications Playwright */}
-              <div className="rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs hover:border-gray-300 dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between">
+              <Link
+                href="/dashboard/scans"
+                aria-label="Voir les scans exécutés"
+                className="group border-l border-gray-200/80 px-4 py-3 transition-colors hover:bg-gray-50/80 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#ee6018]/40 dark:border-white/[0.08] dark:hover:bg-white/[0.03]"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-gray-500 dark:text-zinc-500">
                     Scans exécutés
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                    <ArrowPathIcon className="h-4 w-4 stroke-[2]" />
-                  </div>
                 </div>
-                <div className="mt-4 flex items-baseline justify-between">
-                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-950 dark:text-white font-sans tabular-nums">
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <span className="text-xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans tabular-nums">
                     {kpiData.totalScans}
                   </span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/25 tabular-nums">
+                  <span className="text-[11px] font-medium text-blue-700 dark:text-blue-400 tabular-nums">
                     {kpiData.totalChecks} checks
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* 3. Régressions Critiques (Colorize & Bolder Alert) */}
-              <div className="rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs hover:border-gray-300 dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between">
+              <Link
+                href="/dashboard/bugs"
+                aria-label="Voir les bugs critiques"
+                className="group border-l border-gray-200/80 px-4 py-3 transition-colors hover:bg-gray-50/80 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#ee6018]/40 dark:border-white/[0.08] dark:hover:bg-white/[0.03]"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-gray-500 dark:text-zinc-500">
                     Bugs critiques
                   </span>
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                      kpiData.criticalIssues > 0
-                        ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400'
-                        : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400'
-                    }`}
-                  >
-                    <BugAntIcon className="h-4 w-4 stroke-[2]" />
-                  </div>
                 </div>
-                <div className="mt-4 flex items-baseline justify-between">
-                  <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-950 dark:text-white font-sans tabular-nums">
+                <div className="mt-1 flex items-baseline justify-between gap-2">
+                  <span className="text-xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans tabular-nums">
                     {kpiData.criticalIssues}
                   </span>
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
+                    className={`text-[11px] font-medium ${
                       kpiData.criticalIssues > 0
-                        ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30 animate-pulse'
-                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+                        ? 'text-rose-700 dark:text-rose-300'
+                        : 'text-emerald-700 dark:text-emerald-300'
                     }`}
                   >
                     {kpiData.criticalIssues > 0 ? 'Action requise' : '0 bloquant'}
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* 4. Santé Globale (Barre de Progression Vivante) */}
-              <div className="rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs hover:border-gray-300 dark:bg-[#16181E] dark:border-white/[0.08] dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between">
+              <Link
+                href="/dashboard/sites"
+                aria-label="Voir la conformité globale des sites"
+                className="group border-l border-gray-200/80 px-4 py-3 transition-colors hover:bg-gray-50/80 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#ee6018]/40 dark:border-white/[0.08] dark:hover:bg-white/[0.03]"
+              >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-gray-500 dark:text-zinc-500">
                     Taux de conformité
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-[#ee6018] dark:bg-[#ee6018]/15 dark:text-[#ff7836]">
-                    <ShieldCheckIcon className="h-4 w-4 stroke-[2]" />
-                  </div>
                 </div>
-                <div className="mt-3">
-                  <div className="flex items-baseline justify-between mb-1.5">
-                    <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-950 dark:text-white font-sans tabular-nums">
+                <div className="mt-1">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans tabular-nums">
                       {kpiData.healthPercent}%
                     </span>
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 tabular-nums">
+                    <span className="text-[11px] font-medium text-gray-500 dark:text-zinc-400 tabular-nums">
                       {kpiData.totalPassed}/{kpiData.totalChecks || '0'} OK
                     </span>
                   </div>
                   {/* Subtle Colored Progress Bar */}
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden dark:bg-white/[0.08]">
+                  <div
+                    className="group/health relative h-2 w-full bg-gray-100 rounded-full dark:bg-white/[0.08]"
+                    role="img"
+                    aria-label={`${kpiData.healthPercent}% de conformité, ${kpiData.totalPassed} contrôles réussis sur ${kpiData.totalChecks || 0}`}
+                  >
                     <div
                       style={{ width: `${kpiData.healthPercent}%` }}
                       className={`h-full rounded-full transition-all duration-500 ease-out ${
@@ -354,18 +383,21 @@ export default function OverviewPage() {
                           : 'bg-rose-500'
                       }`}
                     />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg group-hover/health:block dark:bg-white dark:text-gray-950">
+                      {kpiData.totalPassed} réussis · {Math.max(kpiData.totalChecks - kpiData.totalPassed, 0)} à revoir
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           )}
 
           {/* ─── D. Colonnes Opérationnelles (Clarify & Bolder & Adapt) ──────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Colonne Gauche : Sites nécessitant une action (7 cols) */}
-            <div className="lg:col-span-7 rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs flex flex-col justify-between dark:bg-[#16181E] dark:border-white/[0.08]">
+            <div className="lg:col-span-7 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:bg-[#181B21] dark:border-white/[0.08]">
               <div>
-                <div className="flex items-center justify-between pb-3.5 border-b border-gray-100 dark:border-white/[0.06]">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-white/[0.06]">
                   <div>
                     <h2 className="text-sm font-extrabold text-gray-950 dark:text-white uppercase tracking-wider">
                       Sites nécessitant une action
@@ -379,7 +411,7 @@ export default function OverviewPage() {
                   </span>
                 </div>
 
-                <div className="mt-4">
+                <div className="mt-3 px-4 pb-4">
                   {kpiData.regressionSites.length === 0 &&
                   kpiData.warningSites.length === 0 &&
                   kpiData.unscannedSites.length === 0 ? (
@@ -393,14 +425,19 @@ export default function OverviewPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {/* 1. Sites en régression */}
                       {kpiData.regressionSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex flex-col gap-3 p-3.5 rounded-xl border border-rose-200/80 bg-rose-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-rose-500/25 dark:bg-rose-500/[0.08] transition-all duration-150 hover:shadow-xs"
+                          className="group relative flex flex-col gap-2.5 p-3 rounded-xl border border-rose-200/80 bg-rose-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-rose-500/25 dark:bg-rose-500/[0.08] transition-all duration-150 hover:border-rose-300 dark:hover:border-rose-500/45 hover:shadow-xs"
                         >
-                          <div className="min-w-0 pr-3">
+                          <Link
+                            href={`/dashboard/sites/${site.id}`}
+                            aria-label={`Ouvrir le détail de ${site.name || site.url}`}
+                            className="absolute inset-0 z-0 rounded-xl"
+                          />
+                          <div className="relative z-10 min-w-0 pr-3 pointer-events-none">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-gray-950 dark:text-white truncate">
                                 {site.name || site.url}
@@ -419,19 +456,19 @@ export default function OverviewPage() {
                               {site.last_scan?.completed_at && <><span aria-hidden="true">·</span><span>scanné {formatDistanceToNow(new Date(site.last_scan.completed_at), { addSuffix: true, locale: fr })}</span></>}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          <div className="relative z-10 flex items-center gap-2 self-end sm:self-auto shrink-0">
                             <button
                               type="button"
                               onClick={() => handleLaunchScanClick(site)}
                               aria-label={`Configurer un re-test pour ${site.name || site.url}`}
-                              className="min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-[#ee6018] text-white hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                              className="min-h-9 px-3 py-1.5 text-xs font-bold rounded-lg bg-[#ee6018] text-white hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
                             >
                               Re-tester
                             </button>
                             <Link
                               href={`/dashboard/sites/${site.id}`}
                               aria-label={`Voir le détail de ${site.name || site.url}`}
-                              className="min-h-10 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-950 dark:text-zinc-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] transition-colors"
+                              className="min-h-9 px-2.5 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold text-gray-600 hover:text-gray-950 dark:text-zinc-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] transition-colors"
                             >
                               <span>Voir</span>
                               <ArrowTopRightOnSquareIcon className="h-4 w-4" />
@@ -444,9 +481,14 @@ export default function OverviewPage() {
                       {kpiData.warningSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex flex-col gap-3 p-3.5 rounded-xl border border-amber-200/80 bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/25 dark:bg-amber-500/[0.08] transition-all duration-150 hover:shadow-xs"
+                          className="group relative flex flex-col gap-2.5 p-3 rounded-xl border border-amber-200/80 bg-amber-50/50 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/25 dark:bg-amber-500/[0.08] transition-all duration-150 hover:border-amber-300 dark:hover:border-amber-500/45 hover:shadow-xs"
                         >
-                          <div className="min-w-0 pr-3">
+                          <Link
+                            href={`/dashboard/sites/${site.id}`}
+                            aria-label={`Ouvrir le détail de ${site.name || site.url}`}
+                            className="absolute inset-0 z-0 rounded-xl"
+                          />
+                          <div className="relative z-10 min-w-0 pr-3 pointer-events-none">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold text-gray-950 dark:text-white truncate">
                                 {site.name || site.url}
@@ -462,10 +504,10 @@ export default function OverviewPage() {
                               {getEnvironmentLabel(site)}{site.last_scan?.completed_at ? ` · scanné ${formatDistanceToNow(new Date(site.last_scan.completed_at), { addSuffix: true, locale: fr })}` : ''}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          <div className="relative z-10 flex items-center gap-2 self-end sm:self-auto shrink-0">
                             <Link
                               href={`/dashboard/sites/${site.id}`}
-                              className="min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100/60 dark:bg-[#1E2028] dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150"
+                              className="min-h-9 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-100/60 dark:bg-[#1E2028] dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150"
                             >
                               Consulter
                             </Link>
@@ -477,9 +519,14 @@ export default function OverviewPage() {
                       {kpiData.unscannedSites.map((site) => (
                         <div
                           key={site.id}
-                          className="flex flex-col gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/70 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08] dark:bg-white/[0.03] transition-colors"
+                          className="group relative flex flex-col gap-2.5 p-3 rounded-xl border border-gray-200 bg-gray-50/70 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08] dark:bg-white/[0.03] transition-colors hover:border-gray-300 dark:hover:border-white/[0.16]"
                         >
-                          <div className="min-w-0 pr-3">
+                          <Link
+                            href={`/dashboard/sites/${site.id}`}
+                            aria-label={`Ouvrir le détail de ${site.name || site.url}`}
+                            className="absolute inset-0 z-0 rounded-xl"
+                          />
+                          <div className="relative z-10 min-w-0 pr-3 pointer-events-none">
                             <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
                               {site.name || site.url}
                             </span>
@@ -491,7 +538,7 @@ export default function OverviewPage() {
                             type="button"
                             onClick={() => handleLaunchScanClick(site)}
                             aria-label={`Lancer le premier audit pour ${site.name || site.url}`}
-                            className="self-end sm:self-auto min-h-10 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 dark:bg-[#1E2028] dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                            className="relative z-10 self-end sm:self-auto min-h-9 px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 dark:bg-[#1E2028] dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#16181E] active:scale-[0.97] transition-all duration-150 cursor-pointer"
                           >
                             Lancer le premier audit
                           </button>
@@ -504,24 +551,27 @@ export default function OverviewPage() {
             </div>
 
             {/* Colonne Droite : Activité 7 jours & État du Parc (5 cols) */}
-            <div className="lg:col-span-5 rounded-xl border border-gray-200/90 bg-white p-5 shadow-xs flex flex-col justify-between dark:bg-[#16181E] dark:border-white/[0.08]">
+            <div className="lg:col-span-5 overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:bg-[#181B21] dark:border-white/[0.08]">
               <div>
-                <div className="flex items-center justify-between pb-3.5 border-b border-gray-100 dark:border-white/[0.06]">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-white/[0.06]">
                   <div>
                     <h2 className="text-sm font-extrabold text-gray-950 dark:text-white uppercase tracking-wider">
-                      Activité des 7 jours
+                      Santé des scans
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 font-medium">
-                      Fréquence des sessions Playwright enregistrées.
+                      Répartition des contrôles sur la période sélectionnée.
                     </p>
                   </div>
                 </div>
 
                 {/* Histogramme Dynamique Réel */}
-                <div className="mt-5 h-40 flex items-end justify-between gap-3 pt-2 pb-1 border-b border-gray-100 dark:border-white/[0.06]">
-                  {dailyActivity.every((dayItem) => dayItem.count === 0) ? (
+                <div className="mx-4 mt-4 h-32 flex items-end justify-between gap-3 pt-2 pb-1 border-b border-gray-100 dark:border-white/[0.06]">
+                  {dailyActivity.every((dayItem) => dayItem.scanCount === 0) ? (
                     <div className="flex h-full w-full items-center justify-center text-center">
-                      <p className="max-w-xs text-xs text-gray-500 dark:text-zinc-500">Aucune session Playwright sur cette période. Lancez un scan pour alimenter cette vue.</p>
+                      <div className="max-w-xs space-y-1 text-xs text-gray-500 dark:text-zinc-500">
+                        <p className="font-semibold text-gray-600 dark:text-zinc-400">Aucun contrôle exécuté sur cette période.</p>
+                        <p>Lancez un scan pour voir la répartition des résultats.</p>
+                      </div>
                     </div>
                   ) : dailyActivity.map((dayItem) => (
                     <div
@@ -529,28 +579,46 @@ export default function OverviewPage() {
                       className="flex-1 flex flex-col items-center h-full justify-end group relative"
                     >
                       {/* Tooltip au survol */}
-                      <div className="absolute -top-7 hidden group-hover:flex flex-col items-center z-20 pointer-events-none">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-950 text-white dark:bg-white dark:text-black whitespace-nowrap shadow-md">
-                          {dayItem.label} : {dayItem.count} scan{dayItem.count > 1 ? 's' : ''}
+                      <div className="absolute -top-28 hidden group-hover:flex group-focus-within:flex flex-col items-center z-20 pointer-events-none">
+                        <span className="flex max-w-[220px] flex-col rounded px-2 py-1 text-center text-[10px] font-bold leading-relaxed bg-gray-950 text-white dark:bg-white dark:text-black whitespace-nowrap shadow-md">
+                          <span>{dayItem.label}</span>
+                          <span>{dayItem.scanCount} scan{dayItem.scanCount > 1 ? 's' : ''} · {dayItem.totalChecks} contrôles</span>
+                          <span className="text-emerald-300">{dayItem.passed} réussis</span>
+                          <span className="text-amber-300">{dayItem.warning} avertissements</span>
+                          <span className="text-rose-300">{dayItem.failed} échecs</span>
                         </span>
                         <div className="w-1.5 h-1.5 bg-gray-950 dark:bg-white rotate-45 -mt-0.5" />
                       </div>
 
-                      {/* Barre Interactive */}
+                      {/* Barre empilée : contrôles réussis / avertissements / échecs */}
                       <div
+                        role="img"
+                        tabIndex={0}
                         style={{ height: dayItem.heightPercent }}
-                        className={`w-full max-w-[24px] rounded-t-sm transition-all duration-300 ${
-                          dayItem.isToday
-                            ? 'bg-[#ee6018] shadow-xs shadow-[#ee6018]/30'
-                            : dayItem.count > 0
-                            ? 'bg-[#ee6018]/65 hover:bg-[#ee6018]'
-                            : 'bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.12]'
-                        }`}
-                      />
+                        className="group/bar flex w-full max-w-[30px] flex-col justify-end overflow-hidden rounded-t-md bg-gray-100 p-0 text-left transition-all duration-300 hover:ring-2 hover:ring-[#ee6018]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/50 focus-visible:ring-offset-2 dark:bg-white/[0.06] dark:focus-visible:ring-offset-[#181B21]"
+                        aria-label={`${dayItem.label}: ${dayItem.passed} réussis, ${dayItem.warning} avertissements, ${dayItem.failed} échecs`}
+                      >
+                        {dayItem.totalChecks > 0 && (
+                          <>
+                            <div
+                              style={{ height: `${(dayItem.failed / dayItem.totalChecks) * 100}%` }}
+                              className="min-h-0 bg-rose-500 transition-all group-hover/bar:bg-rose-400"
+                            />
+                            <div
+                              style={{ height: `${(dayItem.warning / dayItem.totalChecks) * 100}%` }}
+                              className="min-h-0 bg-amber-400 transition-all group-hover/bar:bg-amber-300"
+                            />
+                            <div
+                              style={{ height: `${(dayItem.passed / dayItem.totalChecks) * 100}%` }}
+                              className="min-h-0 bg-emerald-500 transition-all group-hover/bar:bg-emerald-400"
+                            />
+                          </>
+                        )}
+                      </div>
 
                       {/* Jour */}
                       <span
-                        className={`text-[11px] font-bold mt-2.5 tabular-nums ${
+                        className={`text-[10px] font-bold mt-2.5 tabular-nums whitespace-nowrap ${
                           dayItem.isToday
                             ? 'text-[#ee6018]'
                             : 'text-gray-400 dark:text-zinc-500'
@@ -561,10 +629,15 @@ export default function OverviewPage() {
                     </div>
                   ))}
                 </div>
+                <div className="mx-4 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-medium text-gray-500 dark:text-zinc-500">
+                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-500" />Réussis</span>
+                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-amber-400" />Avertissements</span>
+                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-rose-500" />Échecs</span>
+                </div>
               </div>
 
               {/* État Global du Parc */}
-              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/[0.06]">
+              <div className="mx-4 mt-3 pt-3 pb-4 border-t border-gray-100 dark:border-white/[0.06]">
                 <div className="text-xs font-bold text-gray-500 dark:text-zinc-400 mb-2.5">
                   Répartition du parc ({kpiData.totalSites} sites)
                 </div>
@@ -627,6 +700,7 @@ export default function OverviewPage() {
                       key={f.id}
                       type="button"
                       onClick={() => setTableStatusFilter(f.id)}
+                      aria-pressed={tableStatusFilter === f.id}
                       className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all duration-150 cursor-pointer ${
                         tableStatusFilter === f.id
                           ? 'bg-white text-gray-950 shadow-xs dark:bg-[#1E2028] dark:text-white'
@@ -687,7 +761,7 @@ export default function OverviewPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/[0.04]">
-                    {filteredScans.slice(0, 10).map((scan) => {
+                    {paginatedScans.map((scan) => {
                       const criticalCount = scan.critical_count ?? 0
                       const majorCount = scan.major_count ?? 0
                       const checksPassed = scan.checks_passed ?? 0
@@ -819,6 +893,15 @@ export default function OverviewPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+            {!scansLoading && filteredScans.length > 0 && (
+              <Pagination
+                page={auditPage}
+                pageSize={auditPageSize}
+                total={filteredScans.length}
+                onPageChange={setAuditPage}
+                label="audits"
+              />
             )}
           </div>
         </>

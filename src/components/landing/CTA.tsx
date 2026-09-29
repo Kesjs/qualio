@@ -19,17 +19,29 @@ const C = {
 };
 
 export function CTA() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const cta = t.cta;
   const router = useRouter();
 
   const [url, setUrl] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done">("idle");
+  const [error, setError] = useState("");
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   const handleScan = async () => {
-    if (!url) return;
+    if (!url.trim()) {
+      setError(language === "fr" ? "Renseignez l'URL de votre site." : "Enter your website URL.");
+      return;
+    }
+    try {
+      const parsed = new URL(url);
+      if (!/^https?:$/.test(parsed.protocol)) throw new Error("Invalid protocol");
+    } catch {
+      setError(language === "fr" ? "Utilisez une URL complète, par exemple https://votre-site.com." : "Use a complete URL, for example https://your-site.com.");
+      return;
+    }
+    setError("");
     setState("loading");
     
     try {
@@ -45,6 +57,7 @@ export function CTA() {
       }
     } catch (e) {
       console.error(e);
+      setError(language === "fr" ? "Impossible de démarrer le scan. Réessayez." : "The scan could not start. Try again.");
       setState("idle");
     }
   };
@@ -194,6 +207,7 @@ export function CTA() {
               </div>
 
               <label
+                htmlFor="landing-site-url"
                 style={{
                   display: "block",
                   fontFamily: "'JetBrains Mono',monospace",
@@ -208,10 +222,14 @@ export function CTA() {
               </label>
               <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
                 <input
+                  id="landing-site-url"
                   type="url"
+                  required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "landing-site-url-error" : "landing-site-url-help"}
                   placeholder={cta.inputPlaceholder}
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => { setUrl(e.target.value); if (error) setError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleScan()}
                   style={{
                     flex: 1,
@@ -228,16 +246,25 @@ export function CTA() {
                 />
               </div>
 
-              {/* Check toggles */}
+              {error ? (
+                <p id="landing-site-url-error" role="alert" style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: "#ef8b73", lineHeight: 1.4, margin: "-8px 0 16px" }}>
+                  {error}
+                </p>
+              ) : (
+                <p id="landing-site-url-help" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.graphite, margin: "-8px 0 16px", letterSpacing: "0.03em" }}>
+                  {language === "fr" ? "Production, staging ou preview — une URL suffit." : "Production, staging, or preview — one URL is enough."}
+                </p>
+              )}
+
+              {/* Included checks */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 20 }}>
                 {cta.checks.map((c) => (
-                  <label
+                  <div
                     key={c}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
-                      cursor: "pointer",
                       fontFamily: "'Manrope',sans-serif",
                       fontSize: 12,
                       color: C.granite,
@@ -266,7 +293,7 @@ export function CTA() {
                       </svg>
                     </span>
                     {c}
-                  </label>
+                  </div>
                 ))}
               </div>
 

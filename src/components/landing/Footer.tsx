@@ -12,7 +12,7 @@ const COLS = [
       { label:"Features",   href:"#features" },
       { label:"How it works",href:"#how-it-works" },
       { label:"Pricing",    href:"#pricing" },
-      { label:"Changelog",  href:"/changelog" },
+      { label:"FAQ",        href:"#faq" },
       { label:"Status",     href:"https://status.qualio.dev" },
       { label:"Go to Dashboard", href:"/dashboard" },
     ],
@@ -20,18 +20,13 @@ const COLS = [
   {
     heading: "Developers",
     links: [
-      { label:"Docs",           href:"/docs" },
-      { label:"API reference",  href:"/docs/api" },
-      { label:"GitHub",         href:"https://github.com/qualio" },
+      { label:"GitHub",         href:"https://github.com/Kesjs/qualio" },
     ],
   },
   {
     heading: "Company",
     links: [
-      { label:"Blog",    href:"/blog" },
-      { label:"Twitter", href:"https://twitter.com/qualiodev" },
-      { label:"Privacy", href:"/privacy" },
-      { label:"Terms",   href:"/terms" },
+      { label:"Contact", href:"mailto:hello@qualio.dev" },
     ],
   },
 ];
