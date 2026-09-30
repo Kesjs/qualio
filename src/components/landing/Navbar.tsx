@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { User } from "@supabase/supabase-js";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -10,14 +10,36 @@ const C = {
   granite: "#8a8380", stone: "#b8b3b0", bone: "#eeeeee", chalk: "#fafafa", orange: "#ee6018", green: "#a0ca92"
 };
 
+// ← FIX : évalué une seule fois, en dehors du composant, pour ne jamais
+// dépendre d'un état initial "false" qui se corrige après coup.
+const getIsMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
+
 export function Navbar() {
   const { language } = useLanguage();
   const [atTop, setAtTop] = useState(true);
   const [dir, setDir] = useState<"up" | "down">("up");
-  const [mobile, setMobile] = useState(false);
+  // ← FIX : lazy initializer, calculé dès le premier rendu client au lieu
+  // de démarrer à `false` puis de basculer après montage (ce qui provoquait
+  // un premier rendu "desktop" suivi d'un saut visuel vers l'état mobile).
+  const [mobile, setMobile] = useState(getIsMobile);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // ← FIX : useLayoutEffect (pas useEffect) pour resynchroniser `mobile`
+  // avant la peinture du navigateur si jamais la valeur SSR différait.
+  useLayoutEffect(() => {
+    setMobile(getIsMobile());
+    const onResize = () => setMobile(getIsMobile());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useEffect(() => {
+    // ← FIX : sur mobile la navbar est figée (pas de floating/compact), donc
+    // on ne branche même plus l'écouteur de scroll — ça évite tout recalcul
+    // (et toute micro-animation) déclenché par le scroll ou par le
+    // redimensionnement de la barre d'adresse de Safari iOS pendant le scroll.
+    if (mobile) return;
+
     let lastY = window.scrollY, raf = 0;
     const update = () => {
       const y = window.scrollY;
@@ -27,16 +49,13 @@ export function Navbar() {
       lastY = y; raf = 0;
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
-    const onResize = () => setMobile(window.innerWidth < 768);
-    onResize(); update();
+    update();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [mobile]);
 
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
@@ -75,6 +94,16 @@ export function Navbar() {
   const startLabel = language === "fr" ? "Lancer un scan" : "Start a scan";
   const startLabelMobile = language === "fr" ? "Commencer →" : "Get started →";
 
+  // ← FIX : cible d'animation figée pour mobile, définie une seule fois,
+  // pour garantir que framer-motion ne reçoit jamais un objet dont les
+  // valeurs varient d'un rendu à l'autre sur mobile.
+  const mobileAnimate = { maxWidth: 1200, height: 68, marginTop: 0 };
+  const desktopAnimate = {
+    maxWidth: floating ? 1080 : 1200,
+    height: floating ? 56 : 68,
+    marginTop: floating ? 16 : 0,
+  };
+
   return (
     <>
       <nav
@@ -88,16 +117,7 @@ export function Navbar() {
       >
         <motion.div
           initial={false}
-          animate={mobile ? {
-            // ← état figé sur mobile : pas d'animation de taille/position au scroll
-            maxWidth: 1200,
-            height: 68,
-            marginTop: 0,
-          } : {
-            maxWidth: floating ? 1080 : 1200,
-            height: floating ? 56 : 68,
-            marginTop: floating ? 16 : 0,
-          }}
+          animate={mobile ? mobileAnimate : desktopAnimate}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           style={{
             pointerEvents: "auto",
