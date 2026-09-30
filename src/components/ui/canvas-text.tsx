@@ -48,7 +48,13 @@ export function CanvasText({
     update()
     const observer = new ResizeObserver(update)
     observer.observe(element)
-    return () => observer.disconnect()
+    // ← recalcule aussi au resize de la fenêtre (le ResizeObserver seul
+    // peut rater le cas où le wrap change sans que l'élément mesuré change de taille lui-même)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
   }, [text, className])
 
   useEffect(() => {
@@ -89,7 +95,11 @@ export function CanvasText({
       context.font = getComputedStyle(textRef.current!).font
       context.textBaseline = 'top'
       context.fillStyle = '#000'
-      context.fillText(text, 0, 0)
+      // ← fillText ne wrap jamais tout seul : si le texte mesuré (textRef)
+      // est sur plusieurs lignes, il faut dessiner ligne par ligne.
+      const lines = getWrappedLines(context, text, size.width)
+      const lineHeight = size.height / lines.length
+      lines.forEach((line, i) => context.fillText(line, 0, i * lineHeight))
       context.globalCompositeOperation = 'source-atop'
       for (let index = -2; index < Math.ceil(size.height / lineGap) + 2; index += 1) {
         const y = index * lineGap
@@ -109,12 +119,37 @@ export function CanvasText({
   }, [animationDuration, background, colors, curveIntensity, lineGap, lineWidth, reducedMotion, size, text])
 
   return (
-    <span className={cn('relative inline-block align-baseline', className)}>
-      <span ref={textRef} className="invisible inline-block" aria-hidden="true">{text}</span>
+    <span className={cn('relative inline-block align-baseline max-w-full', className)}>
+      <span
+        ref={textRef}
+        className="invisible inline-block max-w-full whitespace-normal break-words"
+        aria-hidden="true"
+      >
+        {text}
+      </span>
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" aria-hidden="true" />
       <span className="sr-only">{text}</span>
     </span>
   )
+}
+
+// Découpe le texte en lignes selon la largeur réellement mesurée (size.width),
+// pour que le canvas dessine sur autant de lignes que le vrai texte HTML en dessous.
+function getWrappedLines(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let current = ''
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word
+    if (context.measureText(test).width > maxWidth && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = test
+    }
+  }
+  if (current) lines.push(current)
+  return lines.length ? lines : [text]
 }
 
 export default CanvasText
