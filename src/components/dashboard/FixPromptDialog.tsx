@@ -11,14 +11,18 @@ interface FixPromptDialogProps {
 
 interface FixPromptResponse {
   prompt: string
+  summary: string
   evidence_count: number
   stack_type: string
 }
+
+type ViewMode = 'summary' | 'full'
 
 export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialogProps) {
   const [data, setData] = useState<FixPromptResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [view, setView] = useState<ViewMode>('summary')
 
   useEffect(() => {
     if (!issueId) return
@@ -26,6 +30,7 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
     setData(null)
     setError(null)
     setCopied(false)
+    setView('summary')
     fetch(`/api/issues/${issueId}/fix-prompt`, { signal: controller.signal })
       .then(async (response) => {
         const json = await response.json()
@@ -42,9 +47,10 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
   if (!issueId) return null
 
   const copyPrompt = async () => {
-    if (!data?.prompt) return
+    const text = view === 'summary' ? data?.summary : data?.prompt
+    if (!text) return
     try {
-      await navigator.clipboard.writeText(data.prompt)
+      await navigator.clipboard.writeText(text)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2_000)
     } catch {
@@ -73,12 +79,32 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
           {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300">{error}</p>}
           {data && (
             <>
-              <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-zinc-400">
-                <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">{data.evidence_count} preuve{data.evidence_count > 1 ? 's' : ''}</span>
-                <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">Stack : {data.stack_type}</span>
-                <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">Aucun accès au dépôt</span>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-zinc-400">
+                  <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">{data.evidence_count} preuve{data.evidence_count > 1 ? 's' : ''}</span>
+                  <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">Stack : {data.stack_type}</span>
+                  <span className="rounded-full border border-gray-200 px-2.5 py-1 dark:border-white/10">Aucun accès au dépôt</span>
+                </div>
+                <div className="inline-flex rounded-lg border border-gray-200 p-0.5 text-xs dark:border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setView('summary')}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${view === 'summary' ? 'bg-[#ee6018] text-white' : 'text-gray-500 dark:text-zinc-400'}`}
+                  >
+                    Résumé
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView('full')}
+                    className={`rounded-md px-2.5 py-1 font-medium transition-colors ${view === 'full' ? 'bg-[#ee6018] text-white' : 'text-gray-500 dark:text-zinc-400'}`}
+                  >
+                    Prompt complet
+                  </button>
+                </div>
               </div>
-              <pre className="whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs leading-6 text-gray-800 dark:border-white/10 dark:bg-black/30 dark:text-zinc-200">{data.prompt}</pre>
+              <pre className="whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs leading-6 text-gray-800 dark:border-white/10 dark:bg-black/30 dark:text-zinc-200">
+                {view === 'summary' ? data.summary : data.prompt}
+              </pre>
             </>
           )}
         </div>
@@ -86,7 +112,7 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
         <div className="flex items-center justify-end border-t border-gray-200 p-4 dark:border-white/10">
           <button type="button" disabled={!data} onClick={copyPrompt} className="inline-flex items-center gap-2 rounded-lg bg-[#ee6018] px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
             {copied ? <CheckIcon className="h-4 w-4" /> : <ClipboardDocumentIcon className="h-4 w-4" />}
-            {copied ? 'Prompt copié' : 'Copier le prompt'}
+            {copied ? 'Copié' : view === 'summary' ? 'Copier le résumé' : 'Copier le prompt complet'}
           </button>
         </div>
       </div>
