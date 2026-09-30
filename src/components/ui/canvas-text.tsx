@@ -43,13 +43,13 @@ export function CanvasText({
     if (!element) return
     const update = () => {
       const rect = element.getBoundingClientRect()
-      setSize({ width: Math.ceil(rect.width), height: Math.ceil(rect.height) })
+      // +2px de marge pour éviter qu'un glyphe en bord de ligne soit rogné
+      // par un arrondi de mesure sub-pixel.
+      setSize({ width: Math.ceil(rect.width) + 2, height: Math.ceil(rect.height) })
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(element)
-    // ← recalcule aussi au resize de la fenêtre (le ResizeObserver seul
-    // peut rater le cas où le wrap change sans que l'élément mesuré change de taille lui-même)
     window.addEventListener('resize', update)
     return () => {
       observer.disconnect()
@@ -67,7 +67,7 @@ export function CanvasText({
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !size.width || !size.height) return
+    if (!canvas || !size.width || !size.height || !textRef.current) return
     const context = canvas.getContext('2d')
     if (!context) return
 
@@ -77,6 +77,16 @@ export function CanvasText({
     canvas.style.width = `${size.width}px`
     canvas.style.height = `${size.height}px`
     context.setTransform(ratio, 0, 0, ratio, 0, 0)
+
+    const computed = getComputedStyle(textRef.current)
+    context.font = computed.font
+    // Aligne le canvas sur le letter-spacing du CSS, sinon le wrap calculé
+    // ici ne correspond plus au wrap réellement affiché par le navigateur.
+    if ('letterSpacing' in context) {
+      // @ts-expect-error - propriété récente du Canvas2D, pas encore dans tous les types TS
+      context.letterSpacing = computed.letterSpacing
+    }
+    const lineHeightPx = parseFloat(computed.lineHeight) || size.height
 
     if (reducedMotion) {
       context.fillStyle = background
@@ -92,14 +102,10 @@ export function CanvasText({
       context.fillStyle = background
       context.fillRect(0, 0, size.width, size.height)
       context.globalCompositeOperation = 'destination-in'
-      context.font = getComputedStyle(textRef.current!).font
       context.textBaseline = 'top'
       context.fillStyle = '#000'
-      // ← fillText ne wrap jamais tout seul : si le texte mesuré (textRef)
-      // est sur plusieurs lignes, il faut dessiner ligne par ligne.
-      const lines = getWrappedLines(context, text, size.width)
-      const lineHeight = size.height / lines.length
-      lines.forEach((line, i) => context.fillText(line, 0, i * lineHeight))
+      const lines = getWrappedLines(context, text, size.width - 2)
+      lines.forEach((line, i) => context.fillText(line, 0, i * lineHeightPx))
       context.globalCompositeOperation = 'source-atop'
       for (let index = -2; index < Math.ceil(size.height / lineGap) + 2; index += 1) {
         const y = index * lineGap
@@ -133,8 +139,6 @@ export function CanvasText({
   )
 }
 
-// Découpe le texte en lignes selon la largeur réellement mesurée (size.width),
-// pour que le canvas dessine sur autant de lignes que le vrai texte HTML en dessous.
 function getWrappedLines(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(' ')
   const lines: string[] = []
