@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
-import { buildFixPrompt } from '@/lib/qa/fix-prompt/buildFixPrompt'
+import { buildFixPrompt, buildFixSummary } from '@/lib/qa/fix-prompt/buildFixPrompt'
 import { isFixContext, type FixContext, type RepositoryProvider, type SiteStackType } from '@/lib/qa/fix-context/types'
 import { redactSensitiveData } from '@/lib/qa/security/redact-sensitive-data'
 
@@ -60,7 +60,7 @@ export async function GET(_request: Request, { params }: Params) {
   const context = isFixContext(issue.fix_context) ? issue.fix_context : fallbackContext(issue, page?.url ?? null)
   const cleanContext = redactSensitiveData(context) as FixContext
   const cleanEvidence = (redactSensitiveData(evidence ?? []) as Array<{ id: string; type: string; payload: unknown }>).slice(0, 20)
-  const prompt = buildFixPrompt({
+  const fixPromptInput = {
     issue: {
       id: issue.id,
       title: issue.title,
@@ -76,10 +76,14 @@ export async function GET(_request: Request, { params }: Params) {
       stack_type: site.stack_type as SiteStackType,
       repository_provider: site.repository_provider as RepositoryProvider,
     },
-  })
+  }
+
+  const prompt = buildFixPrompt(fixPromptInput)
+  const summary = buildFixSummary(fixPromptInput)
 
   return NextResponse.json({
     prompt,
+    summary,
     generated_at: new Date().toISOString(),
     evidence_count: cleanEvidence.length,
     stack_type: site.stack_type,
