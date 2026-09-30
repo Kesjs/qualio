@@ -1,6 +1,7 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, JourneyDefinition, JourneyResult, JourneyStepResult, JourneyActionType, Evidence } from '../types'
+import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
 
 export class BrowserEngine {
   private config: QAConfigManager
@@ -18,8 +19,8 @@ export class BrowserEngine {
     })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
-      ignoreHTTPSErrors: true,
     })
+    await installPublicNetworkGuard(this.context)
   }
 
   async cleanup(): Promise<void> {
@@ -57,7 +58,9 @@ export class BrowserEngine {
     let statusCode: number | null = null
     let navigationError: string | null = null
     try {
+      await assertPublicScanUrl(url)
       const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+      await assertPublicScanUrl(page.url())
       statusCode = res?.status() ?? null
     } catch (error) {
       navigationError = error instanceof Error ? error.message : String(error)
@@ -106,7 +109,7 @@ export class BrowserEngine {
   async testForms(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
     const page = await this.context!.newPage()
     const t0 = Date.now()
-    try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }) } catch {}
+    try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
 
     const forms = await page.$$eval('form', fEls =>
       fEls.map(f => ({
@@ -141,7 +144,7 @@ export class BrowserEngine {
   async testCTA(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
     const page = await this.context!.newPage()
     const t0 = Date.now()
-    try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }) } catch {}
+    try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
 
     const ctaCount = await page.$$eval(
       'a[href*="contact"], a[href*="signup"], a[href*="register"], button[type=submit], .cta, [class*="cta"], [id*="cta"]',
@@ -171,7 +174,7 @@ export class BrowserEngine {
       const page = await this.context!.newPage()
       await page.setViewportSize({ width: vp.width, height: vp.height })
       const t0 = Date.now()
-      try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }) } catch {}
+      try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
 
       const hasOverflow = await page.evaluate(() =>
         document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -208,7 +211,9 @@ export class BrowserEngine {
   async takeScreenshot(url: string, viewport: { name: string; width: number; height: number }): Promise<Buffer> {
     const page = await this.context!.newPage()
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await assertPublicScanUrl(url)
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+    await assertPublicScanUrl(page.url())
     const screenshot = await page.screenshot({ type: 'png', fullPage: false })
     await page.close()
     return screenshot
@@ -245,6 +250,7 @@ export class BrowserEngine {
 
     try {
       if (journey.startUrl) {
+        await assertPublicScanUrl(journey.startUrl)
         await page.goto(journey.startUrl, {
           waitUntil: 'domcontentloaded',
           timeout: 20000,
@@ -378,10 +384,12 @@ export class BrowserEngine {
             ? action.details.waitUntil
             : 'domcontentloaded'
         const targetUrl = new URL(action.target, page.url() || undefined).toString()
+        await assertPublicScanUrl(targetUrl)
         const response = await page.goto(targetUrl, {
           waitUntil,
           timeout: 20000,
         })
+        await assertPublicScanUrl(page.url())
         stepResult.resultPayload = {
           url: targetUrl,
           status: response?.status(),

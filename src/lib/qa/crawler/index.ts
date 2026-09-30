@@ -1,6 +1,7 @@
 import { chromium, type Browser, type BrowserContext } from 'playwright'
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, PageResult, FormInfo } from '../types'
+import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
 
 export class CrawlerEngine {
   private config: QAConfigManager
@@ -18,8 +19,8 @@ export class CrawlerEngine {
     })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
-      ignoreHTTPSErrors: true,
     })
+    await installPublicNetworkGuard(this.context)
   }
 
   async cleanup(): Promise<void> {
@@ -48,13 +49,14 @@ export class CrawlerEngine {
       try {
         const page = await this.context!.newPage()
         const t0 = Date.now()
-        let statusCode = 200
+        let statusCode: number | null = null
 
         page.on('response', res => {
           if (res.url() === item.url || res.url() === normalized) statusCode = res.status()
         })
 
         try {
+          await assertPublicScanUrl(item.url)
           await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 20000 })
         } catch (e: any) {
           statusCode = e?.message?.includes('net::ERR') ? 0 : statusCode
@@ -62,6 +64,9 @@ export class CrawlerEngine {
 
         const responseTime = Date.now() - t0
         const finalUrl = page.url()
+        if (finalUrl && finalUrl !== 'about:blank') {
+          try { await assertPublicScanUrl(finalUrl) } catch { statusCode = 0 }
+        }
         const title = await page.title().catch(() => '')
         const htmlSnippet = await page.content().then((html) => html.slice(0, 200_000)).catch(() => '')
         const scriptUrls = await page.$$eval('script[src]', scripts =>
@@ -112,7 +117,7 @@ export class CrawlerEngine {
 
         const pageResult: PageResult = {
           url: item.url,
-          status: statusCode,
+          status: statusCode ?? 0,
           finalUrl,
           responseTime,
           title,
