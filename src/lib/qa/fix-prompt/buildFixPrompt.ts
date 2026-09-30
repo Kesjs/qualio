@@ -20,6 +20,38 @@ function list(items: string[], empty: string): string {
   return (items.length ? items : [empty]).map((item, index) => `${index + 1}. ${item}`).join('\n')
 }
 
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: 'Critique',
+  major: 'Majeure',
+  minor: 'Mineure',
+  low: 'Faible',
+}
+
+function truncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return `${text.slice(0, maxLength - 1).trimEnd()}…`
+}
+
+/**
+ * Human-readable version of the same verified context: 5-6 lines meant to be read
+ * by a person, not pasted into a coding assistant. Never adds a fact that isn't
+ * already present in the full prompt's inputs.
+ */
+export function buildFixSummary({ issue, context, evidence, site }: FixPromptInput): string {
+  const severity = SEVERITY_LABELS[issue.severity] ?? issue.severity
+  const probableCause = context.locate_hints[0] ?? STACK_HINTS[site.stack_type][0]
+  const page = context.page_url ?? site.url
+
+  return [
+    `${issue.title} — sévérité ${severity} (${issue.category})`,
+    `Page : ${page}`,
+    `Attendu : ${truncate(context.expected, 140)}`,
+    `Observé : ${truncate(context.actual, 140)}`,
+    `Piste probable : ${truncate(probableCause, 140)}`,
+    `${evidence.length} preuve${evidence.length > 1 ? 's' : ''} jointe${evidence.length > 1 ? 's' : ''} · stack ${site.stack_type} · aucun accès au dépôt`,
+  ].join('\n')
+}
+
 export function buildFixPrompt({ issue, context, evidence, site }: FixPromptInput): string {
   const locationHints = [...context.locate_hints, ...STACK_HINTS[site.stack_type]]
   const evidenceLines = evidence.length

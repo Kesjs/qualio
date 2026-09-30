@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildFixPrompt } from './buildFixPrompt'
+import { buildFixPrompt, buildFixSummary } from './buildFixPrompt'
 
 const base = {
   issue: { id: 'issue-1', title: 'CTA inactif', severity: 'major', category: 'cta' },
@@ -29,5 +29,31 @@ describe('buildFixPrompt', () => {
     const prompt = buildFixPrompt({ ...base, evidence: [], site: { ...base.site, stack_type: 'unknown' as const } })
     expect(prompt).toContain('Aucune preuve exploitable')
     expect(prompt).not.toMatch(/Hero\.tsx|ligne 42/)
+  })
+})
+
+describe('buildFixSummary', () => {
+  it('builds a short, human-readable summary with the key facts', () => {
+    const summary = buildFixSummary(base)
+    expect(summary.split('\n')).toHaveLength(6)
+    expect(summary).toContain('CTA inactif')
+    expect(summary).toContain('Majeure')
+    expect(summary).toContain('https://example.com/panier')
+    expect(summary).toContain('Le clic ouvre /checkout')
+    expect(summary).toContain('Le clic ne change pas la page')
+    expect(summary).toContain('1 preuve jointe')
+    expect(summary).toContain('aucun accès au dépôt')
+  })
+
+  it('truncates long expected/actual text instead of dumping the full paragraph', () => {
+    const longText = 'x'.repeat(300)
+    const summary = buildFixSummary({ ...base, context: { ...base.context, expected: longText, actual: longText } })
+    expect(summary).toContain('…')
+    expect(summary).not.toContain(longText)
+  })
+
+  it('falls back to the stack hint when no locate_hints are present', () => {
+    const summary = buildFixSummary({ ...base, context: { ...base.context, locate_hints: [] } })
+    expect(summary).toContain('Rechercher le texte visible ou le sélecteur dans app, pages et src/components.')
   })
 })
