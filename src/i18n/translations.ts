@@ -343,7 +343,7 @@ export const translations = {
     hero: {
       badge: "Votre espace de QA pour le web",
       titleStart: "Déployez enfin sans",
-      titleHighlight: "retenir votre souffle.",
+      titleHighlight: "retenir votre souffle",
       description: "Qualio explore les parcours clés dans un vrai navigateur, collecte les preuves et transforme chaque problème en prompt de correction exploitable.",
       ctaPrimary: "Lancer un premier scan",
       stats: {
