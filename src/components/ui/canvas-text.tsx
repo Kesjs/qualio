@@ -29,9 +29,6 @@ export function CanvasText({
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [background, setBackground] = useState('#ee6018')
   const [reducedMotion, setReducedMotion] = useState(false)
-  // ← FIX : tant que la police n'est pas confirmée chargée, measureText()/fillText()
-  // peuvent utiliser une police de fallback (dimensions différentes), ce qui peut
-  // produire un masque texte vide ou mal aligné sur le premier rendu (notamment iOS).
   const [fontsReady, setFontsReady] = useState(false)
 
   useEffect(() => {
@@ -71,8 +68,6 @@ export function CanvasText({
       observer.disconnect()
       window.removeEventListener('resize', update)
     }
-    // ← re-mesure une fois la police effectivement chargée : la largeur du span
-    // invisible peut changer entre la police de fallback et Manrope.
   }, [text, className, fontsReady])
 
   useEffect(() => {
@@ -85,10 +80,6 @@ export function CanvasText({
 
   useEffect(() => {
     const canvas = canvasRef.current
-    // ← FIX : on attend maintenant explicitement fontsReady + une taille valide
-    // avant de dessiner. Avant, un premier passage avec une police non chargée
-    // (ou une largeur mesurée à 0) pouvait produire un canvas totalement masqué
-    // (rectangle de fond visible, aucun texte découpé dedans).
     if (!canvas || !size.width || !size.height || !textRef.current || !fontsReady) return
     const context = canvas.getContext('2d')
     if (!context) return
@@ -101,10 +92,6 @@ export function CanvasText({
     context.setTransform(ratio, 0, 0, ratio, 0, 0)
 
     const computed = getComputedStyle(textRef.current)
-    // ← FIX PRINCIPAL : ne plus dépendre de `computed.font` (raccourci CSS),
-    // qui revient souvent vide sur Safari/iOS quand la police est définie
-    // via des propriétés séparées (fontFamily/fontWeight/fontSize en style inline).
-    // On reconstruit la chaîne à la main pour que ça marche partout.
     const fontString = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize}/${computed.lineHeight} ${computed.fontFamily}`
     context.font = fontString
 
@@ -134,8 +121,6 @@ export function CanvasText({
       context.fillStyle = background
       context.fillRect(0, 0, size.width, size.height)
       context.globalCompositeOperation = 'destination-in'
-      // ré-affecter le font à chaque frame : clearRect/certaines opérations
-      // peuvent faire perdre l'état du contexte sur certains navigateurs.
       context.font = fontString
       context.textBaseline = 'top'
       context.fillStyle = '#000'
@@ -161,15 +146,23 @@ export function CanvasText({
 
   return (
     <span className={cn('relative inline-block align-baseline max-w-full', className)}>
-      <span
-        ref={textRef}
-        className="invisible inline-block max-w-full whitespace-normal break-words"
-        aria-hidden="true"
-      >
+      {/* ← FIX : sur mobile, le canvas est masqué en CSS pur (`hidden md:inline-block`)
+          au profit d'un simple texte coloré, toujours garanti visible, sans dépendre
+          du chargement de police / de la fiabilité de context.font sur mobile Safari.
+          L'effet canvas animé reste utilisé tel quel en desktop. */}
+      <span className="hidden md:inline-block relative">
+        <span
+          ref={textRef}
+          className="invisible inline-block max-w-full whitespace-normal break-words"
+          aria-hidden="true"
+        >
+          {text}
+        </span>
+        <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" aria-hidden="true" />
+      </span>
+      <span className="md:hidden" style={{ color: background }}>
         {text}
       </span>
-      <canvas ref={canvasRef} className="pointer-events-none absolute inset-0" aria-hidden="true" />
-      <span className="sr-only">{text}</span>
     </span>
   )
 }
