@@ -47,8 +47,6 @@ export function Navbar() {
       const { getSupabaseBrowserClient } = await import('@/lib/supabase/client');
       const supabase = getSupabaseBrowserClient();
 
-      // Validate the session instead of trusting a stale client-side session.
-      // This keeps the CTA aligned with the server-side dashboard guard.
       const { data } = await supabase.auth.getUser();
       if (active) setUser(data.user ?? null);
 
@@ -73,6 +71,7 @@ export function Navbar() {
     : [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }];
   const loginLabel = language === "fr" ? "Se connecter" : "Log in";
   const startLabel = language === "fr" ? "Lancer un scan" : "Start a scan";
+  const startLabelMobile = language === "fr" ? "Commencer →" : "Get started →"; // ← ajouté
 
   return (
     <>
@@ -95,14 +94,14 @@ export function Navbar() {
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           style={{
             pointerEvents: "auto",
-            display: "flex", alignItems: "center", justifyContent: "flex-start", // Align left
+            display: "flex", alignItems: "center", justifyContent: "flex-start",
             gap: 0, width: "100%",
             maxWidth: 1200,
             height: 68,
             marginTop: 0,
             padding: "0 16px 0 24px",
             borderRadius: floating ? 16 : 0,
-            borderBottom: floating ? `1px solid rgba(255,255,255,0.06)` : `1px solid rgba(255,255,255,0.04)`, // Subtle bottom border always visible
+            borderBottom: floating ? `1px solid rgba(255,255,255,0.06)` : `1px solid rgba(255,255,255,0.04)`,
             borderTop: floating ? `1px solid rgba(255,255,255,0.08)` : "1px solid transparent",
             borderLeft: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
             borderRight: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
@@ -122,12 +121,12 @@ export function Navbar() {
             />
           </a>
 
-          {/* Center links — moved to left next to logo */}
+          {/* Center links */}
           {!mobile && (
             <motion.div
               style={{
                 display: "flex", gap: 32, overflow: "hidden",
-                marginLeft: 48 // Pushed to the left near the logo
+                marginLeft: 48
               }}
             >
               {navLinks.map(l => (
@@ -172,8 +171,6 @@ export function Navbar() {
                     {loginLabel}
                   </a>
                 )}
-                
-                {/* Vertical Divider */}
                 <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.1)", borderRadius: 1 }} />
               </div>
             )}
@@ -191,7 +188,6 @@ export function Navbar() {
                 boxShadow: `0 0 0 1px ${C.bone}, 0 4px 12px -2px rgba(255, 255, 255, 0.15)`
               }}
             >
-              {/* Shine effect */}
               <motion.div
                 variants={{
                   rest: { left: "-100%" },
@@ -204,7 +200,10 @@ export function Navbar() {
                   transform: "skewX(-20deg)", zIndex: 0
                 }}
               />
-              <span style={{ position: "relative", zIndex: 1 }}>{user ? dashboardLabel : (mobile ? "Scan →" : startLabel)}</span>
+              {/* ← seule ligne modifiée : "Scan →" remplacé par le vrai label CTA */}
+              <span style={{ position: "relative", zIndex: 1 }}>
+                {user ? dashboardLabel : (mobile ? startLabelMobile : startLabel)}
+              </span>
               {!mobile && !user && (
                 <motion.span
                   variants={{
@@ -274,7 +273,6 @@ export function Navbar() {
               )}
             </a>
           ))}
-          {/* Mobile language switch row */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "10px 8px", borderBottom: `1px solid ${C.carbon}`
