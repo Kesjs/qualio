@@ -29,6 +29,10 @@ export function CanvasText({
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [background, setBackground] = useState('#ee6018')
   const [reducedMotion, setReducedMotion] = useState(false)
+  // ← FIX : tant que la police n'est pas confirmée chargée, measureText()/fillText()
+  // peuvent utiliser une police de fallback (dimensions différentes), ce qui peut
+  // produire un masque texte vide ou mal aligné sur le premier rendu (notamment iOS).
+  const [fontsReady, setFontsReady] = useState(false)
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -36,6 +40,20 @@ export function CanvasText({
     sync()
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (typeof document === 'undefined' || !('fonts' in document)) {
+      setFontsReady(true)
+      return
+    }
+    document.fonts.ready.then(() => {
+      if (!cancelled) setFontsReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -53,7 +71,9 @@ export function CanvasText({
       observer.disconnect()
       window.removeEventListener('resize', update)
     }
-  }, [text, className])
+    // ← re-mesure une fois la police effectivement chargée : la largeur du span
+    // invisible peut changer entre la police de fallback et Manrope.
+  }, [text, className, fontsReady])
 
   useEffect(() => {
     const probe = document.createElement('span')
@@ -65,7 +85,11 @@ export function CanvasText({
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !size.width || !size.height || !textRef.current) return
+    // ← FIX : on attend maintenant explicitement fontsReady + une taille valide
+    // avant de dessiner. Avant, un premier passage avec une police non chargée
+    // (ou une largeur mesurée à 0) pouvait produire un canvas totalement masqué
+    // (rectangle de fond visible, aucun texte découpé dedans).
+    if (!canvas || !size.width || !size.height || !textRef.current || !fontsReady) return
     const context = canvas.getContext('2d')
     if (!context) return
 
@@ -92,6 +116,13 @@ export function CanvasText({
     if (reducedMotion) {
       context.fillStyle = background
       context.fillRect(0, 0, size.width, size.height)
+      context.globalCompositeOperation = 'destination-in'
+      context.font = fontString
+      context.textBaseline = 'top'
+      context.fillStyle = '#000'
+      const staticLines = getWrappedLines(context, text, size.width - 2)
+      staticLines.forEach((line, i) => context.fillText(line, 0, i * lineHeightPx))
+      context.globalCompositeOperation = 'source-over'
       return
     }
 
@@ -126,7 +157,7 @@ export function CanvasText({
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [animationDuration, background, colors, curveIntensity, lineGap, lineWidth, reducedMotion, size, text])
+  }, [animationDuration, background, colors, curveIntensity, fontsReady, lineGap, lineWidth, reducedMotion, size, text])
 
   return (
     <span className={cn('relative inline-block align-baseline max-w-full', className)}>
