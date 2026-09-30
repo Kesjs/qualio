@@ -82,9 +82,10 @@ export function CanvasText({
     context.font = computed.font
     // Aligne le canvas sur le letter-spacing du CSS, sinon le wrap calculé
     // ici ne correspond plus au wrap réellement affiché par le navigateur.
+    // Cast au lieu de @ts-expect-error : selon la version de TS/lib.dom,
+    // la propriété peut déjà être typée ou non — le cast marche dans les deux cas.
     if ('letterSpacing' in context) {
-      // @ts-expect-error - propriété récente du Canvas2D, pas encore dans tous les types TS
-      context.letterSpacing = computed.letterSpacing
+      ;(context as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = computed.letterSpacing
     }
     const lineHeightPx = parseFloat(computed.lineHeight) || size.height
 
