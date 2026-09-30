@@ -63,15 +63,17 @@ export function Navbar() {
     };
   }, []);
 
-  const floating = !atTop;
-  const compact = floating && dir === "down";
+  // ← sur mobile, on désactive complètement le mode "floating/compact" au scroll :
+  // la navbar reste fixe, seule l'animation desktop reste active.
+  const floating = !mobile && !atTop;
+  const compact = !mobile && floating && dir === "down";
   const dashboardLabel = language === "fr" ? "Tableau de bord" : "Dashboard";
   const navLinks = language === "fr"
     ? [{ label: "Fonctionnalités", href: "#features" }, { label: "Tarifs", href: "#pricing" }]
     : [{ label: "Features", href: "#features" }, { label: "Pricing", href: "#pricing" }];
   const loginLabel = language === "fr" ? "Se connecter" : "Log in";
   const startLabel = language === "fr" ? "Lancer un scan" : "Start a scan";
-  const startLabelMobile = language === "fr" ? "Commencer →" : "Get started →"; // ← ajouté
+  const startLabelMobile = language === "fr" ? "Commencer →" : "Get started →";
 
   return (
     <>
@@ -85,8 +87,13 @@ export function Navbar() {
         }}
       >
         <motion.div
-          initial={{ maxWidth: 1200, height: 68, marginTop: 0 }}
-          animate={{
+          initial={false}
+          animate={mobile ? {
+            // ← état figé sur mobile : pas d'animation de taille/position au scroll
+            maxWidth: 1200,
+            height: 68,
+            marginTop: 0,
+          } : {
             maxWidth: floating ? 1080 : 1200,
             height: floating ? 56 : 68,
             marginTop: floating ? 16 : 0,
@@ -105,9 +112,9 @@ export function Navbar() {
             borderTop: floating ? `1px solid rgba(255,255,255,0.08)` : "1px solid transparent",
             borderLeft: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
             borderRight: floating ? `1px solid rgba(255, 255, 255, 0.08)` : "1px solid transparent",
-            background: floating ? "rgba(0, 0, 0, 0.85)" : "transparent",
-            backdropFilter: floating ? "blur(24px) saturate(200%)" : "none",
-            WebkitBackdropFilter: floating ? "blur(24px) saturate(200%)" : "none",
+            background: floating ? "rgba(0, 0, 0, 0.85)" : (mobile ? "rgba(0,0,0,0.85)" : "transparent"),
+            backdropFilter: floating || mobile ? "blur(24px) saturate(200%)" : "none",
+            WebkitBackdropFilter: floating || mobile ? "blur(24px) saturate(200%)" : "none",
             boxShadow: floating ? "0 16px 40px -16px rgba(0,0,0,0.95)" : "none",
           }}
         >
@@ -200,7 +207,6 @@ export function Navbar() {
                   transform: "skewX(-20deg)", zIndex: 0
                 }}
               />
-              {/* ← seule ligne modifiée : "Scan →" remplacé par le vrai label CTA */}
               <span style={{ position: "relative", zIndex: 1 }}>
                 {user ? dashboardLabel : (mobile ? startLabelMobile : startLabel)}
               </span>
