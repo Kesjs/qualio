@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient as createClient } from '@/lib/supabase/client'
 import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
+import { GithubIntegrationPanel } from '@/components/dashboard/GithubIntegrationPanel'
 
 const NOTIFICATION_OPTIONS: CheckboxGroupOption[] = [
   {
@@ -58,7 +59,7 @@ const TABS = [
   { id: 'profile', label: 'Profil', icon: UserIcon },
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
   { id: 'billing', label: 'Abonnement', icon: CreditCardIcon, comingSoon: true },
-  { id: 'integrations', label: 'Intégrations', icon: PuzzlePieceIcon, comingSoon: true },
+  { id: 'integrations', label: 'Intégrations', icon: PuzzlePieceIcon },
   { id: 'api', label: 'API & Webhooks', icon: CommandLineIcon, comingSoon: true },
   { id: 'security', label: 'Sécurité', icon: ShieldCheckIcon },
 ] as const
@@ -232,7 +233,7 @@ export default function SettingsPage() {
   }
 
   const isSaving = saveState === 'saving'
-  const activeTabIsComingSoon = activeTab !== 'profile' && activeTab !== 'notifications' && activeTab !== 'security'
+  const activeTabIsComingSoon = activeTab === 'billing' || activeTab === 'api'
 
   return (
     <div className="max-w-6xl space-y-6 pb-12">
@@ -446,6 +447,12 @@ export default function SettingsPage() {
                     <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">Authentification à deux facteurs et passkeys.</p>
                   </div>
                 </div>
+              </div>
+            ) : null}
+
+            {activeTab === 'integrations' ? (
+              <div id="settings-panel-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <GithubIntegrationPanel />
               </div>
             ) : null}
 

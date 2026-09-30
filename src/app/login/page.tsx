@@ -50,6 +50,25 @@ function GoogleButton({ onClick, loading, label }: { onClick: () => void; loadin
   )
 }
 
+function GithubButton({ onClick, loading }: { onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        width: '100%', padding: '9px 16px', background: '#171717', border: `1px solid ${C.ash}`, borderRadius: 3,
+        color: C.bone, fontFamily: "'Manrope',sans-serif", fontSize: 14, fontWeight: 400, cursor: loading ? 'not-allowed' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'border-color 0.15s ease', opacity: loading ? 0.6 : 1,
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.stone)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.ash)}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M12 .7a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.3 11.3 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.3.7 1 .7 2v2.8c0 .3.2.7.8.6A12 12 0 0 0 12 .7Z" /></svg>
+      {loading ? 'Connexion…' : 'Continuer avec GitHub'}
+    </button>
+  )
+}
+
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const [mode, setMode] = useState<AuthMode>(
@@ -95,6 +114,7 @@ export default function LoginPage() {
   const [otpError, setOtpError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [githubLoading, setGithubLoading] = useState(false)
   const [welcomeChoice, setWelcomeChoice] = useState<string | null>(null)
 
   // --- Password sign-in ---
@@ -191,13 +211,28 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
         },
       })
       if (error) throw error
     } catch (err: any) {
       toast.error(err?.message || 'Google sign-in failed')
       setGoogleLoading(false)
+    }
+  }
+
+  async function handleGithub() {
+    setGithubLoading(true)
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}` },
+      })
+      if (error) throw error
+    } catch (err: any) {
+      toast.error(err?.message || 'Échec de la connexion via GitHub')
+      setGithubLoading(false)
     }
   }
 
@@ -404,6 +439,7 @@ export default function LoginPage() {
           <>
             <AuthDivider />
             <GoogleButton onClick={handleGoogle} loading={googleLoading} label={t.labels.continueWithGoogle} />
+            <GithubButton onClick={handleGithub} loading={githubLoading} />
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button
                 onClick={() => setMode('otp')}

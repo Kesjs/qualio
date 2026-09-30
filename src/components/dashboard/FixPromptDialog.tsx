@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ClipboardDocumentIcon, XMarkIcon, CheckIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ClipboardDocumentIcon, XMarkIcon, CheckIcon, ArrowPathIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
 
 interface FixPromptDialogProps {
   issueId: string | null
@@ -14,6 +14,7 @@ interface FixPromptResponse {
   summary: string
   evidence_count: number
   stack_type: string
+  github_pr?: { url: string; number: number; status: string }
 }
 
 type ViewMode = 'summary' | 'full'
@@ -23,6 +24,8 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [view, setView] = useState<ViewMode>('summary')
+  const [prState, setPrState] = useState<'idle' | 'creating' | 'created' | 'error'>('idle')
+  const [prUrl, setPrUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!issueId) return
@@ -31,6 +34,8 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
     setError(null)
     setCopied(false)
     setView('summary')
+    setPrState('idle')
+    setPrUrl(null)
     fetch(`/api/issues/${issueId}/fix-prompt`, { signal: controller.signal })
       .then(async (response) => {
         const json = await response.json()
@@ -55,6 +60,21 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
       window.setTimeout(() => setCopied(false), 2_000)
     } catch {
       setError('La copie a échoué. Sélectionnez le texte manuellement.')
+    }
+  }
+
+  const proposePullRequest = async () => {
+    if (!issueId || prState === 'creating') return
+    setPrState('creating')
+    try {
+      const response = await fetch(`/api/issues/${issueId}/github-pr`, { method: 'POST' })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'La proposition GitHub a échoué')
+      setPrUrl(payload.url)
+      setPrState('created')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'La proposition GitHub a échoué')
+      setPrState('error')
     }
   }
 
@@ -105,6 +125,13 @@ export function FixPromptDialog({ issueId, issueTitle, onClose }: FixPromptDialo
               <pre className="whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-gray-50 p-4 text-xs leading-6 text-gray-800 dark:border-white/10 dark:bg-black/30 dark:text-zinc-200">
                 {view === 'summary' ? data.summary : data.prompt}
               </pre>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#ee6018]/20 bg-[#ee6018]/[0.06] p-4">
+                <div className="flex items-start gap-2">
+                  <CodeBracketIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#ee6018]" />
+                  <p className="text-xs leading-5 text-gray-600 dark:text-zinc-300">Préparer une PR brouillon avec cette proposition, sans modifier directement votre code.</p>
+                </div>
+                {prUrl ? <a href={prUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#ee6018] underline">Ouvrir la PR</a> : <button type="button" onClick={proposePullRequest} disabled={prState === 'creating'} className="rounded-lg bg-[#ee6018] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{prState === 'creating' ? 'Création…' : 'Proposer une PR'}</button>}
+              </div>
             </>
           )}
         </div>
