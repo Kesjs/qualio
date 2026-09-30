@@ -19,7 +19,9 @@ const C = {
   ash: '#222222', stone: '#b8b3b0', carbon: '#0d0d0d',
 }
 
-type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'welcome'
+type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'welcome' | 'reset-password'
+
+const AUTH_MODES: AuthMode[] = ['password', 'register', 'forgot', 'otp', 'otp-verify', 'verify-email', 'welcome', 'reset-password']
 
 // Bouton Google SSO
 function GoogleButton({ onClick, loading, label }: { onClick: () => void; loading: boolean, label: string }) {
@@ -71,9 +73,11 @@ function GithubButton({ onClick, loading }: { onClick: () => void; loading: bool
 
 export default function LoginPage() {
   const searchParams = useSearchParams()
-  const [mode, setMode] = useState<AuthMode>(
-    (searchParams.get('mode') as AuthMode) || 'password'
-  )
+  const requestedMode = searchParams.get('mode')
+  const initialMode: AuthMode = requestedMode && AUTH_MODES.includes(requestedMode as AuthMode)
+    ? requestedMode as AuthMode
+    : 'password'
+  const [mode, setMode] = useState<AuthMode>(initialMode)
 
   const { language } = useLanguage()
   const t = translations[language].auth
@@ -101,21 +105,32 @@ export default function LoginPage() {
 
   // Redirect si déjà connecté
   useEffect(() => {
+    if (mode === 'reset-password') return
     const supabase = getSupabaseBrowserClient()
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) window.location.replace(redirectPath)
     })
-  }, [redirectPath])
+  }, [mode, redirectPath])
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_callback_failed') {
+      toast.error(t.errors.authCallbackFailed)
+    }
+  }, [searchParams, t.errors.authCallbackFailed])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [welcomeChoice, setWelcomeChoice] = useState<string | null>(null)
+  const [welcomeOutcome, setWelcomeOutcome] = useState<string | null>(null)
   const [otpEmail, setOtpEmail] = useState('')
   const [otpError, setOtpError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
-  const [welcomeChoice, setWelcomeChoice] = useState<string | null>(null)
+  const [signupHasSession, setSignupHasSession] = useState(false)
 
   // --- Password sign-in ---
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -147,12 +162,44 @@ export default function LoginPage() {
         return
       }
       const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) throw error
+      if (data.user?.identities?.length === 0) {
+        toast.error(t.errors.accountExists)
+        setMode('password')
+        return
+      }
       toast.success(t.success.accountCreated)
+      setSignupHasSession(Boolean(data.session))
       setMode('welcome')
     } catch (err: any) {
       toast.error(err?.message || t.errors.registerFailed)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // --- Password reset completion ---
+  async function handlePasswordReset(e: React.FormEvent) {
+    e.preventDefault()
+    if (newPassword.length < 8) {
+      toast.error(t.errors.passwordTooShort)
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error(t.errors.passwordMismatch)
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      toast.success(t.success.passwordUpdated)
+      await redirectAfterAuth()
+    } catch (err: any) {
+      toast.error(err?.message || t.errors.passwordUpdateFailed)
     } finally {
       setIsLoading(false)
     }
@@ -231,8 +278,24 @@ export default function LoginPage() {
       })
       if (error) throw error
     } catch (err: any) {
-      toast.error(err?.message || 'Échec de la connexion via GitHub')
+      toast.error(err?.message || t.errors.githubFailed)
       setGithubLoading(false)
+    }
+  }
+
+  async function handleWelcomeContinue() {
+    if (!signupHasSession) {
+      setMode('verify-email')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await redirectAfterAuth()
+    } catch (err: any) {
+      toast.error(err?.message || t.errors.signinFailed)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -240,6 +303,7 @@ export default function LoginPage() {
   if (mode === 'otp-verify') modeKey = 'otpVerify';
   if (mode === 'verify-email') modeKey = 'verifyEmail';
   if (mode === 'welcome') modeKey = 'welcome';
+  if (mode === 'reset-password') modeKey = 'resetPassword';
   const currentModeCopy = t[modeKey] as { title: string; description: string };
 
   const welcomePrompts: SuggestedPrompt[] = [
@@ -248,9 +312,21 @@ export default function LoginPage() {
     { id: 'regressions', label: t.welcome.prompts.regressions },
   ]
 
+  const welcomeOutcomePrompts: SuggestedPrompt[] = [
+    { id: 'visible-issues', label: t.welcome.outcomes.visibleIssues },
+    { id: 'forms-ctas', label: t.welcome.outcomes.formsCtas },
+    { id: 'mobile', label: t.welcome.outcomes.mobile },
+    { id: 'diagnosis', label: t.welcome.outcomes.diagnosis },
+  ]
+
   function handleWelcomePrompt(prompt: SuggestedPrompt) {
     setWelcomeChoice(prompt.id)
     window.sessionStorage.setItem('qualio_signup_intent', prompt.id)
+  }
+
+  function handleWelcomeOutcome(prompt: SuggestedPrompt) {
+    setWelcomeOutcome(prompt.id)
+    window.sessionStorage.setItem('qualio_signup_outcome', prompt.id)
   }
 
   return (
@@ -351,7 +427,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Post-registration questions — replaces the signup form only. */}
             {mode === 'welcome' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <ChatEmptyState
@@ -360,13 +435,19 @@ export default function LoginPage() {
                   prompts={welcomePrompts}
                   onSelectPrompt={handleWelcomePrompt}
                 />
-                {welcomeChoice && (
+                <ChatEmptyState
+                  title={t.welcome.outcomeQuestion}
+                  subtitle={t.welcome.outcomeSubtitle}
+                  prompts={welcomeOutcomePrompts}
+                  onSelectPrompt={handleWelcomeOutcome}
+                />
+                {(welcomeChoice || welcomeOutcome) && (
                   <p style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#a0ca92', margin: 0, textAlign: 'center' }}>
                     {t.welcome.selected}
                   </p>
                 )}
-                <AuthButton variant="ghost" type="button" onClick={() => setMode('verify-email')}>
-                  {t.welcome.continue}
+                <AuthButton variant="ghost" type="button" loading={isLoading} onClick={handleWelcomeContinue}>
+                  {signupHasSession ? t.welcome.continueDashboard : t.welcome.continue}
                 </AuthButton>
               </div>
             )}
@@ -385,6 +466,31 @@ export default function LoginPage() {
                 />
                 <AuthButton loading={isLoading} type="submit">{t.labels.sendReset}</AuthButton>
                 <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>{t.labels.backToSignIn}</AuthButton>
+              </form>
+            )}
+
+            {/* ── RESET PASSWORD mode ── */}
+            {mode === 'reset-password' && (
+              <form onSubmit={handlePasswordReset} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <AuthInput
+                  label={t.labels.newPassword}
+                  type="password"
+                  placeholder={t.labels.passwordPlaceholderSignUp}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <AuthInput
+                  label={t.labels.confirmPassword}
+                  type="password"
+                  placeholder={t.labels.passwordPlaceholderSignUp}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+                <AuthButton loading={isLoading} type="submit">{t.labels.savePassword}</AuthButton>
               </form>
             )}
 
@@ -435,7 +541,7 @@ export default function LoginPage() {
         </AnimatePresence>
 
         {/* SSO ── Google (pas sur otp-verify ni verify-email) */}
-        {mode !== 'otp-verify' && mode !== 'verify-email' && (
+        {mode !== 'otp-verify' && mode !== 'verify-email' && mode !== 'welcome' && mode !== 'reset-password' && (
           <>
             <AuthDivider />
             <GoogleButton onClick={handleGoogle} loading={googleLoading} label={t.labels.continueWithGoogle} />

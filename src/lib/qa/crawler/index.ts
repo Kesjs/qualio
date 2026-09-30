@@ -19,6 +19,7 @@ export class CrawlerEngine {
     })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
+      ignoreHTTPSErrors: false,
     })
     await installPublicNetworkGuard(this.context)
   }
@@ -31,6 +32,7 @@ export class CrawlerEngine {
   }
 
   async crawl(startUrl: string): Promise<{ pages: PageResult[]; total: number; duration: number }> {
+    await assertPublicScanUrl(startUrl)
     const startTime = Date.now()
     const maxPages = this.config.getMaxPages()
     const maxDepth = this.config.getMaxCrawlDepth()
@@ -55,17 +57,36 @@ export class CrawlerEngine {
           if (res.url() === item.url || res.url() === normalized) statusCode = res.status()
         })
 
+        let navigationError: string | null = null
         try {
           await assertPublicScanUrl(item.url)
-          await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+          const response = await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+          statusCode = response?.status() ?? null
+          await assertPublicScanUrl(page.url())
         } catch (e: any) {
-          statusCode = e?.message?.includes('net::ERR') ? 0 : statusCode
+          navigationError = e instanceof Error ? e.message : String(e)
+          statusCode = 0
         }
 
         const responseTime = Date.now() - t0
         const finalUrl = page.url()
-        if (finalUrl && finalUrl !== 'about:blank') {
-          try { await assertPublicScanUrl(finalUrl) } catch { statusCode = 0 }
+        if (navigationError || statusCode === 0) {
+          pages.push({
+            url: item.url,
+            status: 0,
+            finalUrl,
+            responseTime,
+            title: '',
+            depth: item.depth,
+            links: [],
+            images: [],
+            forms: [],
+            htmlSnippet: '',
+            scriptUrls: [],
+            repositoryLinks: [],
+          })
+          await page.close()
+          continue
         }
         const title = await page.title().catch(() => '')
         const htmlSnippet = await page.content().then((html) => html.slice(0, 200_000)).catch(() => '')

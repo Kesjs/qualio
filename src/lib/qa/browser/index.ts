@@ -19,6 +19,7 @@ export class BrowserEngine {
     })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
+      ignoreHTTPSErrors: false,
     })
     await installPublicNetworkGuard(this.context)
   }
@@ -43,6 +44,17 @@ export class BrowserEngine {
     return { key, category, status, title, message, severity, duration, evidence }
   }
 
+  private async navigatePublicPage(
+    page: Page,
+    url: string,
+    waitUntil: 'domcontentloaded' | 'load' | 'networkidle' = 'domcontentloaded',
+  ) {
+    await assertPublicScanUrl(url)
+    const response = await page.goto(url, { waitUntil, timeout: 20000 })
+    await assertPublicScanUrl(page.url())
+    return response
+  }
+
   async testNavigation(
     url: string,
     modules: { navigation: boolean; consoleErrors: boolean } = { navigation: true, consoleErrors: true },
@@ -58,9 +70,7 @@ export class BrowserEngine {
     let statusCode: number | null = null
     let navigationError: string | null = null
     try {
-      await assertPublicScanUrl(url)
-      const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
-      await assertPublicScanUrl(page.url())
+      const res = await this.navigatePublicPage(page, url)
       statusCode = res?.status() ?? null
     } catch (error) {
       navigationError = error instanceof Error ? error.message : String(error)
@@ -109,7 +119,15 @@ export class BrowserEngine {
   async testForms(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
     const page = await this.context!.newPage()
     const t0 = Date.now()
-    try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
+    let navigationError: string | null = null
+    try { await this.navigatePublicPage(page, url) } catch (error) {
+      navigationError = error instanceof Error ? error.message : String(error)
+    }
+
+    if (navigationError) {
+      await page.close()
+      return [this.makeCheck('forms_navigation', 'forms', 'failed', 'Form Check', `Page failed to load: ${navigationError}`, 'critical', Date.now() - t0, [{ type: 'network', payload: { url, navigationError } }])]
+    }
 
     const forms = await page.$$eval('form', fEls =>
       fEls.map(f => ({
@@ -144,7 +162,15 @@ export class BrowserEngine {
   async testCTA(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
     const page = await this.context!.newPage()
     const t0 = Date.now()
-    try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
+    let navigationError: string | null = null
+    try { await this.navigatePublicPage(page, url) } catch (error) {
+      navigationError = error instanceof Error ? error.message : String(error)
+    }
+
+    if (navigationError) {
+      await page.close()
+      return [this.makeCheck('cta_navigation', 'cta', 'failed', 'Call-to-Action', `Page failed to load: ${navigationError}`, 'critical', Date.now() - t0, [{ type: 'network', payload: { url, navigationError } }])]
+    }
 
     const ctaCount = await page.$$eval(
       'a[href*="contact"], a[href*="signup"], a[href*="register"], button[type=submit], .cta, [class*="cta"], [id*="cta"]',
@@ -174,7 +200,22 @@ export class BrowserEngine {
       const page = await this.context!.newPage()
       await page.setViewportSize({ width: vp.width, height: vp.height })
       const t0 = Date.now()
-      try { await assertPublicScanUrl(url); await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }); await assertPublicScanUrl(page.url()) } catch {}
+      let navigationError: string | null = null
+      try { await this.navigatePublicPage(page, url) } catch (error) {
+        navigationError = error instanceof Error ? error.message : String(error)
+      }
+
+      if (navigationError) {
+        await page.close()
+        results.push(this.makeCheck(
+          `responsive_${vp.name}`, 'responsive', 'failed',
+          `Responsive — ${vp.name} (${vp.width}px)`,
+          `Page failed to load: ${navigationError}`,
+          'critical', Date.now() - t0,
+          [{ type: 'network', payload: { url, navigationError, viewport: vp.name } }],
+        ))
+        continue
+      }
 
       const hasOverflow = await page.evaluate(() =>
         document.documentElement.scrollWidth > document.documentElement.clientWidth
@@ -211,9 +252,7 @@ export class BrowserEngine {
   async takeScreenshot(url: string, viewport: { name: string; width: number; height: number }): Promise<Buffer> {
     const page = await this.context!.newPage()
     await page.setViewportSize({ width: viewport.width, height: viewport.height })
-    await assertPublicScanUrl(url)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
-    await assertPublicScanUrl(page.url())
+    await this.navigatePublicPage(page, url)
     const screenshot = await page.screenshot({ type: 'png', fullPage: false })
     await page.close()
     return screenshot
@@ -250,11 +289,7 @@ export class BrowserEngine {
 
     try {
       if (journey.startUrl) {
-        await assertPublicScanUrl(journey.startUrl)
-        await page.goto(journey.startUrl, {
-          waitUntil: 'domcontentloaded',
-          timeout: 20000,
-        })
+        await this.navigatePublicPage(page, journey.startUrl)
       }
 
       // Exécuter chaque étape du parcours
@@ -385,11 +420,7 @@ export class BrowserEngine {
             : 'domcontentloaded'
         const targetUrl = new URL(action.target, page.url() || undefined).toString()
         await assertPublicScanUrl(targetUrl)
-        const response = await page.goto(targetUrl, {
-          waitUntil,
-          timeout: 20000,
-        })
-        await assertPublicScanUrl(page.url())
+        const response = await this.navigatePublicPage(page, targetUrl, waitUntil)
         stepResult.resultPayload = {
           url: targetUrl,
           status: response?.status(),

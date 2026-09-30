@@ -34,6 +34,22 @@ export async function POST(req: NextRequest) {
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).single()
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
 
+  let validatedPreviousScanId: string | null = null
+  if (previousScanId) {
+    const { data: previousScan } = await supabase
+      .from('scans')
+      .select('id')
+      .eq('id', previousScanId)
+      .eq('site_id', siteId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!previousScan) {
+      return NextResponse.json({ error: 'Previous scan not found' }, { status: 400 })
+    }
+    validatedPreviousScanId = previousScan.id
+  }
+
   // Create scan record with service_role (bypasses RLS for insert)
   const admin = getSupabaseAdminClient()
   const { data: scan, error } = await admin
@@ -42,7 +58,7 @@ export async function POST(req: NextRequest) {
       site_id: siteId,
       user_id: user.id,
       status: 'queued',
-      previous_scan_id: previousScanId ?? null,
+      previous_scan_id: validatedPreviousScanId,
       scan_modules: modules,
       queued_at: new Date().toISOString(),
       consent_confirmed_at: consentConfirmedAt ? new Date(consentConfirmedAt).toISOString() : null,

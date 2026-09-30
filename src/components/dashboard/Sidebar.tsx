@@ -66,8 +66,8 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false)
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false)
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null)
-  const [userName, setUserName] = useState('Qualio Studio')
-  const [userEmail, setUserEmail] = useState('admin@qualio.dev')
+  const [userName, setUserName] = useState('Utilisateur')
+  const [userEmail, setUserEmail] = useState('')
 
   const profileRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -100,7 +100,11 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   }, [])
 
   useEffect(() => {
-    if (!sites?.length) return
+    if (!sites?.length) {
+      setSelectedSiteId(null)
+      window.localStorage.removeItem('qualio:selected-site')
+      return
+    }
     const storedId = window.localStorage.getItem('qualio:selected-site')
     const nextId = storedId && sites.some((site) => site.id === storedId) ? storedId : sites[0].id
     setSelectedSiteId(nextId)

@@ -19,9 +19,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 export function UserMenu() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  const [userName, setUserName] = useState('Qualio Studio')
-  const [userEmail, setUserEmail] = useState('admin@qualio.dev')
-  const [userRole, setUserRole] = useState('Workspace Admin')
+  const [userName, setUserName] = useState('Utilisateur')
+  const [userEmail, setUserEmail] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Fetch real authenticated user
@@ -90,7 +89,7 @@ export function UserMenu() {
             {userName}
           </span>
           <span className="text-[10px] text-gray-400 dark:text-zinc-400 font-mono leading-none">
-            Pro Plan
+            Compte
           </span>
         </div>
 
@@ -115,9 +114,6 @@ export function UserMenu() {
                   <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                     {userName}
                   </p>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono uppercase bg-orange-50 text-[#ee6018] dark:bg-[#ee6018]/15 dark:text-[#ff7836]">
-                    PRO
-                  </span>
                 </div>
                 <p className="text-[11px] text-gray-400 dark:text-zinc-400 truncate font-mono">
                   {userEmail}

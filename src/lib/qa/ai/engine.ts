@@ -14,6 +14,9 @@ export class AIEngine {
     if (providerName === 'gemini') {
       this.provider = new GeminiQAProvider()
     } else if (providerName === 'mock') {
+      if (process.env.NODE_ENV === 'production' && process.env.ENABLE_TEST_ROUTES !== 'true') {
+        throw new Error('The mock AI provider is disabled in production.')
+      }
       this.provider = new MockQAProvider()
     } else {
       this.provider = new OpenAIQAProvider()

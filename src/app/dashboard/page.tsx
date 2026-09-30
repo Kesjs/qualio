@@ -3,24 +3,87 @@
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  GlobeAltIcon,
   ArrowPathIcon,
   MagnifyingGlassIcon,
   ArrowTopRightOnSquareIcon,
   PlayIcon,
-  PlusIcon,
   CheckCircleIcon,
   ArrowUpRightIcon,
+  ArrowRightIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import { useSites, SiteWithLastScan } from '@/lib/hooks/useSites'
 import { useScans, ScanWithSite } from '@/lib/hooks/useScan'
 import { AddSiteModal } from '@/components/dashboard/AddSiteModal'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/Pagination'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDistanceToNow, format, subDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
+
+function ActivationPanel({
+  site,
+  hasCompletedScan,
+  onAddSite,
+  onRunScan,
+}: {
+  site?: SiteWithLastScan
+  hasCompletedScan: boolean
+  onAddSite: () => void
+  onRunScan: () => void
+}) {
+  const siteAdded = Boolean(site)
+  const completedSteps = Number(siteAdded) + Number(hasCompletedScan) + Number(hasCompletedScan)
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]" aria-labelledby="activation-title">
+      <div className="flex flex-col gap-4 border-b border-gray-200/80 px-5 py-5 sm:flex-row sm:items-end sm:justify-between dark:border-white/[0.08]">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ee6018]">Premières étapes</p>
+          <h2 id="activation-title" className="mt-1 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+            Mettez votre espace en mouvement
+          </h2>
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-gray-500 dark:text-zinc-400">
+            Trois actions réelles pour passer d’un espace vide à votre premier signal QA.
+          </p>
+        </div>
+        <span className="shrink-0 text-xs font-medium tabular-nums text-gray-500 dark:text-zinc-400">
+          {Math.min(completedSteps, 3)} / 3 étapes
+        </span>
+      </div>
+
+      <div className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <CheckCircleIcon className={`h-5 w-5 shrink-0 ${siteAdded ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Ajouter votre premier site</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Une URL publique ou un environnement de staging.</p>
+          </div>
+          {!siteAdded && <button type="button" onClick={onAddSite} className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#ee6018] px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-[#ee6018]/20 transition-colors hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">Ajouter un site<ArrowRightIcon className="h-3.5 w-3.5" /></button>}
+        </div>
+
+        <div className="flex items-center gap-3 px-5 py-4">
+          <CheckCircleIcon className={`h-5 w-5 shrink-0 ${hasCompletedScan ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Lancer votre premier scan</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Qualio teste les parcours et collecte les preuves dans un vrai navigateur.</p>
+          </div>
+          {!hasCompletedScan && <button type="button" onClick={onRunScan} disabled={!siteAdded} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/[0.12] dark:bg-transparent dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">{siteAdded ? 'Lancer le scan' : 'Ajoutez un site d’abord'}<ArrowRightIcon className="h-3.5 w-3.5" /></button>}
+        </div>
+
+        <div className="flex items-center gap-3 px-5 py-4">
+          <CheckCircleIcon className={`h-5 w-5 shrink-0 ${hasCompletedScan ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Consulter votre premier diagnostic</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Retrouvez les incidents, les preuves et le prompt de correction.</p>
+          </div>
+          {hasCompletedScan && <Link href="/dashboard/scans" className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">Voir le rapport<ArrowRightIcon className="h-3.5 w-3.5" /></Link>}
+          {!hasCompletedScan && <DocumentTextIcon className="hidden h-5 w-5 text-gray-300 dark:text-zinc-700 sm:block" />}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export default function OverviewPage() {
   const { data: sites, isLoading: sitesLoading } = useSites()
@@ -195,6 +258,9 @@ export default function OverviewPage() {
   }
 
   const isLoading = sitesLoading || scansLoading
+  const firstSite = sites?.[0]
+  const hasCompletedScan = scans?.some((scan) => scan.status === 'completed') ?? false
+  const showActivationPanel = !isLoading && (!sites?.length || !hasCompletedScan)
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -241,7 +307,8 @@ export default function OverviewPage() {
           <button
             type="button"
             onClick={() => handleLaunchScanClick()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ee6018] text-white text-xs font-bold shadow-md shadow-[#ee6018]/25 hover:bg-[#d95514] active:scale-[0.97] transition-all duration-150 cursor-pointer"
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ee6018] text-white text-xs font-bold shadow-md shadow-[#ee6018]/25 hover:bg-[#d95514] active:scale-[0.97] transition-all duration-150 cursor-pointer disabled:cursor-wait disabled:opacity-60"
           >
             <PlayIcon className="h-4 w-4 fill-current" />
             <span>Lancer un scan</span>
@@ -251,34 +318,37 @@ export default function OverviewPage() {
 
       {/* ─── B. Data Loading State: shell first, real content after queries ──── */}
       {isLoading && (
-        <div className="space-y-6" aria-label="Chargement des données du tableau de bord">
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200/80 bg-gray-200/80 dark:border-white/[0.08] dark:bg-white/[0.08] lg:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="space-y-3 bg-white p-4 dark:bg-[#181B21]">
-                <Skeleton className="h-3 w-24 bg-gray-200/80 dark:bg-white/[0.08]" />
-                <Skeleton className="h-7 w-16 bg-gray-200/80 dark:bg-white/[0.08]" />
-                <Skeleton className="h-2 w-full bg-gray-200/80 dark:bg-white/[0.08]" />
+        <div className="rounded-xl border border-gray-200/80 bg-white px-5 py-5 dark:border-white/[0.08] dark:bg-[#181B21]" aria-label="Chargement des données du tableau de bord" aria-busy="true">
+          <div className="flex items-start justify-between gap-4 border-b border-gray-200/80 pb-5 dark:border-white/[0.08]">
+            <div className="space-y-2">
+              <Skeleton className="h-2.5 w-24 bg-gray-200/80 dark:bg-white/[0.08]" />
+              <Skeleton className="h-5 w-56 bg-gray-200/80 dark:bg-white/[0.08]" />
+              <Skeleton className="h-3 w-72 max-w-[70vw] bg-gray-200/80 dark:bg-white/[0.08]" />
+            </div>
+            <Skeleton className="h-4 w-12 bg-gray-200/80 dark:bg-white/[0.08]" />
+          </div>
+          <div className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="flex items-center gap-3 py-4">
+                <Skeleton className="h-5 w-5 rounded-full bg-gray-200/80 dark:bg-white/[0.08]" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-44 bg-gray-200/80 dark:bg-white/[0.08]" />
+                  <Skeleton className="h-2.5 w-64 max-w-[65vw] bg-gray-200/80 dark:bg-white/[0.08]" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-md bg-gray-200/80 dark:bg-white/[0.08]" />
               </div>
             ))}
           </div>
-          <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-            <Skeleton className="h-72 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
-            <Skeleton className="h-72 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
-          </div>
-          <Skeleton className="h-80 rounded-xl bg-gray-100 dark:bg-[#181B21]" />
         </div>
       )}
 
       {/* ─── C. Zero-Data State (EmptyState Standardisé) ────────────────────── */}
-      {!sitesLoading && (!sites || sites.length === 0) && (
-        <EmptyState
-          mainIcon={GlobeAltIcon}
-          iconVariant="orange"
-          title="Connectez votre premier site"
-          message="Ajoutez une URL publique ou de staging. Qualio lancera ensuite vos premiers contrôles Playwright et construira votre historique QA."
-          actionLabel="Ajouter un site"
-          actionIcon={PlusIcon}
-          onActionClick={() => setIsAddModalOpen(true)}
+      {showActivationPanel && (
+        <ActivationPanel
+          site={firstSite}
+          hasCompletedScan={hasCompletedScan}
+          onAddSite={() => setIsAddModalOpen(true)}
+          onRunScan={() => handleLaunchScanClick(firstSite)}
         />
       )}
 
