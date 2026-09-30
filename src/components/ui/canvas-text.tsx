@@ -43,8 +43,6 @@ export function CanvasText({
     if (!element) return
     const update = () => {
       const rect = element.getBoundingClientRect()
-      // +2px de marge pour éviter qu'un glyphe en bord de ligne soit rogné
-      // par un arrondi de mesure sub-pixel.
       setSize({ width: Math.ceil(rect.width) + 2, height: Math.ceil(rect.height) })
     }
     update()
@@ -79,11 +77,13 @@ export function CanvasText({
     context.setTransform(ratio, 0, 0, ratio, 0, 0)
 
     const computed = getComputedStyle(textRef.current)
-    context.font = computed.font
-    // Aligne le canvas sur le letter-spacing du CSS, sinon le wrap calculé
-    // ici ne correspond plus au wrap réellement affiché par le navigateur.
-    // Cast au lieu de @ts-expect-error : selon la version de TS/lib.dom,
-    // la propriété peut déjà être typée ou non — le cast marche dans les deux cas.
+    // ← FIX PRINCIPAL : ne plus dépendre de `computed.font` (raccourci CSS),
+    // qui revient souvent vide sur Safari/iOS quand la police est définie
+    // via des propriétés séparées (fontFamily/fontWeight/fontSize en style inline).
+    // On reconstruit la chaîne à la main pour que ça marche partout.
+    const fontString = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize}/${computed.lineHeight} ${computed.fontFamily}`
+    context.font = fontString
+
     if ('letterSpacing' in context) {
       ;(context as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = computed.letterSpacing
     }
@@ -103,6 +103,9 @@ export function CanvasText({
       context.fillStyle = background
       context.fillRect(0, 0, size.width, size.height)
       context.globalCompositeOperation = 'destination-in'
+      // ré-affecter le font à chaque frame : clearRect/certaines opérations
+      // peuvent faire perdre l'état du contexte sur certains navigateurs.
+      context.font = fontString
       context.textBaseline = 'top'
       context.fillStyle = '#000'
       const lines = getWrappedLines(context, text, size.width - 2)
