@@ -22,12 +22,12 @@ interface HeaderProps {
 }
 
 function getBreadcrumb(pathname: string) {
-  if (pathname === '/dashboard') return { title: 'Overview', parent: null }
+  if (pathname === '/dashboard') return { title: 'Vue d’ensemble', parent: null }
   if (pathname === '/dashboard/sites') return { title: 'Sites', parent: null }
   if (pathname.startsWith('/dashboard/sites/')) return { title: 'Détail du site', parent: { label: 'Sites', href: '/dashboard/sites' } }
   if (pathname === '/dashboard/scans') return { title: 'Scans', parent: null }
   if (pathname === '/dashboard/bugs') return { title: 'Bugs', parent: null }
-  if (pathname === '/dashboard/settings') return { title: 'Settings', parent: null }
+  if (pathname === '/dashboard/settings') return { title: 'Paramètres', parent: null }
   return { title: 'Dashboard', parent: null }
 }
 
@@ -106,7 +106,7 @@ export function Header({
         <nav aria-label="Fil d'Ariane" className="flex items-center gap-2 text-xs">
           <Link
             href="/dashboard"
-            title="Accueil / Overview"
+            title="Accueil / Vue d’ensemble"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/[0.06]"
           >
             <HomeIcon className="h-4 w-4" />

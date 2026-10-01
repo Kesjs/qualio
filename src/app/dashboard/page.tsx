@@ -74,7 +74,7 @@ function ActivationPanel({
         <div className="flex items-center gap-3 px-5 py-4">
           <CheckCircleIcon className={`h-5 w-5 shrink-0 ${hasCompletedScan ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Consulter votre premier diagnostic</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Votre premier diagnostic est prêt</p>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Retrouvez les incidents, les preuves et le prompt de correction.</p>
           </div>
           {hasCompletedScan && <Link href="/dashboard/scans" className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">Voir le rapport<ArrowRightIcon className="h-3.5 w-3.5" /></Link>}
@@ -269,7 +269,7 @@ export default function OverviewPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 font-sans">
-              Overview
+              Vue d’ensemble
             </h1>
             {sites && sites.length > 0 && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200/80 dark:bg-white/[0.06] dark:text-zinc-300 dark:border-white/[0.08] tabular-nums">

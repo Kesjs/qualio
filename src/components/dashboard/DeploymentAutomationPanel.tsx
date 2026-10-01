@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ArrowPathIcon, CheckCircleIcon, ClipboardDocumentIcon, ExclamationCircleIcon, LinkIcon } from '@heroicons/react/24/outline'
 import { useSites } from '@/lib/hooks/useSites'
 
@@ -73,11 +74,12 @@ export function DeploymentAutomationPanel() {
       </div>
       <label className="block max-w-xl text-xs font-medium text-gray-700 dark:text-zinc-300">
         Site à surveiller
-        <select value={siteId} onChange={(event) => setSiteId(event.target.value)} className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm dark:border-white/[0.08] dark:bg-[#111216] dark:text-white">
+        <select value={siteId} onChange={(event) => setSiteId(event.target.value)} disabled={!sites?.length} className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/[0.08] dark:bg-[#111216] dark:text-white">
           <option value="">Choisir un site</option>
           {sites?.map((site) => <option key={site.id} value={site.id}>{site.name || site.url}</option>)}
         </select>
       </label>
+      {sites && sites.length === 0 ? <p className="max-w-xl text-xs leading-5 text-gray-500 dark:text-zinc-400">Aucun site n’est encore configuré. <Link href="/dashboard/sites" className="font-semibold text-[#ee6018] hover:underline">Ajoutez d’abord un site</Link> pour activer ce réglage.</p> : null}
       {siteId ? (
         <div className="max-w-xl space-y-3">
           <div className="grid gap-2 sm:grid-cols-2">

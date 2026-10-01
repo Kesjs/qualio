@@ -33,7 +33,7 @@ const navSections = [
   {
     title: 'Navigation',
     items: [
-      { label: 'Overview', href: '/dashboard', icon: HomeIcon },
+      { label: 'Vue d’ensemble', href: '/dashboard', icon: HomeIcon },
       { label: 'Sites', href: '/dashboard/sites', icon: GlobeAltIcon },
       { label: 'Scans', href: '/dashboard/scans', icon: ClockIcon },
       { label: 'Bugs', href: '/dashboard/bugs', icon: BugAntIcon },
@@ -42,7 +42,7 @@ const navSections = [
   {
     title: 'Système',
     items: [
-      { label: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
+      { label: 'Paramètres', href: '/dashboard/settings', icon: Cog6ToothIcon },
     ],
   },
 ]

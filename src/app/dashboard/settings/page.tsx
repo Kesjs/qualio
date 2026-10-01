@@ -61,14 +61,14 @@ const TABS = [
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
   { id: 'billing', label: 'Abonnement', icon: CreditCardIcon, comingSoon: true },
   { id: 'integrations', label: 'Intégrations', icon: PuzzlePieceIcon },
-  { id: 'api', label: 'API & Webhooks', icon: CommandLineIcon, comingSoon: true },
+  { id: 'api', label: 'API & Webhooks', icon: CommandLineIcon },
   { id: 'security', label: 'Sécurité', icon: ShieldCheckIcon },
 ] as const
 
 type SettingsTab = (typeof TABS)[number]['id']
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
-const COMING_SOON_COPY: Record<Exclude<SettingsTab, 'profile' | 'notifications' | 'security'>, { title: string; description: string }> = {
+const COMING_SOON_COPY: Record<Exclude<SettingsTab, 'profile' | 'notifications' | 'security' | 'api'>, { title: string; description: string }> = {
   billing: {
     title: 'Abonnement et facturation',
     description: 'La gestion du plan, de la facturation et des factures sera disponible prochainement.',
@@ -77,13 +77,9 @@ const COMING_SOON_COPY: Record<Exclude<SettingsTab, 'profile' | 'notifications' 
     title: 'Intégrations',
     description: 'Connectez Slack, Discord et vos outils de travail depuis cet espace prochainement.',
   },
-  api: {
-    title: 'API & Webhooks',
-    description: 'Les clés API, les webhooks et l’automatisation des scans arrivent prochainement.',
-  },
 }
 
-function ComingSoonPanel({ tab }: { tab: Exclude<SettingsTab, 'profile' | 'notifications' | 'security'> }) {
+function ComingSoonPanel({ tab }: { tab: Exclude<SettingsTab, 'profile' | 'notifications' | 'security' | 'api'> }) {
   const Icon = TABS.find((item) => item.id === tab)?.icon ?? ClockIcon
   const copy = COMING_SOON_COPY[tab]
 
@@ -234,7 +230,7 @@ export default function SettingsPage() {
   }
 
   const isSaving = saveState === 'saving'
-  const activeTabIsComingSoon = activeTab === 'billing' || activeTab === 'api'
+  const activeTabIsComingSoon = activeTab === 'billing'
 
   return (
     <div className="max-w-6xl space-y-6 pb-12">
@@ -454,6 +450,11 @@ export default function SettingsPage() {
             {activeTab === 'integrations' ? (
               <div id="settings-panel-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <GithubIntegrationPanel />
+              </div>
+            ) : null}
+
+            {activeTab === 'api' ? (
+              <div id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
                 <DeploymentAutomationPanel />
               </div>
             ) : null}
