@@ -84,7 +84,6 @@ export default function DashboardLayout({
               className="relative p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
             >
               <BellIcon className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-sm bg-[#ee6018]" />
             </button>
 
             <button
@@ -103,7 +102,6 @@ export default function DashboardLayout({
             isCollapsed={isCollapsed}
             onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
             onOpenNotifications={() => setIsNotificationsOpen(true)}
-            unreadNotificationsCount={2}
           />
         </div>
 

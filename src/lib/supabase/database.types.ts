@@ -429,9 +429,15 @@ export type Database = {
       sites: {
         Row: {
           created_at: string | null
+          deployment_scan_mode: string
+          deployment_webhook_created_at: string | null
+          deployment_webhook_token_hash: string | null
           environment: string
           id: string
           journey_definitions: Json
+          last_deployment_commit_sha: string | null
+          last_deployment_event_at: string | null
+          last_deployment_url: string | null
           last_scan_id: string | null
           name: string | null
           repository_provider: string
@@ -442,9 +448,15 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deployment_scan_mode?: string
+          deployment_webhook_created_at?: string | null
+          deployment_webhook_token_hash?: string | null
           environment?: string
           id?: string
           journey_definitions?: Json
+          last_deployment_commit_sha?: string | null
+          last_deployment_event_at?: string | null
+          last_deployment_url?: string | null
           last_scan_id?: string | null
           name?: string | null
           repository_provider?: string
@@ -455,9 +467,15 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deployment_scan_mode?: string
+          deployment_webhook_created_at?: string | null
+          deployment_webhook_token_hash?: string | null
           environment?: string
           id?: string
           journey_definitions?: Json
+          last_deployment_commit_sha?: string | null
+          last_deployment_event_at?: string | null
+          last_deployment_url?: string | null
           last_scan_id?: string | null
           name?: string | null
           repository_provider?: string
@@ -468,6 +486,55 @@ export type Database = {
         }
         Relationships: [
           { foreignKeyName: "sites_last_scan_id_fkey"; columns: ["last_scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
+        ]
+      }
+      deployment_events: {
+        Row: {
+          id: string
+          site_id: string
+          user_id: string
+          external_event_id: string
+          source: string
+          status: string
+          environment: string | null
+          commit_sha: string | null
+          deployment_url: string | null
+          scan_id: string | null
+          payload: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          site_id: string
+          user_id: string
+          external_event_id: string
+          source?: string
+          status?: string
+          environment?: string | null
+          commit_sha?: string | null
+          deployment_url?: string | null
+          scan_id?: string | null
+          payload?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          site_id?: string
+          user_id?: string
+          external_event_id?: string
+          source?: string
+          status?: string
+          environment?: string | null
+          commit_sha?: string | null
+          deployment_url?: string | null
+          scan_id?: string | null
+          payload?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "deployment_events_site_id_fkey"; columns: ["site_id"]; isOneToOne: false; referencedRelation: "sites"; referencedColumns: ["id"] },
+          { foreignKeyName: "deployment_events_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+          { foreignKeyName: "deployment_events_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] }
         ]
       }
     }

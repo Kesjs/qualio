@@ -35,7 +35,7 @@ export function Header({
   isCollapsed = false,
   onToggleCollapse,
   onOpenNotifications,
-  unreadNotificationsCount = 2,
+  unreadNotificationsCount = 0,
 }: HeaderProps) {
   const pathname = usePathname()
   const router = useRouter()
