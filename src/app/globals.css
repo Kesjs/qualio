@@ -45,6 +45,8 @@
 }
 
 :root {
+  --font-manrope: "Manrope";
+  --font-jetbrains-mono: "JetBrains Mono";
   --color-canvas: 251 251 251;        /* #FBFBFB */
   --color-sidebar: 248 249 250;       /* #F8F9FA */
   --color-surface: 255 255 255;       /* #FFFFFF */
