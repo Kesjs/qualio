@@ -114,6 +114,20 @@ html:not(.dark), body:not(.dark) {
   outline-offset: 3px;
 }
 
+.marketing-three-col,
+.marketing-two-col {
+  width: 100%;
+}
+
+@media (max-width: 820px) {
+  .marketing-three-col {
+    grid-template-columns: 1fr !important;
+  }
+  .marketing-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-page *,
   .landing-page *::before,
