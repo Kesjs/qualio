@@ -67,18 +67,14 @@ export function Navbar() {
           onMouseLeave={() => setActiveMenu(null)}
           style={{
             position: "absolute", top: "calc(100% + 12px)",
-            left: key === "product" ? -22 : "auto", right: key === "resources" ? -22 : "auto",
-            width: "min(720px, calc(100vw - 32px))", padding: 12,
+            left: "50%", transform: "translateX(-50%)",
+            width: "min(760px, calc(100vw - 32px))", padding: 12,
             border: `1px solid ${C.carbon}`, borderRadius: 14,
             background: "rgba(20,20,20,.98)", boxShadow: "0 20px 60px rgba(0,0,0,.48)",
             backdropFilter: "blur(22px)", zIndex: 20,
           }}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, padding: 8, border: `1px solid ${C.ash}`, borderRadius: 9 }}>
-            <MenuColumn items={copy[key].slice(0, 2)} />
-            <MenuColumn items={copy[key].slice(2, 3)} separated />
-            <MenuColumn items={copy[key].slice(3)} separated />
-          </div>
+          <MenuPanel keyName={key} items={copy[key]} language={language} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -88,7 +84,7 @@ export function Navbar() {
     <style>{`
       .qualio-nav-shell { transition: max-width .35s cubic-bezier(.16,1,.3,1), height .35s cubic-bezier(.16,1,.3,1), margin-top .35s cubic-bezier(.16,1,.3,1), background .25s ease, border-color .25s ease; }
       .qualio-nav-item { color: ${C.granite}; transition: color .15s ease, background .18s ease, box-shadow .18s ease; }
-      .qualio-nav-item:hover, .qualio-nav-item[data-open="true"] { color: ${C.bone}; background: rgba(255,255,255,.11); box-shadow: inset 0 -2px 0 ${C.orange}; }
+      .qualio-nav-item:hover, .qualio-nav-item[data-open="true"] { color: ${C.bone}; background: rgba(255,255,255,.09); }
       .qualio-menu-link { display:flex; flex-direction:column; gap:7px; padding:12px 14px; border-radius:7px; text-decoration:none; transition:background .18s ease; }
       .qualio-menu-link:hover { background:rgba(255,255,255,.07); }
       .qualio-menu-link strong { color:${C.bone}; font-size:14px; font-weight:500; }
@@ -111,6 +107,22 @@ export function Navbar() {
   </>;
 }
 
-function MenuColumn({ items, separated = false }: { items: readonly MenuItem[]; separated?: boolean }) {
-  return <div style={{ display: "flex", flexDirection: "column", gap: 2, ...(separated ? { borderLeft: `1px solid ${C.ash}`, paddingLeft: 8 } : {}) }}>{items.map(([title, desc, href]) => <a className="qualio-menu-link" key={href} href={href}><strong>{title}</strong><span>{desc}</span></a>)}</div>;
+function MenuPanel({ keyName, items, language }: { keyName: MenuKey; items: readonly MenuItem[]; language: "en" | "fr" }) {
+  const product = keyName === "product";
+  const copy = product
+    ? language === "fr"
+      ? { kicker: "Le parcours Qualio", title: "De l’URL à la preuve exploitable.", body: "Un vrai navigateur, des preuves autour de chaque problème, puis un prompt de correction prêt à copier.", action: "Voir le produit", href: "/product" }
+      : { kicker: "The Qualio workflow", title: "From URL to usable evidence.", body: "A real browser, evidence around every failure, and a correction prompt your team can copy.", action: "Explore the product", href: "/product" }
+    : language === "fr"
+      ? { kicker: "Le centre de ressources", title: "Comprendre avant de corriger.", body: "Les méthodes, les limites et les preuves qui expliquent ce que Qualio vérifie.", action: "Voir les ressources", href: "/resources" }
+      : { kicker: "The resource center", title: "Understand before you fix.", body: "The workflow, boundaries, and evidence behind every Qualio check.", action: "Browse resources", href: "/resources" };
+
+  return <div style={{ display: "grid", gridTemplateColumns: "1.05fr 1.05fr .95fr", gap: 8, padding: 8, border: `1px solid ${C.ash}`, borderRadius: 9 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{items.slice(0, 2).map(([title, desc, href]) => <a className="qualio-menu-link" key={href} href={href}><strong>{title}</strong><span>{desc}</span></a>)}</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2, borderLeft: `1px solid ${C.ash}`, paddingLeft: 8 }}>{items.slice(2).map(([title, desc, href]) => <a className="qualio-menu-link" key={href} href={href}><strong>{title}</strong><span>{desc}</span></a>)}</div>
+    <div style={{ borderLeft: `1px solid ${C.ash}`, paddingLeft: 16, paddingRight: 8, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 18 }}>
+      <div><div style={{ color: C.orange, fontFamily: "var(--font-jetbrains-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 10 }}>{copy.kicker}</div><div style={{ color: C.bone, fontSize: 16, lineHeight: 1.25, fontWeight: 500 }}>{copy.title}</div><p style={{ color: C.granite, fontSize: 12, lineHeight: 1.55, margin: "10px 0 0" }}>{copy.body}</p></div>
+      <a href={copy.href} style={{ color: C.bone, fontSize: 12, textDecoration: "none" }}>{copy.action} <motion.span initial={{ x: 0 }} whileHover={{ x: 3 }} style={{ display: "inline-block" }}>→</motion.span></a>
+    </div>
+  </div>;
 }
