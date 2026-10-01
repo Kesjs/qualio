@@ -5,7 +5,7 @@ export const translations = {
     hero: {
       badge: "Your website QA workspace",
       titleStart: "Ship updates without",
-      titleHighlight: "holding your breath.",
+      titleHighlight: "holding your breath",
       description: "Qualio explores key user journeys in a real browser, gathers evidence, and turns each issue into a correction prompt your team can use.",
       ctaPrimary: "Run your first scan",
       stats: {

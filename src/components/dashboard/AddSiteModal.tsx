@@ -19,7 +19,6 @@ interface AddSiteModalProps {
 export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
-  const [environment, setEnvironment] = useState<'production' | 'staging'>('production')
   const [error, setError] = useState<string | null>(null)
 
   const createSite = useCreateSite()
@@ -66,7 +65,6 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
       {
         url: trimmedUrl,
         name: name.trim() || undefined,
-        environment,
         stackType: 'unknown',
         repositoryProvider: 'none',
       },
@@ -74,7 +72,6 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
         onSuccess: (newSite) => {
           setName('')
           setUrl('')
-          setEnvironment('production')
           setError(null)
           onSuccess?.(newSite.id)
           onClose()
@@ -160,39 +157,8 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
             </p>
           </div>
 
-          {/* Environment Segmented Control */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
-              Environnement
-            </label>
-            <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-gray-100/80 border border-gray-200/60 dark:bg-[#111216] dark:border-white/[0.06]">
-              <button
-                type="button"
-                onClick={() => setEnvironment('production')}
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  environment === 'production'
-                    ? 'bg-white text-gray-900 shadow-xs dark:bg-[#16181E] dark:text-white dark:shadow-none'
-                    : 'text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Production
-              </button>
-              <button
-                type="button"
-                onClick={() => setEnvironment('staging')}
-                className={`py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  environment === 'staging'
-                    ? 'bg-white text-gray-900 shadow-xs dark:bg-[#16181E] dark:text-white dark:shadow-none'
-                    : 'text-gray-500 hover:text-gray-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                Staging
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-[#ee6018]/15 bg-[#ee6018]/5 px-3 py-2.5 text-[11px] leading-relaxed text-gray-600 dark:text-zinc-300">
-            La stack technique sera détectée automatiquement lors du premier scan à partir des signaux publics du site. Qualio ne demande aucun accès au dépôt et ne lit jamais le code source.
+          <div className="rounded-lg border border-gray-200/80 bg-gray-50/70 px-3 py-2.5 text-[11px] leading-relaxed text-gray-500 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-zinc-400">
+            Qualio vérifie votre site depuis l’extérieur. Aucun accès à votre dépôt ni à votre code source n’est nécessaire.
           </div>
 
           {/* Footer Actions */}
