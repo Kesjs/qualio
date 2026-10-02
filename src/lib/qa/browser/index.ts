@@ -1,4 +1,5 @@
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
+import chromium from '@sparticuz/chromium'
+import { chromium as playwrightChromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, JourneyDefinition, JourneyResult, JourneyStepResult, JourneyActionType, Evidence } from '../types'
 import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
@@ -13,10 +14,20 @@ export class BrowserEngine {
   }
 
   async initialize(): Promise<void> {
-    this.browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    })
+    if (process.env.VERCEL) {
+      const executablePath = await chromium.executablePath()
+      this.browser = await playwrightChromium.launch({
+        headless: true,
+        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        executablePath,
+      })
+    } else {
+      const localPlaywright = await import('playwright')
+      this.browser = await localPlaywright.chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      })
+    }
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
       ignoreHTTPSErrors: false,
