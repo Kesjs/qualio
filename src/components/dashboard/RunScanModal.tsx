@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   XMarkIcon,
   PlayIcon,
@@ -66,10 +67,18 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
   const [selectedModules, setSelectedModules] = useState<string[]>([...DEFAULT_SCAN_MODULES])
   const [consentGiven, setConsentGiven] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [launchedScanId, setLaunchedScanId] = useState<string | null>(null)
 
   const activeSite = site || availableSites?.find((s) => s.id === (selectedSiteId || availableSites?.[0]?.id))
 
   const startScan = useStartScan()
+
+  useEffect(() => {
+    if (!isOpen) {
+      setLaunchedScanId(null)
+      setError(null)
+    }
+  }, [isOpen])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -103,8 +112,8 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
       },
       {
         onSuccess: (data) => {
+          setLaunchedScanId(data.scanId)
           onSuccess?.(data.scanId)
-          onClose()
         },
         onError: (err) => {
           setError(err.message || 'Erreur lors du démarrage du scan.')
@@ -168,6 +177,20 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
         </div>
 
         {/* Content */}
+        {launchedScanId ? (
+          <div className="mt-5 space-y-4">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
+              <p className="text-sm font-semibold text-sky-900 dark:text-sky-200">Scan lancé</p>
+              <p className="mt-1 text-xs leading-relaxed text-sky-800 dark:text-sky-300">
+                Le scan est en cours. Vous pouvez suivre sa progression dans l’historique sans relancer une nouvelle session.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-white/[0.06]">
+              <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]">Fermer</button>
+              <Link href="/dashboard/scans" onClick={onClose} className="rounded-lg bg-[#ee6018] px-4 py-2 text-xs font-semibold text-white hover:bg-[#d95514]">Voir le scan</Link>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleLaunch} className="mt-5 space-y-5">
           {error && (
             <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50/80 border border-red-200 text-xs text-red-700">
@@ -237,6 +260,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   )

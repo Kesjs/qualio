@@ -34,6 +34,25 @@ export async function POST(req: NextRequest) {
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).single()
   if (!site) return NextResponse.json({ error: 'Site not found' }, { status: 404 })
 
+  const admin = getSupabaseAdminClient()
+  const { data: activeScan, error: activeScanError } = await admin
+    .from('scans')
+    .select('id, status')
+    .eq('site_id', siteId)
+    .eq('user_id', user.id)
+    .in('status', ['queued', 'running', 'discovering', 'crawling', 'browser_testing', 'analyzing', 'reporting'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (activeScanError) return NextResponse.json({ error: activeScanError.message }, { status: 500 })
+  if (activeScan) {
+    return NextResponse.json(
+      { error: 'Un scan est déjà en cours pour ce site.', scanId: activeScan.id, status: activeScan.status },
+      { status: 409 },
+    )
+  }
+
   let validatedPreviousScanId: string | null = null
   if (previousScanId) {
     const { data: previousScan } = await supabase
@@ -51,7 +70,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Create scan record with service_role (bypasses RLS for insert)
-  const admin = getSupabaseAdminClient()
   const { data: scan, error } = await admin
     .from('scans')
     .insert({
