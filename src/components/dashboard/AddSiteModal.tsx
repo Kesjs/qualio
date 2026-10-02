@@ -144,7 +144,10 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
             <div className="relative">
               <GlobeAltIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-zinc-500" />
               <input
-                type="url"
+                type="text"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://acme.com"
