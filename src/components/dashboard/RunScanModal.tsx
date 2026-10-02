@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useStartScan } from '@/lib/hooks/useScan'
 import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
+import { DEFAULT_SCAN_MODULES } from '@/lib/qa/types'
 
 const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
   {
@@ -62,7 +63,7 @@ interface RunScanModalProps {
 
 export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess }: RunScanModalProps) {
   const [selectedSiteId, setSelectedSiteId] = useState<string>(site?.id || availableSites?.[0]?.id || '')
-  const [selectedModules, setSelectedModules] = useState<string[]>(['pages', 'cta', 'forms'])
+  const [selectedModules, setSelectedModules] = useState<string[]>([...DEFAULT_SCAN_MODULES])
   const [consentGiven, setConsentGiven] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -187,6 +188,9 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
                 onChange={setSelectedModules}
               />
             </div>
+            <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">
+              Sélectionnez au moins un module. Vous pouvez lancer un scan ciblé avec une seule case.
+            </p>
           </div>
 
           {/* Consent Checkbox */}
@@ -216,7 +220,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
             </button>
             <button
               type="submit"
-              disabled={startScan.isPending || !consentGiven}
+              disabled={startScan.isPending || !consentGiven || selectedModules.length === 0}
               className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#ee6018] text-white text-xs font-semibold shadow-sm shadow-[#ee6018]/25 hover:bg-[#d95514] disabled:opacity-50 transition-all cursor-pointer"
             >
               {startScan.isPending ? (

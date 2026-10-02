@@ -186,7 +186,7 @@ function CheckboxGroup({
                     className={cn(
                       "flex h-[18px] w-[18px] items-center justify-center rounded transition-[border-color] duration-420 ease-[cubic-bezier(0.25,0.85,0.3,1)]",
                       checked
-                        ? "border-0 bg-transparent"
+                        ? "border border-[#ee6018] bg-[#ee6018]"
                         : [
                             "border-2 bg-transparent",
                             "border-neutral-300/90 group-hover:border-neutral-500/85",
@@ -224,8 +224,8 @@ function CheckboxGroup({
                           key="check"
                           transition={springCheck}
                         >
-                          <Check
-                            className="h-4 w-4 text-primary"
+                            <Check
+                            className="h-4 w-4 text-white"
                             strokeWidth={3}
                           />
                         </motion.div>
