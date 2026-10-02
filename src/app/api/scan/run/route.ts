@@ -33,6 +33,7 @@ async function recoverStaleScans(admin: ReturnType<typeof getSupabaseAdminClient
 // POST /api/scan/run — called by GitHub Actions cron.
 // A scanId is optional: the worker claims the next queued scan when omitted.
 export async function POST(req: NextRequest) {
+  let phase = 'authorization'
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
   const body = await req.json().catch(() => ({})) as { scanId?: string }
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     if (!ownedScan) return NextResponse.json({ error: 'Scan not found' }, { status: 404 })
   }
 
+  phase = 'queue_recovery'
   await recoverStaleScans(admin)
 
   let query = admin.from('scans').select('*')
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest) {
     ? query.eq('id', body.scanId)
     : query.eq('status', 'queued').order('queued_at', { ascending: true }).limit(1)
 
+  phase = 'claim_lookup'
   const { data: candidate, error: candidateError } = await query.maybeSingle()
   if (candidateError) return NextResponse.json({ error: candidateError.message }, { status: 500 })
   if (!candidate) return NextResponse.json({ processed: false, reason: 'No queued scan' })
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Scan already in status: ${candidate.status}` }, { status: 409 })
   }
 
+  phase = 'claim_scan'
   const now = new Date().toISOString()
   const { data: scan, error: claimError } = await admin
     .from('scans')
@@ -87,6 +91,7 @@ export async function POST(req: NextRequest) {
   if (claimError) return NextResponse.json({ error: claimError.message }, { status: 500 })
   if (!scan) return NextResponse.json({ processed: false, reason: 'Scan claimed by another worker' })
 
+  phase = 'load_site'
   const { data: site } = await admin
     .from('sites')
     .select('url, journey_definitions')
@@ -98,11 +103,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    phase = 'validate_target'
     await assertPublicScanUrl(site.url)
+    phase = 'start_playwright'
     const orchestrator = new QAOrchestrator(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
+    phase = 'execute_scan'
     await orchestrator.runScan({
       scanId: scan.id,
       siteId: scan.site_id,
@@ -116,11 +124,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, scanId: scan.id })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown scan execution error'
+    const diagnostic = `[${phase}] ${message}`
     const retry = scan.attempt_count < scan.max_attempts
+    console.error('[scan/run] Worker failed', { scanId: scan.id, phase, attempt: scan.attempt_count, retry, message })
     await admin.from('scans').update(retry
-      ? { status: 'queued', queued_at: new Date().toISOString(), worker_started_at: null, error: message }
-      : { status: 'failed', completed_at: new Date().toISOString(), error: message }
+      ? { status: 'queued', queued_at: new Date().toISOString(), worker_started_at: null, error: diagnostic }
+      : { status: 'failed', completed_at: new Date().toISOString(), error: diagnostic }
     ).eq('id', scan.id)
-    return NextResponse.json({ error: message, retryQueued: retry }, { status: 500 })
+    return NextResponse.json({ error: diagnostic, phase, attempt: scan.attempt_count, retryQueued: retry }, { status: 500 })
   }
 }

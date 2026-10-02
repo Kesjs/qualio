@@ -62,8 +62,10 @@ export default function ScanProgressPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scanId }),
       })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.error || 'Le worker n’a pas pu démarrer.')
+      const responseText = await response.text()
+      let payload: { error?: string } = {}
+      try { payload = JSON.parse(responseText) as { error?: string } } catch { /* Vercel may return a plain-text error */ }
+      if (!response.ok) throw new Error(payload.error || responseText || `Le worker a répondu avec le statut ${response.status}.`)
       await refetch()
     } catch (error) {
       setRetryError(error instanceof Error ? error.message : 'Le worker n’a pas pu démarrer.')
