@@ -16,12 +16,46 @@ interface AddSiteModalProps {
   onSuccess?: (siteId: string) => void
 }
 
+const ADD_SITE_DRAFT_KEY = 'qualio:add-site-draft'
+
+interface AddSiteDraft {
+  name: string
+  url: string
+}
+
 export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(false)
 
   const createSite = useCreateSite()
+
+  useEffect(() => {
+    try {
+      const rawDraft = window.localStorage.getItem(ADD_SITE_DRAFT_KEY)
+      if (!rawDraft) return
+      const draft = JSON.parse(rawDraft) as Partial<AddSiteDraft>
+      if (typeof draft.name === 'string') setName(draft.name)
+      if (typeof draft.url === 'string') setUrl(draft.url)
+      if (typeof draft.name === 'string' || typeof draft.url === 'string') setDraftRestored(true)
+    } catch {
+      window.localStorage.removeItem(ADD_SITE_DRAFT_KEY)
+    } finally {
+      setDraftLoaded(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!draftLoaded) return
+    if (!name && !url) {
+      window.localStorage.removeItem(ADD_SITE_DRAFT_KEY)
+      return
+    }
+    const draft: AddSiteDraft = { name, url }
+    window.localStorage.setItem(ADD_SITE_DRAFT_KEY, JSON.stringify(draft))
+  }, [draftLoaded, name, url])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,6 +106,8 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
         onSuccess: (newSite) => {
           setName('')
           setUrl('')
+          window.localStorage.removeItem(ADD_SITE_DRAFT_KEY)
+          setDraftRestored(false)
           setError(null)
           onSuccess?.(newSite.id)
           onClose()
@@ -112,6 +148,12 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
             <XMarkIcon className="h-4 w-4" />
           </button>
         </div>
+
+        {draftRestored && (
+          <div className="mt-4 rounded-lg border border-orange-200/70 bg-orange-50/70 px-3 py-2 text-[11px] text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">
+            Votre saisie précédente a été restaurée après le rechargement de la page.
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
