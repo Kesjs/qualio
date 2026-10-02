@@ -1,4 +1,5 @@
-import { chromium, type Browser, type BrowserContext } from 'playwright'
+import chromium from '@sparticuz/chromium'
+import { chromium as playwrightChromium, type Browser, type BrowserContext } from 'playwright-core'
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, PageResult, FormInfo } from '../types'
 import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
@@ -13,9 +14,20 @@ export class CrawlerEngine {
   }
 
   async initialize(): Promise<void> {
-    this.browser = await chromium.launch({
+    const executablePath = process.env.VERCEL
+      ? await chromium.executablePath()
+      : process.env.PLAYWRIGHT_EXECUTABLE_PATH
+
+    if (!executablePath) {
+      throw new Error('PLAYWRIGHT_EXECUTABLE_PATH is required outside Vercel.')
+    }
+
+    this.browser = await playwrightChromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: process.env.VERCEL
+        ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath,
     })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',

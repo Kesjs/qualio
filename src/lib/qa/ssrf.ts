@@ -1,6 +1,6 @@
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
-import type { BrowserContext } from 'playwright'
+import type { BrowserContext } from 'playwright-core'
 
 function isPrivateIpv4(address: string): boolean {
   const parts = address.split('.').map(Number)

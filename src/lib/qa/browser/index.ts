@@ -14,20 +14,19 @@ export class BrowserEngine {
   }
 
   async initialize(): Promise<void> {
-    if (process.env.VERCEL) {
-      const executablePath = await chromium.executablePath()
-      this.browser = await playwrightChromium.launch({
-        headless: true,
-        args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-        executablePath,
-      })
-    } else {
-      const localPlaywright = await import('playwright')
-      this.browser = await localPlaywright.chromium.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      })
+    const executablePath = process.env.VERCEL
+      ? await chromium.executablePath()
+      : process.env.PLAYWRIGHT_EXECUTABLE_PATH
+    if (!executablePath) {
+      throw new Error('PLAYWRIGHT_EXECUTABLE_PATH is required outside Vercel.')
     }
+    this.browser = await playwrightChromium.launch({
+      headless: true,
+      args: process.env.VERCEL
+        ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath,
+    })
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
       ignoreHTTPSErrors: false,

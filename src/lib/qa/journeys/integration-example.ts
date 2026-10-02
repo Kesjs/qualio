@@ -5,7 +5,7 @@
  * Montre comment exécuter des journeys et persister les résultats.
  */
 
-import { chromium, type Page } from 'playwright'
+import { chromium, type Page } from 'playwright-core'
 import { BrowserEngine } from '@/lib/qa/browser'
 import { QAConfigManager } from '@/lib/qa/config'
 import { persistJourneyResults } from '@/lib/qa/journeys/persistence'
@@ -301,14 +301,15 @@ export async function runJourneysInQaScan(
     if (!page) {
       throw new Error('No page available for journey execution')
     }
+    const activePage = page
 
     let results
     if (options.journeyNames && options.journeyNames.length > 0) {
-      results = await integrateJourneysInScan(scanId, siteUrl, page, options.journeyNames)
+      results = await integrateJourneysInScan(scanId, siteUrl, activePage, options.journeyNames)
     } else if (options.siteType) {
-      results = await executeJourneysForSiteType(scanId, options.siteType, siteUrl, page)
+      results = await executeJourneysForSiteType(scanId, options.siteType, siteUrl, activePage)
     } else {
-      results = await integrateJourneysInScan(scanId, siteUrl, page, ['User Login Flow'])
+      results = await integrateJourneysInScan(scanId, siteUrl, activePage, ['User Login Flow'])
     }
 
     return results
