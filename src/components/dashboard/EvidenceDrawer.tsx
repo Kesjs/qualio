@@ -102,10 +102,10 @@ export function EvidenceDrawer({
   }
 
   const payload = evidence.payload || {}
-  const networkStatus = payload.status || payload.statusCode || (evidence.type === 'network' ? 500 : null)
-  const networkMethod = payload.method || 'POST'
-  const targetUrl = payload.url || evidence.url || 'https://app.acme.com/api/payments'
-  const screenshotUrl = payload.screenshot_url || payload.image_url || '/placeholder-screenshot.png'
+  const networkStatus = payload.status || payload.statusCode || null
+  const networkMethod = payload.method || null
+  const targetUrl = payload.url || evidence.url || null
+  const networkData = payload.network_data || null
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -129,7 +129,7 @@ export function EvidenceDrawer({
                   <ShieldCheckIcon className="h-3 w-3" />
                   <span>Preuve Technique Certifiée</span>
                 </span>
-                {evidence.type === 'network' && (
+                {evidence.type === 'network' && networkStatus && (
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-900/40">
                     HTTP {networkStatus}
                   </span>
@@ -263,14 +263,14 @@ export function EvidenceDrawer({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-red-600 text-white">
-                        {networkMethod}
+                        {networkMethod || 'Méthode non fournie'}
                       </span>
                       <span className="text-xs font-mono font-bold text-red-900 dark:text-red-200 truncate">
-                        {targetUrl}
+                        {targetUrl || 'URL non fournie'}
                       </span>
                     </div>
                     <span className="text-xs font-mono font-bold text-red-600 dark:text-red-400">
-                      HTTP {networkStatus}
+                      {networkStatus ? `HTTP ${networkStatus}` : 'Statut HTTP non fourni'}
                     </span>
                   </div>
                   <p className="text-xs text-red-700 dark:text-red-300">
@@ -290,42 +290,14 @@ export function EvidenceDrawer({
 
                   <div className="rounded-lg bg-gray-950 p-4 border border-gray-800 text-xs font-mono text-gray-200 overflow-x-auto shadow-inner leading-relaxed">
                     <pre>
-                      {JSON.stringify(
-                        payload.network_data || {
-                          request: {
-                            url: targetUrl,
-                            method: networkMethod,
-                            headers: {
-                              'content-type': 'application/json',
-                              accept: 'application/json',
-                              'user-agent': 'Mozilla/5.0 (Playwright Test Runner)',
-                            },
-                            body: payload.request_body || {
-                              amount: 4900,
-                              currency: 'eur',
-                              site_id: 'site_102',
-                            },
-                          },
-                          response: {
-                            status: networkStatus,
-                            statusText: 'Internal Server Error',
-                            headers: {
-                              'content-type': 'application/json; charset=utf-8',
-                              'x-powered-by': 'Express',
-                            },
-                            body: payload.response_body || {
-                              error: 'Internal Server Error',
-                              code: 'ERR_STRIPE_PAYMENT_FAILED',
-                              message: 'Missing required field stripe_token in request body',
-                              timestamp: new Date().toISOString(),
-                            },
-                          },
-                        },
-                        null,
-                        2
-                      )}
+                      {JSON.stringify(networkData || payload, null, 2)}
                     </pre>
                   </div>
+                  {!networkData && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Les détails de la requête ne sont pas disponibles pour cette preuve. Qualio n’invente pas de données réseau.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -347,13 +319,10 @@ export function EvidenceDrawer({
 
                 <div className="rounded-lg bg-gray-950 p-4 border border-gray-800 text-xs font-mono text-gray-200 overflow-x-auto shadow-inner space-y-2">
                   <div className="text-red-400 border-b border-gray-800 pb-2">
-                    [Error] {payload.error || payload.message || "Uncaught TypeError: Cannot read properties of undefined (reading 'submit')"}
+                    [Error] {payload.error || payload.message || 'Message d’erreur non fourni'}
                   </div>
                   <pre className="text-gray-400 text-[11px] leading-relaxed">
-                    {payload.stack ||
-                      `at handleSubmit (https://app.acme.com/assets/checkout-v2.js:142:15)
-at HTMLButtonElement.dispatch (https://app.acme.com/assets/vendor.js:89:22)
-at HTMLButtonElement.element.addEventListener.call (https://app.acme.com/assets/vendor.js:95:4)`}
+                    {payload.stack || 'Stacktrace non fourni'}
                   </pre>
                 </div>
               </div>

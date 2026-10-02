@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -93,7 +94,7 @@ export function Navbar() {
     `}</style>
     <nav aria-label="Primary" style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, display: "flex", justifyContent: "center", padding: "0 20px", pointerEvents: "none", fontFamily: "'Manrope', sans-serif" }}>
       <motion.div className="qualio-nav-shell" initial={false} animate={{ maxWidth: atTop ? 1200 : 1080, height: atTop ? 68 : 56, marginTop: atTop ? 0 : 16 }} style={{ pointerEvents: "auto", width: "100%", display: "flex", alignItems: "center", padding: "0 16px 0 24px", borderRadius: atTop ? 0 : 16, border: `1px solid ${atTop ? "rgba(255,255,255,.04)" : "rgba(255,255,255,.08)"}`, background: atTop ? "transparent" : "rgba(0,0,0,.86)", backdropFilter: atTop ? "none" : "blur(24px) saturate(160%)", boxShadow: atTop ? "none" : "0 16px 40px -16px rgba(0,0,0,.95)" }}>
-        <a href="/" aria-label="Qualio home" style={{ display: "flex", alignItems: "center", flexShrink: 0, textDecoration: "none" }}><img src="/qualio-logo/export/lockup/lockup-brand-dark.svg" alt="Qualio" style={{ height: 32, width: "auto" }} /></a>
+        <Link href="/" aria-label="Qualio home" style={{ display: "flex", alignItems: "center", flexShrink: 0, textDecoration: "none" }}><img src="/qualio-logo/export/lockup/lockup-brand-dark.svg" alt="Qualio" style={{ height: 32, width: "auto" }} /></Link>
         <div className="qualio-nav-desktop" style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 48 }}>
           {(["product", "resources"] as MenuKey[]).map(key => <div key={key} style={{ position: "relative" }}><button type="button" className="qualio-nav-item" data-open={activeMenu === key} onMouseEnter={() => setActiveMenu(key)} onFocus={() => setActiveMenu(key)} onClick={() => setActiveMenu(activeMenu === key ? null : key)} style={{ border: 0, borderRadius: 20, padding: "9px 13px", background: "transparent", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>{labels[key]}</button>{renderDropdown(key)}</div>)}
           <a className="qualio-nav-item" href="/pricing" style={{ borderRadius: 20, padding: "9px 13px", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>{labels.pricing}</a>
