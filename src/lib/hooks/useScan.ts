@@ -137,10 +137,13 @@ export function useScans() {
 
 export function useScanResults(scanId: string | null, scanStatus?: string) {
   return useQuery({
-    queryKey: ['scan', scanId, 'results'],
+    // Include the terminal status so a response fetched during the transition
+    // cannot keep an empty result cached after the worker has persisted rows.
+    queryKey: ['scan', scanId, 'results', scanStatus],
     queryFn: () => fetchScanResults(scanId!),
     enabled: !!scanId && (!scanStatus || TERMINAL_STATUSES.includes(scanStatus)),
-    staleTime: 5 * 60 * 1000, // 5min — results don't change
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 
