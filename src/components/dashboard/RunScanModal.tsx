@@ -187,7 +187,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
             </div>
             <div className="flex items-center justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-white/[0.06]">
               <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]">Fermer</button>
-              <Link href="/dashboard/scans" onClick={onClose} className="rounded-lg bg-[#ee6018] px-4 py-2 text-xs font-semibold text-white hover:bg-[#d95514]">Voir le scan</Link>
+              <Link href={`/dashboard/scans/${launchedScanId}`} onClick={onClose} className="rounded-lg bg-[#ee6018] px-4 py-2 text-xs font-semibold text-white hover:bg-[#d95514]">Suivre le scan</Link>
             </div>
           </div>
         ) : (
