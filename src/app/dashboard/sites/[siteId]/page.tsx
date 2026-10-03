@@ -36,6 +36,7 @@ import { parseIssueDiagnostic, QAAIDiagnostic } from '@/lib/qa/ai'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { FixPromptDialog } from '@/components/dashboard/FixPromptDialog'
+import { JourneyCoverageCard } from '@/components/dashboard/JourneyCoverageCard'
 
 // ─── Issue Card Component avec Screenshot Indicator ───────────────────────────
 
@@ -805,6 +806,11 @@ export default function SiteWorkspacePage() {
       </div>
 
       {/* ─── 3. LES ONGLETS (NAVIGATION PROFONDE) ───────────────────────────── */}
+      <JourneyCoverageCard
+        siteId={siteId}
+        journeys={site?.journey_definitions}
+        defaultVertical={site?.stack_type}
+      />
       <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#16181E] shadow-xs overflow-hidden">
         {/* Tab Headers Bar */}
         <div className="border-b border-gray-200/80 dark:border-white/[0.06] px-4 bg-gray-50/50 dark:bg-[#111216]/50 flex items-center justify-between flex-wrap gap-2">

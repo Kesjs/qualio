@@ -12,6 +12,7 @@ export interface SiteDetail {
   created_at: string | null
   updated_at: string | null
   last_scan_id: string | null
+  journey_definitions?: unknown
   scans: ScanSummary[]
 }
 
