@@ -14,6 +14,13 @@ export interface SiteWithLastScan {
   repository_provider?: 'github' | 'gitlab' | 'bitbucket' | 'none'
   created_at: string | null
   updated_at: string | null
+  journey_definitions?: unknown
+  monitor_enabled?: boolean
+  monitor_frequency_hours?: number
+  monitor_next_run_at?: string | null
+  monitor_last_run_at?: string | null
+  monitor_target_url?: string | null
+  monitor_target_kind?: string | null
   last_scan_id: string | null
   last_scan: {
     id: string

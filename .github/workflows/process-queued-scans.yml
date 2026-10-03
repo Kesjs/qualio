@@ -12,6 +12,17 @@ jobs:
   process-next-scan:
     runs-on: ubuntu-latest
     steps:
+      - name: Schedule due form monitors
+        env:
+          QUALIO_APP_URL: ${{ secrets.QUALIO_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$QUALIO_APP_URL"
+          test -n "$CRON_SECRET"
+          curl --fail-with-body --retry 2 --retry-all-errors \
+            --request POST "${QUALIO_APP_URL%/}/api/monitor/run" \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            --header "Content-Type: application/json"
       - name: Claim and run the next queued scan
         env:
           QUALIO_APP_URL: ${{ secrets.QUALIO_APP_URL }}

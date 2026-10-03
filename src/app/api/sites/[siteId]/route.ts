@@ -48,7 +48,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const body = await req.json().catch(() => null) as { journeyDefinitions?: unknown } | null
+  const body = await req.json().catch(() => null) as { journeyDefinitions?: unknown; monitor?: { enabled?: boolean; frequencyHours?: number; targetUrl?: string; targetKind?: string } } | null
+  if (body?.monitor) {
+    const frequencyHours = body.monitor.frequencyHours ?? 24
+    if (![1, 6, 12, 24, 168].includes(frequencyHours)) return NextResponse.json({ error: 'Fréquence non supportée.' }, { status: 400 })
+    const admin = getSupabaseAdminClient()
+    const enabled = body.monitor.enabled === true
+    const nextRun = enabled ? new Date(Date.now() + frequencyHours * 60 * 60 * 1000).toISOString() : null
+    const { data, error } = await admin.from('sites').update({
+      monitor_enabled: enabled,
+      monitor_frequency_hours: frequencyHours,
+      monitor_next_run_at: nextRun,
+      monitor_target_url: body.monitor.targetUrl || null,
+      monitor_target_kind: body.monitor.targetKind || null,
+    } as any).eq('id', siteId).eq('user_id', user.id).select('id, monitor_enabled, monitor_frequency_hours, monitor_next_run_at, monitor_target_url, monitor_target_kind').single()
+    if (error) return NextResponse.json({ error: error.message }, { status: error.code === 'PGRST116' ? 404 : 500 })
+    return NextResponse.json(data)
+  }
   if (!Array.isArray(body?.journeyDefinitions)) return NextResponse.json({ error: 'journeyDefinitions must be an array' }, { status: 400 })
   const journeys = body.journeyDefinitions.filter((journey): journey is JourneyDefinition => {
     if (!journey || typeof journey !== 'object') return false

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { getJourneyTemplates } from '@/lib/qa/journeys/templates'
 import type { JourneyDefinition, JourneyStepDefinition, JourneyActionType, JourneyStepAction } from '@/lib/qa/types'
 
@@ -19,12 +19,64 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
   const [secretValue, setSecretValue] = useState('')
   const [isSavingSecret, setIsSavingSecret] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; label: string; pageUrl: string; kind: string; target: string }>>([])
+  const [isDiscovering, setIsDiscovering] = useState(false)
+  const [monitorEnabled, setMonitorEnabled] = useState(false)
+  const [frequencyHours, setFrequencyHours] = useState(24)
+  const [monitorSaving, setMonitorSaving] = useState(false)
   const templates = useMemo(() => getJourneyTemplates('saas').filter((template) => template.id === 'saas-login' || template.id === 'marketing-contact'), [])
   const coverage = useMemo(() => ({ configured: configuredJourneys.filter((journey) => templates.some((template) => template.name === journey.name)).length, total: templates.length }), [configuredJourneys, templates])
 
   useEffect(() => {
     fetch(`/api/sites/${siteId}/secrets`).then(async (response) => response.ok ? setSecrets(await response.json()) : undefined).catch(() => undefined)
   }, [siteId])
+
+  const discoverForms = async () => {
+    setIsDiscovering(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/sites/${siteId}/journey-suggestions`)
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Impossible de repérer les parcours.')
+      setSuggestions(Array.isArray(payload.suggestions) ? payload.suggestions : [])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Impossible de repérer les parcours.')
+    } finally { setIsDiscovering(false) }
+  }
+
+  const prepareSuggestion = async (suggestion: { label: string; pageUrl: string; kind: string; target: string }) => {
+    const isAuth = suggestion.kind === 'auth'
+    const generated: JourneyDefinition = {
+      name: isAuth ? 'Page d’authentification' : 'Formulaire public',
+      startUrl: suggestion.pageUrl,
+      steps: [
+        { name: 'Ouvrir la page', action: { type: 'navigate', target: suggestion.pageUrl } },
+        { name: 'Vérifier le formulaire', action: { type: 'wait', target: suggestion.target } },
+        { name: 'Valider la présence du formulaire', action: { type: 'assert', target: suggestion.target } },
+      ],
+    }
+    const next = [...configuredJourneys.filter((journey) => journey.name !== generated.name), generated]
+    setSavingId('suggestion')
+    try {
+      const response = await fetch(`/api/sites/${siteId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ journeyDefinitions: next }) })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || 'Impossible de préparer ce parcours.')
+      setConfiguredJourneys(next)
+      setSuggestions([])
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible de préparer ce parcours.') }
+    finally { setSavingId(null) }
+  }
+
+  const saveMonitor = async () => {
+    setMonitorSaving(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/sites/${siteId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monitor: { enabled: monitorEnabled, frequencyHours } }) })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || 'Impossible d’enregistrer la surveillance.')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer la surveillance.') }
+    finally { setMonitorSaving(false) }
+  }
 
   const activate = async (templateId: string) => {
     const template = templates.find((item) => item.id === templateId)
@@ -115,6 +167,13 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-gray-500 dark:text-zinc-400">Activez les parcours qui comptent pour ce site. Qualio les rejouera après les prochains déploiements.</p>
         </div>
       </div>
+      <div className="mt-4 rounded-xl border border-orange-200/70 bg-orange-50/60 p-4 dark:border-orange-500/20 dark:bg-orange-500/[0.06]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-sm font-semibold text-gray-900 dark:text-white">Préparer une surveillance</p><p className="mt-1 text-xs text-gray-600 dark:text-zinc-400">Qualio repère les pages susceptibles de contenir un formulaire et prépare les étapes du test.</p></div>
+          <button type="button" onClick={() => void discoverForms()} disabled={isDiscovering} className="inline-flex items-center gap-1.5 rounded-lg bg-[#ee6018] px-3 py-2 text-xs font-semibold text-white hover:bg-[#d95514] disabled:opacity-60"><SparklesIcon className="h-3.5 w-3.5" />{isDiscovering ? 'Repérage…' : 'Repérer les parcours'}</button>
+        </div>
+        {suggestions.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{suggestions.map((suggestion) => <div key={suggestion.id} className="rounded-lg border border-orange-200/70 bg-white p-3 dark:border-white/[0.08] dark:bg-[#16181E]"><p className="text-xs font-semibold text-gray-900 dark:text-white">{suggestion.label}</p><p className="mt-1 truncate text-[11px] font-mono text-gray-500 dark:text-zinc-500">{suggestion.pageUrl}</p><button type="button" onClick={() => void prepareSuggestion(suggestion)} disabled={savingId !== null} className="mt-2 text-xs font-semibold text-[#ee6018] hover:underline">Préparer ce test</button></div>)}</div>}
+      </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {templates.filter((template) => template.priority === 'P0').map((template) => {
           const enabled = configuredJourneys.some((journey) => journey.name === template.name)
@@ -137,6 +196,10 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
           </div>)}
         </div>
       </div>}
+      <div className="mt-5 border-t border-gray-200/80 pt-5 dark:border-white/[0.08]">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Surveillance automatique</p><p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">La fréquence est libre. La valeur proposée est une fois par jour.</p></div><label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-zinc-300"><input type="checkbox" checked={monitorEnabled} onChange={(event) => setMonitorEnabled(event.target.checked)} className="accent-[#ee6018]" /> Activer</label></div>
+        <div className="mt-3 flex flex-wrap items-center gap-2"><select value={frequencyHours} onChange={(event) => setFrequencyHours(Number(event.target.value))} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-white/[0.08] dark:bg-[#111216] dark:text-white"><option value={1}>Toutes les heures</option><option value={6}>Toutes les 6 heures</option><option value={12}>Toutes les 12 heures</option><option value={24}>Une fois par jour</option><option value={168}>Une fois par semaine</option></select><button type="button" onClick={() => void saveMonitor()} disabled={monitorSaving || configuredJourneys.length === 0} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-[#ee6018] hover:text-[#ee6018] disabled:opacity-50 dark:border-white/[0.08] dark:text-zinc-300">{monitorSaving ? 'Enregistrement…' : 'Enregistrer la surveillance'}</button></div>
+      </div>
       <div className="mt-5 border-t border-gray-200/80 pt-5 dark:border-white/[0.08]">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Identifiants de test</p>
         <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-zinc-500">Les valeurs sont chiffrées côté serveur et ne sont jamais réaffichées. Utilisez ensuite <code className="rounded bg-gray-100 px-1 dark:bg-white/[0.06]">{'{{secret:NOM}}'}</code> dans une étape.</p>
