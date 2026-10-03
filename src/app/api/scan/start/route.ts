@@ -84,7 +84,24 @@ export async function POST(req: NextRequest) {
     .select('id')
     .single()
 
-  if (error || !scan) return NextResponse.json({ error: error?.message ?? 'Failed to create scan' }, { status: 500 })
+  if (error || !scan) {
+    if (error?.code === '23505' && error.message.includes('scans_one_active_per_site_idx')) {
+      const { data: concurrentScan } = await admin
+        .from('scans')
+        .select('id, status')
+        .eq('site_id', siteId)
+        .eq('user_id', user.id)
+        .in('status', ['queued', 'running', 'discovering', 'crawling', 'browser_testing', 'analyzing', 'reporting'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      return NextResponse.json(
+        { error: 'Un scan est déjà en cours pour ce site.', scanId: concurrentScan?.id, status: concurrentScan?.status },
+        { status: 409 },
+      )
+    }
+    return NextResponse.json({ error: error?.message ?? 'Failed to create scan' }, { status: 500 })
+  }
 
   // Return the real scanId — no fake UUID
   return NextResponse.json({ scanId: scan.id, siteId, status: 'queued' }, { status: 201 })
