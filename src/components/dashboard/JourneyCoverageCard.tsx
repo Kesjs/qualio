@@ -54,6 +54,26 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
     } finally { setIsDetecting(false) }
   }
 
+  const applySuggestion = (suggestion: { kind: string; target: string }) => {
+    if (configuredJourneys.length === 0) {
+      setError('Activez d’abord un parcours pour utiliser ce sélecteur détecté.')
+      return
+    }
+    const journeyIndex = editingIndex ?? 0
+    const journey = configuredJourneys[journeyIndex]
+    if (!journey) return
+    const stepIndex = journey.steps.findIndex((step) => ['click', 'navigate', 'wait', 'assert'].includes(step.action.type))
+    const targetStepIndex = stepIndex >= 0 ? stepIndex : 0
+    updateStep(journeyIndex, targetStepIndex, {
+      action: {
+        type: suggestion.kind === 'link' ? 'click' : journey.steps[targetStepIndex].action.type,
+        target: suggestion.target,
+      },
+    })
+    setEditingIndex(journeyIndex)
+    setError('Sélecteur appliqué à l’étape correspondante. Vérifiez le parcours puis enregistrez.')
+  }
+
   useEffect(() => {
     fetch(`/api/sites/${siteId}/secrets`).then(async (response) => response.ok ? setSecrets(await response.json()) : undefined).catch(() => undefined)
   }, [siteId])
@@ -157,7 +177,7 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
         </button>
         {suggestions.length > 0 && <span className="text-xs text-gray-500 dark:text-zinc-400">{suggestions.length} cible(s) détectée(s)</span>}
       </div>
-      {suggestions.length > 0 && <div className="mt-3 rounded-lg border border-blue-200/70 bg-blue-50/60 p-3 text-xs dark:border-blue-500/20 dark:bg-blue-500/10"><p className="font-semibold text-blue-800 dark:text-blue-200">Suggestions issues du dernier crawl</p><div className="mt-2 grid gap-1.5">{suggestions.slice(0, 6).map((suggestion, index) => <button key={`${suggestion.target}-${index}`} type="button" onClick={() => setError(`Sélecteur détecté : ${suggestion.target}`)} className="truncate text-left text-blue-700 hover:underline dark:text-blue-300">{suggestion.label} · {suggestion.target}</button>)}</div></div>}
+      {suggestions.length > 0 && <div className="mt-3 rounded-lg border border-blue-200/70 bg-blue-50/60 p-3 text-xs dark:border-blue-500/20 dark:bg-blue-500/10"><p className="font-semibold text-blue-800 dark:text-blue-200">Suggestions issues du dernier crawl</p><div className="mt-2 grid gap-1.5">{suggestions.slice(0, 6).map((suggestion, index) => <button key={`${suggestion.target}-${index}`} type="button" onClick={() => applySuggestion(suggestion)} className="truncate text-left text-blue-700 hover:underline dark:text-blue-300">Utiliser · {suggestion.label} · {suggestion.target}</button>)}</div></div>}
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {templates.filter((template) => template.priority === 'P0').map((template) => {
           const enabled = configuredJourneys.some((journey) => journey.name === template.name)
