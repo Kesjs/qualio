@@ -10,11 +10,12 @@ export async function GET(req: NextRequest) {
 
     // Resolve the user's scans first. `issues` belongs to a scan, not directly
     // to a site, so asking PostgREST for issues -> sites is not a valid relation.
-    const { data: scans, error: scansError } = await supabase
+    const { data: scans, error: scansError } = await (supabase as any)
       .from('scans')
       .select(`
         id,
         site_id,
+        ai_status,
         sites!scans_site_id_fkey (id, user_id, url, name, environment)
       `)
       .eq('user_id', user.id)
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: scansError.message }, { status: 500 })
     }
 
-    const scanIds = (scans ?? []).map((scan) => scan.id)
+    const scanIds = (scans ?? []).map((scan: any) => scan.id)
     if (scanIds.length === 0) return NextResponse.json([])
 
     const { data: issues, error } = await supabase
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
     }
 
     const sitesByScanId = new Map(
-      (scans ?? []).map((scan) => [scan.id, scan.sites])
+      (scans ?? []).map((scan: any) => [scan.id, scan.sites])
     )
 
     // Keep the response shape consumed by the Bugs page while deriving the
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
     const normalizedIssues = (issues ?? []).map((issue) => ({
       ...issue,
       site: sitesByScanId.get(issue.scan_id) ?? null,
+      scan_ai_status: scans?.find((scan: any) => scan.id === issue.scan_id)?.ai_status ?? 'not_needed',
       url: issue.page?.url ?? null,
     }))
 

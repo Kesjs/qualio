@@ -306,10 +306,7 @@ export default function BugsPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 text-[11px] font-semibold">
-                      <SparklesIcon className="h-3 w-3 text-emerald-500" />
-                      <span>Certitude IA : {Math.round((diag.confidence ?? 0.95) * 100)}%</span>
-                    </div>
+                    {bug.scan_ai_status === 'success' ? <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 text-[11px] font-semibold"><SparklesIcon className="h-3 w-3 text-emerald-500" /><span>Certitude IA : {Math.round((diag.confidence ?? 0.95) * 100)}%</span></div> : <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400"><span>Résumé automatique</span></div>}
                     <span className="text-[11px] text-gray-400 dark:text-zinc-500 font-medium">{timeAgo}</span>
                   </div>
                 </div>

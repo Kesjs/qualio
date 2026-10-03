@@ -44,6 +44,7 @@ interface IssueCardProps {
   isExpanded: boolean
   diag: QAAIDiagnostic
   confidencePct: number
+  aiStatus?: string | null
   toggleBugAccordion: (issueId: string) => void
   handleOpenEvidence: (issue: IssueRow, type: EvidenceDetail['type']) => void
 }
@@ -54,6 +55,7 @@ function IssueCard({
   isExpanded,
   diag,
   confidencePct,
+  aiStatus,
   toggleBugAccordion,
   handleOpenEvidence,
 }: IssueCardProps) {
@@ -137,10 +139,7 @@ function IssueCard({
         </div>
 
         {/* AI Confidence badge */}
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold font-mono shrink-0">
-          <span>🎯</span>
-          <span>{confidencePct}% confiance</span>
-        </div>
+        {aiStatus === 'success' ? <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-semibold font-mono shrink-0"><span>🎯</span><span>{confidencePct}% confiance</span></div> : <div className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400 shrink-0"><span>Résumé automatique</span></div>}
       </div>
 
       {/* Accordion Body: The 4 Business Blocks & Technical Proofs */}
@@ -952,6 +951,7 @@ export default function SiteWorkspacePage() {
                       isExpanded={isExpanded}
                       diag={diag}
                       confidencePct={confidencePct}
+                      aiStatus={(scanResults?.scan?.ai_status as string | null | undefined) ?? (latestScan as typeof latestScan & { ai_status?: string | null })?.ai_status}
                       toggleBugAccordion={toggleBugAccordion}
                       handleOpenEvidence={handleOpenEvidence}
                     />

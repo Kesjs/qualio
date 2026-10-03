@@ -52,12 +52,14 @@ interface RunScanModalProps {
     url: string
     name?: string | null
     environment?: string | null
+    journeyDefinitions?: unknown
   } | null
   availableSites?: Array<{
     id: string
     url: string
     name?: string | null
     environment?: string | null
+    journeyDefinitions?: unknown
   }>
   onSuccess?: (scanId: string) => void
 }
@@ -70,6 +72,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
   const [launchedScanId, setLaunchedScanId] = useState<string | null>(null)
 
   const activeSite = site || availableSites?.find((s) => s.id === (selectedSiteId || availableSites?.[0]?.id))
+  const hasConfiguredJourneys = Array.isArray(activeSite?.journeyDefinitions) && activeSite.journeyDefinitions.length > 0
 
   const startScan = useStartScan()
 
@@ -227,6 +230,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
           </div>
 
           {/* Actions */}
+          {!hasConfiguredJourneys && <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs leading-relaxed text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">Configurez un parcours critique (connexion, contact...) pour des résultats plus fiables. <a href={activeSite ? `/dashboard/sites/${activeSite.id}#journeys` : '/dashboard/sites'} className="font-semibold underline underline-offset-2">Configurer les parcours</a></div>}
           <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-gray-100 dark:border-white/[0.06]">
             <button
               type="button"

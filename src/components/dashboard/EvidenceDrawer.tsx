@@ -15,7 +15,6 @@ import {
 } from '@heroicons/react/24/outline'
 import { ScreenshotViewer, NoScreenshotAvailable } from './ScreenshotViewer'
 import { ScreenshotModal } from './ScreenshotModal'
-import { BeforeAfterComparison } from './BeforeAfterComparison'
 import { UserJourneySteps } from './UserJourneySteps'
 import { JourneyStepDetail } from './JourneyStepDetail'
 import { useIssueScreenshots, useScreenshotSignedUrl, useBeforeAfterScreenshots, useScanJourneySteps } from '@/lib/hooks/useScreenshots'
