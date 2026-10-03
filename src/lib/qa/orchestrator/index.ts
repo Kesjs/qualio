@@ -14,6 +14,7 @@ import { persistJourneyResults } from '../journeys/persistence'
 import type { FixContext } from '../fix-context/types'
 import { isFixContext, toFixContextJson } from '../fix-context/types'
 import { detectRepositoryProvider, detectSiteStack } from '../stack-detection/detect-site-stack'
+import { decryptSiteSecret, isSiteSecretReference, getSiteSecretName } from '../security/site-secrets'
 interface ScanOptions {
   scanId?: string
   siteId: string
@@ -39,6 +40,20 @@ function parseJourneys(value: unknown, baseUrl: string): JourneyDefinition[] {
       startUrl: new URL(journey.startUrl || '/', baseUrl).toString(),
     } as JourneyDefinition]
   })
+}
+
+function replaceJourneySecrets(value: unknown, secrets: Map<string, string>): unknown {
+  if (typeof value === 'string') {
+    if (!isSiteSecretReference(value)) return value
+    const name = getSiteSecretName(value)
+    if (!name || !secrets.has(name)) throw new Error(`Missing configured site secret: ${name ?? 'invalid reference'}`)
+    return secrets.get(name)
+  }
+  if (Array.isArray(value)) return value.map((item) => replaceJourneySecrets(item, secrets))
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceJourneySecrets(item, secrets)]))
+  }
+  return value
 }
 
 function evidenceString(incident: Incident, key: string): string | null {
@@ -187,7 +202,19 @@ export class QAOrchestrator {
           )
         }
 
-        for (const journey of parseJourneys(options.journeys, url)) {
+        const { data: secretRows, error: secretError } = await (this.supabase as any)
+          .from('site_secrets')
+          .select('name, encrypted_value')
+          .eq('site_id', siteId)
+          .eq('user_id', userId)
+        if (secretError && !/relation .*site_secrets.*does not exist|schema cache/i.test(secretError.message)) {
+          throw new Error(`Unable to load site secrets: ${secretError.message}`)
+        }
+        const secrets = new Map<string, string>()
+        for (const row of secretRows ?? []) secrets.set(row.name, decryptSiteSecret(row.encrypted_value))
+        const configuredJourneys = replaceJourneySecrets(options.journeys, secrets)
+
+        for (const journey of parseJourneys(configuredJourneys, url)) {
           const journeyResult = await this.browser.executeJourney(scanId, journey)
           const persisted = await persistJourneyResults(journeyResult)
           if (!persisted.success) console.error('[QAOrchestrator] Journey persistence failed:', persisted.error)
