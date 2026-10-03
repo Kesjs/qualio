@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { getJourneyCoverage, getJourneyTemplates, type JourneyVertical } from '@/lib/qa/journeys/templates'
 import type { JourneyDefinition, JourneyStepDefinition, JourneyActionType, JourneyStepAction } from '@/lib/qa/types'
@@ -31,9 +31,17 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
   const [configuredJourneys, setConfiguredJourneys] = useState<JourneyDefinition[]>(Array.isArray(journeys) ? journeys as JourneyDefinition[] : [])
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [secrets, setSecrets] = useState<Array<{ id: string; name: string }>>([])
+  const [secretName, setSecretName] = useState('')
+  const [secretValue, setSecretValue] = useState('')
+  const [isSavingSecret, setIsSavingSecret] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const coverage = useMemo(() => getJourneyCoverage(configuredJourneys, vertical), [configuredJourneys, vertical])
   const templates = getJourneyTemplates(vertical)
+
+  useEffect(() => {
+    fetch(`/api/sites/${siteId}/secrets`).then(async (response) => response.ok ? setSecrets(await response.json()) : undefined).catch(() => undefined)
+  }, [siteId])
 
   const activate = async (templateId: string) => {
     const template = templates.find((item) => item.id === templateId)
@@ -93,6 +101,28 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
     setConfiguredJourneys((current) => current.map((journey, index) => index === journeyIndex ? { ...journey, steps: [...journey.steps, step] } : journey))
   }
 
+  const saveSecret = async () => {
+    setIsSavingSecret(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/sites/${siteId}/secrets`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: secretName, value: secretValue }) })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.error || 'Impossible d’enregistrer cet identifiant.')
+      setSecrets((current) => [...current.filter((secret) => secret.name !== payload.name), { id: payload.id, name: payload.name }].sort((a, b) => a.name.localeCompare(b.name)))
+      setSecretName('')
+      setSecretValue('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Impossible d’enregistrer cet identifiant.')
+    } finally {
+      setIsSavingSecret(false)
+    }
+  }
+
+  const removeSecret = async (name: string) => {
+    const response = await fetch(`/api/sites/${siteId}/secrets?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+    if (response.ok) setSecrets((current) => current.filter((secret) => secret.name !== name))
+  }
+
   return (
     <section className="mb-6 rounded-2xl border border-gray-200/80 bg-white p-5 dark:border-white/[0.08] dark:bg-[#16181E]">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -127,6 +157,12 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
           </div>)}
         </div>
       </div>}
+      <div className="mt-5 border-t border-gray-200/80 pt-5 dark:border-white/[0.08]">
+        <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Identifiants de test</p>
+        <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-zinc-500">Les valeurs sont chiffrées côté serveur et ne sont jamais réaffichées. Utilisez ensuite <code className="rounded bg-gray-100 px-1 dark:bg-white/[0.06]">{'{{secret:NOM}}'}</code> dans une étape.</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_1.4fr_auto]"><input value={secretName} onChange={(event) => setSecretName(event.target.value.toUpperCase())} placeholder="LOGIN_EMAIL" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs outline-none focus:border-[#ee6018] dark:border-white/[0.08] dark:bg-[#111216] dark:text-white" /><input type="password" value={secretValue} onChange={(event) => setSecretValue(event.target.value)} placeholder="Valeur confidentielle" className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs outline-none focus:border-[#ee6018] dark:border-white/[0.08] dark:bg-[#111216] dark:text-white" /><button type="button" onClick={() => void saveSecret()} disabled={isSavingSecret || !secretName || !secretValue} className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-black disabled:opacity-50 dark:bg-white dark:text-black">{isSavingSecret ? '…' : 'Enregistrer'}</button></div>
+        {secrets.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{secrets.map((secret) => <span key={secret.id} className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:border-white/[0.08] dark:text-zinc-300">{secret.name}<button type="button" onClick={() => void removeSecret(secret.name)} aria-label={`Supprimer ${secret.name}`} className="text-gray-400 hover:text-red-500">×</button></span>)}</div>}
+      </div>
       {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
     </section>
   )
