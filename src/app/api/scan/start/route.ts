@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error || !scan) {
-    if (error?.code === '23505' && error.message.includes('scans_one_active_per_site_idx')) {
+    if (error?.code === '23505') {
       const { data: concurrentScan } = await admin
         .from('scans')
         .select('id, status')
