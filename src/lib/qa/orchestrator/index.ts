@@ -262,25 +262,66 @@ export class QAOrchestrator {
       
       // 4.3. AI QA Engine: Diagnose new incidents
       const finalIssues: Issue[] = []
+
+      // Keep AI usage visible for both new and persistent incidents.
+      result.aiCallsCount = 0
+      result.aiTokensInput = 0
+      result.aiTokensOutput = 0
+      result.aiCostUsd = undefined
+      result.aiDurationMs = 0
       
-      // Process persistent issues (carry over previous diagnostic)
+      // Re-diagnose persistent issues with the latest evidence instead of
+      // carrying a stale explanation forever.
       for (const { issue, incident } of persistent) {
-        finalIssues.push({
+        const refreshedIssue: Issue = {
           ...issue,
           id: crypto.randomUUID(),
           scanId,
           pageId: incident.pageId,
           status: 'persistent',
           evidence: incident.checks.flatMap(c => c.evidence || [])
-        })
+        }
+        const diagnostic = await aiEngine.diagnoseIncident(incident)
+        if (diagnostic) {
+          refreshedIssue.title = diagnostic.title
+          refreshedIssue.severity = diagnostic.severity
+          refreshedIssue.description = JSON.stringify({
+            title: diagnostic.title,
+            severity: diagnostic.severity,
+            summary: diagnostic.summary,
+            impact: diagnostic.impact,
+            probable_cause: diagnostic.probable_cause,
+            recommendation: diagnostic.recommendation,
+            confidence: diagnostic.confidence,
+            expected: diagnostic.expected,
+            actual: diagnostic.actual,
+            repro_steps: diagnostic.repro_steps,
+            locate_hints: diagnostic.locate_hints,
+            acceptance_check: diagnostic.acceptance_check,
+            uncertainties: diagnostic.uncertainties,
+            _meta: diagnostic._meta,
+          })
+          refreshedIssue.suggestion = diagnostic.recommendation
+          refreshedIssue.confidence = String(diagnostic.confidence) as any
+          refreshedIssue.fixContext = {
+            ...(refreshedIssue.fixContext ?? {}),
+            expected: diagnostic.expected,
+            actual: diagnostic.actual,
+            repro_steps: diagnostic.repro_steps,
+            locate_hints: diagnostic.locate_hints,
+            acceptance_check: diagnostic.acceptance_check,
+            uncertainties: diagnostic.uncertainties,
+          } as any
+          if (diagnostic._meta) {
+            result.aiCallsCount = (result.aiCallsCount || 0) + 1
+            result.aiTokensInput = (result.aiTokensInput || 0) + (diagnostic._meta.tokens_input || 0)
+            result.aiTokensOutput = (result.aiTokensOutput || 0) + (diagnostic._meta.tokens_output || 0)
+            result.aiCostUsd = (result.aiCostUsd || 0) + (diagnostic._meta.cost_usd || 0)
+            result.aiDurationMs = (result.aiDurationMs || 0) + (diagnostic._meta.duration_ms || 0)
+          }
+        }
+        finalIssues.push(refreshedIssue)
       }
-      
-      // Initialize AI tracking stats on result
-      result.aiCallsCount = 0
-      result.aiTokensInput = 0
-      result.aiTokensOutput = 0
-      result.aiCostUsd = undefined
-      result.aiDurationMs = 0
       
       // Process new incidents (run AI)
       for (const incident of newIncidents) {
