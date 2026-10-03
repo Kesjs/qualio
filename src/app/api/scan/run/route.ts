@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
       consentConfirmedAt: scan.consent_confirmed_at,
       modules: parseModules(scan.scan_modules),
       journeys: site.journey_definitions,
+      journeyScope: (scan as typeof scan & { journey_scope?: 'all' | 'p0' }).journey_scope ?? 'all',
     })
     return NextResponse.json({ success: true, scanId: scan.id })
   } catch (error) {

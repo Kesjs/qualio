@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: Params) {
   if (site.deployment_scan_mode === 'automatic') {
     const { data: scan, error: scanError } = await admin.from('scans').insert({
       site_id: site.id, user_id: site.user_id, status: 'queued', previous_scan_id: previousScan?.id ?? null,
-      scan_modules: previousScan?.scan_modules ?? null, consent_confirmed_at: previousScan?.consent_confirmed_at ?? new Date().toISOString(), queued_at: new Date().toISOString(),
+      scan_modules: previousScan?.scan_modules ?? null, journey_scope: 'p0', consent_confirmed_at: previousScan?.consent_confirmed_at ?? new Date().toISOString(), queued_at: new Date().toISOString(),
     } as never).select('id').single()
     if (scanError) return NextResponse.json({ error: scanError.message }, { status: 500 })
     scanId = scan.id

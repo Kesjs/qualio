@@ -69,6 +69,36 @@ export const JOURNEY_TEMPLATES: JourneyTemplate[] = [
       { name: 'Vérifier les disponibilités', action: { type: 'assert' }, expectedResult: { selector: '[data-testid="availability-results"], .availability, .booking-result' } },
     ],
   },
+  {
+    id: 'media-search', vertical: 'media', priority: 'P0', name: 'Recherche d’article',
+    goal: 'Vérifier qu’un lecteur peut rechercher et ouvrir un contenu.', startUrl: '/',
+    steps: [
+      { name: 'Ouvrir le site', action: { type: 'navigate', target: '/' } },
+      { name: 'Saisir une recherche', action: { type: 'fill', target: 'input[type="search"], input[name="q"], input[name="search"]', value: 'actualité' } },
+      { name: 'Lancer la recherche', action: { type: 'submit', target: 'input[type="search"], input[name="q"], input[name="search"]' } },
+      { name: 'Vérifier les articles', action: { type: 'assert' }, expectedResult: { selector: 'article, [data-testid="search-results"], [class*="article"]' } },
+    ],
+  },
+  {
+    id: 'marketplace-search', vertical: 'marketplace', priority: 'P0', name: 'Recherche et filtre',
+    goal: 'Vérifier qu’un acheteur peut trouver une offre pertinente.', startUrl: '/',
+    steps: [
+      { name: 'Ouvrir la marketplace', action: { type: 'navigate', target: '/' } },
+      { name: 'Rechercher une offre', action: { type: 'fill', target: 'input[type="search"], input[name="q"], input[name="search"]', value: 'service' } },
+      { name: 'Valider la recherche', action: { type: 'submit', target: 'input[type="search"], input[name="q"], input[name="search"]' } },
+      { name: 'Vérifier les résultats', action: { type: 'assert' }, expectedResult: { selector: '[data-testid="search-results"], [data-testid="listing"], article, .listing, .offer' } },
+    ],
+  },
+  {
+    id: 'other-primary-cta', vertical: 'other', priority: 'P0', name: 'CTA principal',
+    goal: 'Vérifier que l’action principale du site mène à une destination fonctionnelle.', startUrl: '/',
+    steps: [
+      { name: 'Ouvrir la page d’accueil', action: { type: 'navigate', target: '/' } },
+      { name: 'Vérifier le CTA principal', action: { type: 'wait', target: 'main a[href], main button, [data-testid="primary-cta"]' } },
+      { name: 'Activer le CTA principal', action: { type: 'click', target: '[data-testid="primary-cta"], main a[href], main button' } },
+      { name: 'Vérifier la destination', action: { type: 'assert' }, expectedResult: { url: '/' } },
+    ],
+  },
 ]
 
 export function getJourneyTemplates(vertical?: JourneyVertical): JourneyTemplate[] {

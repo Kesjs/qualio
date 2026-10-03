@@ -25,6 +25,7 @@ interface ScanOptions {
   consentConfirmedAt?: string | null
   modules?: ScanModule[]
   journeys?: unknown
+  journeyScope?: 'all' | 'p0'
 }
 
 function parseJourneys(value: unknown, baseUrl: string): JourneyDefinition[] {
@@ -214,7 +215,9 @@ export class QAOrchestrator {
         for (const row of secretRows ?? []) secrets.set(row.name, decryptSiteSecret(row.encrypted_value))
         const configuredJourneys = replaceJourneySecrets(options.journeys, secrets)
 
-        for (const journey of parseJourneys(configuredJourneys, url)) {
+        const journeys = parseJourneys(configuredJourneys, url)
+          .filter((journey) => options.journeyScope !== 'p0' || (journey as JourneyDefinition & { priority?: string }).priority === 'P0')
+        for (const journey of journeys) {
           const journeyResult = await this.browser.executeJourney(scanId, journey)
           const persisted = await persistJourneyResults(journeyResult)
           if (!persisted.success) console.error('[QAOrchestrator] Journey persistence failed:', persisted.error)
