@@ -10,6 +10,7 @@ import {
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   Cog8ToothIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline'
 import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { getSupabaseBrowserClient as createClient } from '@/lib/supabase/client'
@@ -43,6 +44,7 @@ export function Header({
   
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -133,8 +135,24 @@ export function Header({
         </nav>
       </div>
 
+      {/* ─── CENTER: Global search ──────────────────────────────────────────── */}
+      <div className="mx-4 hidden min-w-0 flex-1 justify-center lg:flex">
+        <div className="relative w-full max-w-md">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Rechercher dans Qualio…"
+            aria-label="Rechercher dans Qualio"
+            className="h-10 w-full rounded-lg border border-gray-200/90 bg-gray-50/70 pl-9 pr-12 text-sm text-gray-900 shadow-2xs outline-none transition-all placeholder:text-gray-400 focus:border-[#ee6018] focus:bg-white focus:ring-1 focus:ring-[#ee6018] dark:border-white/[0.08] dark:bg-[#16181E] dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-[#ee6018] dark:focus:bg-[#1B1E26]"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold font-mono text-gray-400 dark:border-white/[0.08] dark:bg-[#111216] dark:text-zinc-500">⌘K</span>
+        </div>
+      </div>
+
       {/* ─── RIGHT: Theme Toggle + Notifications + User Avatar Dropdown ─────── */}
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         {/* 21st.dev Animated Theme Switcher */}
         <AnimatedThemeToggle />
 

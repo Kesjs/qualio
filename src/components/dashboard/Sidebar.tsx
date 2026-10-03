@@ -10,7 +10,6 @@ import {
   ClockIcon,
   BugAntIcon,
   Cog6ToothIcon,
-  MagnifyingGlassIcon,
   ChevronUpDownIcon,
   ArrowRightOnRectangleIcon,
   SparklesIcon,
@@ -61,7 +60,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
     },
     staleTime: 60 * 1000,
   })
-  const [searchQuery, setSearchQuery] = useState('')
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false)
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false)
@@ -70,7 +68,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const [userEmail, setUserEmail] = useState('')
 
   const profileRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const showTooltip = (label: string) => (
     <span
@@ -129,7 +126,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   return (
     <aside
       className={`relative flex flex-col justify-between overflow-visible rounded-2xl bg-[#F8F9FA] border border-gray-200/80 dark:bg-[#111216] dark:border-white/[0.08] transition-all duration-300 ease-in-out shrink-0 h-full ${
-        isCollapsed ? 'w-20' : 'w-64'
+      isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
       <div>
@@ -210,39 +207,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
           </div>
         )}
 
-        {/* ─── Search Bar IN Sidebar (Crisp Borders) ────────────────────────── */}
-        <div className="px-3 py-3">
-          {isCollapsed ? (
-            <button
-              type="button"
-              onClick={() => {
-                onSearchClick?.()
-                window.setTimeout(() => searchInputRef.current?.focus(), 0)
-              }}
-              aria-label="Rechercher"
-              className="group relative flex h-9 w-full items-center justify-center rounded-md bg-white border border-gray-200/90 text-gray-400 hover:text-gray-900 hover:border-gray-300 shadow-2xs transition-all dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
-            >
-              <MagnifyingGlassIcon className="h-4 w-4" />
-              {showTooltip('Rechercher')}
-            </button>
-          ) : (
-            <div className="relative w-full">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-zinc-500" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Recherche..."
-                className="w-full pl-8 pr-12 py-1.5 text-xs bg-white border border-gray-200/90 rounded-md text-gray-900 placeholder:text-gray-400 shadow-2xs focus:outline-none focus:ring-1 focus:ring-[#ee6018] focus:border-[#ee6018] dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-[#ee6018] transition-all font-sans"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-50 border border-gray-200 text-[9px] font-semibold font-mono text-gray-400 dark:bg-[#111216] dark:border-white/[0.08] dark:text-zinc-500">
-                <span>⌘K</span>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* ─── Navigation Sections ─────────────────────────────────────────── */}
         <nav className="p-3 space-y-5">
           {navSections.map((section) => (
@@ -266,7 +230,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                       href={item.href}
                       prefetch={true}
                       className={`group relative flex items-center rounded-md transition-all duration-150 ${
-                        isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs'
+                        isCollapsed ? 'justify-center p-2.5' : 'gap-3.5 px-3 py-3 text-sm'
                       } ${
                         isActive
                           ? 'bg-white text-gray-900 font-semibold border border-gray-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] dark:bg-[#1B1E26] dark:text-white dark:border-white/[0.12] dark:shadow-[0_4px_14px_rgba(0,0,0,0.18)]'
@@ -274,7 +238,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                       }`}
                     >
                       <Icon
-                        className={`h-4 w-4 shrink-0 transition-colors ${
+                          className={`h-5 w-5 shrink-0 transition-colors ${
                           isActive
                             ? 'text-gray-900 dark:text-white stroke-[2.2]'
                             : 'text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-300'
@@ -309,6 +273,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
             </div>
           ))}
         </nav>
+
       </div>
 
       {/* ─── BOTTOM: User Profile Module with Dropdown (Nuxt-style) ────────── */}
