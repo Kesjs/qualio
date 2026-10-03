@@ -134,9 +134,9 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#16181E] p-6 shadow-2xl border border-gray-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 dark:border-white/[0.08] dark:bg-[#16181E]">
         {/* Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-gray-100 dark:border-white/[0.06]">
+        <div className="flex shrink-0 items-start justify-between border-b border-gray-100 p-6 pb-4 dark:border-white/[0.06]">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-gray-900 dark:text-white font-sans">
@@ -179,11 +179,12 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content: scrolls independently so the action row never falls below the viewport. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
         {launchedScanId ? (
           <div className="mt-5 space-y-4">
             <ScanProgressPanel scanId={launchedScanId} variant="compact" />
-            <div className="flex items-center justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-white/[0.06]">
+            <div className="sticky bottom-0 flex items-center justify-end gap-2.5 border-t border-gray-100 bg-white/95 pt-4 backdrop-blur dark:border-white/[0.06] dark:bg-[#16181E]/95">
               <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]">Fermer</button>
             </div>
           </div>
@@ -231,7 +232,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
 
           {/* Actions */}
           {!hasConfiguredJourneys && <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs leading-relaxed text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">Configurez un parcours critique (connexion, contact...) pour des résultats plus fiables. <a href={activeSite ? `/dashboard/sites/${activeSite.id}#journeys` : '/dashboard/sites'} className="font-semibold underline underline-offset-2">Configurer les parcours</a></div>}
-          <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-gray-100 dark:border-white/[0.06]">
+          <div className="sticky bottom-0 flex items-center justify-end gap-2.5 border-t border-gray-100 bg-white/95 pt-3 backdrop-blur dark:border-white/[0.06] dark:bg-[#16181E]/95">
             <button
               type="button"
               onClick={onClose}
@@ -259,6 +260,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
           </div>
         </form>
         )}
+        </div>
       </div>
     </div>
   )
