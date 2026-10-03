@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data, error } = await supabase
     .from('scans')
-    .select('id, status, started_at, completed_at, error, summary, pages_discovered, checks_total, checks_failed, critical_count, major_count')
+    .select('id, status, started_at, completed_at, error, summary, pages_discovered, checks_total, checks_failed, critical_count, major_count, ai_calls_count')
     .eq('id', scanId)
     .eq('user_id', user.id)
     .single()
@@ -38,5 +38,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
     checksFailed: data.checks_failed,
     criticalCount: data.critical_count,
     majorCount: data.major_count,
+    aiCallsCount: data.ai_calls_count,
   })
 }

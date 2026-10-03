@@ -17,6 +17,7 @@ export interface ScanStatus {
   checksFailed: number | null
   criticalCount: number | null
   majorCount: number | null
+  aiCallsCount: number | null
 }
 
 export interface ScanResults {
