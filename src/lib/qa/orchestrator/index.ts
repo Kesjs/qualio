@@ -5,7 +5,7 @@ import { CrawlerEngine } from '../crawler'
 import { BrowserEngine } from '../browser'
 import { QAConfigManager } from '../config'
 import type {
-  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult, ScanModule, JourneyDefinition, Evidence,
+  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult, ScanModule, JourneyDefinition, Evidence, JourneyResult,
 } from '../types'
 import { EvidenceEngine, Incident } from '../evidence'
 import { DiffEngine } from '../diff'
@@ -55,6 +55,33 @@ function replaceJourneySecrets(value: unknown, secrets: Map<string, string>): un
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceJourneySecrets(item, secrets)]))
   }
   return value
+}
+
+function buildJourneySecretFailure(scanId: string, journey: JourneyDefinition, error: string): JourneyResult {
+  const firstStep = journey.steps[0]
+  return {
+    journeyName: journey.name,
+    status: 'fail',
+    stepsTotal: journey.steps.length,
+    stepsPassed: 0,
+    stepsFailed: 1,
+    stepsNotReached: Math.max(0, journey.steps.length - 1),
+    durationMs: 0,
+    error,
+    steps: [{
+      scanId,
+      journeyName: journey.name,
+      stepOrder: 1,
+      stepName: firstStep?.name ?? 'Configuration du parcours',
+      actionType: firstStep?.action.type ?? 'wait',
+      actionTarget: firstStep?.action.target,
+      actionDetails: { configuration: 'site_secret' },
+      status: 'fail',
+      resultPayload: { configurationError: true },
+      errorMessage: error,
+      durationMs: 0,
+    }],
+  }
 }
 
 function evidenceString(incident: Incident, key: string): string | null {
@@ -213,12 +240,17 @@ export class QAOrchestrator {
         }
         const secrets = new Map<string, string>()
         for (const row of secretRows ?? []) secrets.set(row.name, decryptSiteSecret(row.encrypted_value))
-        const configuredJourneys = replaceJourneySecrets(options.journeys, secrets)
-
-        const journeys = parseJourneys(configuredJourneys, url)
+        const journeys = parseJourneys(options.journeys, url)
           .filter((journey) => options.journeyScope !== 'p0' || (journey as JourneyDefinition & { priority?: string }).priority === 'P0')
         for (const journey of journeys) {
-          const journeyResult = await this.browser.executeJourney(scanId, journey)
+          let journeyResult: JourneyResult
+          try {
+            const configuredJourney = replaceJourneySecrets(journey, secrets) as JourneyDefinition
+            journeyResult = await this.browser.executeJourney(scanId, configuredJourney)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Configuration du parcours invalide.'
+            journeyResult = buildJourneySecretFailure(scanId, journey, message)
+          }
           const persisted = await persistJourneyResults(journeyResult)
           if (!persisted.success) console.error('[QAOrchestrator] Journey persistence failed:', persisted.error)
         }
