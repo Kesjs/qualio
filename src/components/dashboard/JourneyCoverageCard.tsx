@@ -23,6 +23,9 @@ const VERTICALS: Array<{ value: JourneyVertical; label: string }> = [
 
 function normalizeVertical(value: string | null | undefined): JourneyVertical {
   if (value === 'ecommerce' || value === 'booking' || value === 'marketing' || value === 'media' || value === 'marketplace' || value === 'other') return value
+  if (value === 'shopify') return 'ecommerce'
+  if (value === 'webflow' || value === 'wordpress') return 'marketing'
+  if (value === 'react_vite' || value === 'nextjs') return 'saas'
   return 'saas'
 }
 
