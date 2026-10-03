@@ -731,11 +731,8 @@ export default function SitesPage() {
       <AddSiteModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={(siteId) => {
-          const newlyCreated = sites?.find((s) => s.id === siteId)
-          if (newlyCreated) {
-            setScanModalSite(newlyCreated)
-          }
+        onSuccess={(newSite) => {
+          setScanModalSite({ ...newSite, last_scan: null })
         }}
       />
 

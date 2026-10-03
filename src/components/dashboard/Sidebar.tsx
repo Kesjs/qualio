@@ -390,7 +390,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
           )}
         </button>
       </div>
-      <AddSiteModal isOpen={isAddSiteOpen} onClose={() => setIsAddSiteOpen(false)} onSuccess={(siteId) => { setSelectedSiteId(siteId); window.localStorage.setItem('qualio:selected-site', siteId); setIsAddSiteOpen(false) }} />
+      <AddSiteModal isOpen={isAddSiteOpen} onClose={() => setIsAddSiteOpen(false)} onSuccess={(site) => { setSelectedSiteId(site.id); window.localStorage.setItem('qualio:selected-site', site.id); setIsAddSiteOpen(false) }} />
     </aside>
   )
 }

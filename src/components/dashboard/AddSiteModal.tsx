@@ -8,12 +8,13 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { useCreateSite } from '@/lib/hooks/useSites'
+import type { SiteWithLastScan } from '@/lib/hooks/useSites'
 import { normalizeUserUrl } from '@/lib/qa/utils'
 
 interface AddSiteModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (siteId: string) => void
+  onSuccess?: (site: SiteWithLastScan) => void
 }
 
 const ADD_SITE_DRAFT_KEY = 'qualio:add-site-draft'
@@ -109,7 +110,7 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
           window.localStorage.removeItem(ADD_SITE_DRAFT_KEY)
           setDraftRestored(false)
           setError(null)
-          onSuccess?.(newSite.id)
+          onSuccess?.(newSite)
           onClose()
         },
         onError: (err) => {
