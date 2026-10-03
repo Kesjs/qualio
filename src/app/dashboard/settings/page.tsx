@@ -16,8 +16,6 @@ import {
 } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient as createClient } from '@/lib/supabase/client'
 import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
-import { GithubIntegrationPanel } from '@/components/dashboard/GithubIntegrationPanel'
-import { DeploymentAutomationPanel } from '@/components/dashboard/DeploymentAutomationPanel'
 
 const NOTIFICATION_OPTIONS: CheckboxGroupOption[] = [
   {
@@ -447,17 +445,6 @@ export default function SettingsPage() {
               </div>
             ) : null}
 
-            {activeTab === 'integrations' ? (
-              <div id="settings-panel-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <GithubIntegrationPanel />
-              </div>
-            ) : null}
-
-            {activeTab === 'api' ? (
-              <div id="settings-panel-api" role="tabpanel" aria-labelledby="settings-tab-api" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <DeploymentAutomationPanel />
-              </div>
-            ) : null}
 
             {activeTab === 'profile' || activeTab === 'notifications' ? (
               <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 dark:border-white/[0.06] dark:bg-[#111216]/60 md:flex-row md:items-center md:justify-between md:px-7">

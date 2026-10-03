@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import {
   XMarkIcon,
   PlayIcon,
@@ -15,6 +14,7 @@ import {
 import { useStartScan } from '@/lib/hooks/useScan'
 import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
 import { DEFAULT_SCAN_MODULES } from '@/lib/qa/types'
+import { ScanProgressPanel } from './ScanProgressPanel'
 
 const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
   {
@@ -131,7 +131,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg rounded-xl bg-white dark:bg-[#16181E] p-6 shadow-2xl border border-gray-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#16181E] p-6 shadow-2xl border border-gray-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-start justify-between pb-4 border-b border-gray-100 dark:border-white/[0.06]">
           <div>
@@ -179,15 +179,9 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
         {/* Content */}
         {launchedScanId ? (
           <div className="mt-5 space-y-4">
-            <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
-              <p className="text-sm font-semibold text-sky-900 dark:text-sky-200">Scan lancé</p>
-              <p className="mt-1 text-xs leading-relaxed text-sky-800 dark:text-sky-300">
-                Le scan est en cours. Vous pouvez suivre sa progression dans l’historique sans relancer une nouvelle session.
-              </p>
-            </div>
+            <ScanProgressPanel scanId={launchedScanId} variant="compact" />
             <div className="flex items-center justify-end gap-2.5 border-t border-gray-100 pt-4 dark:border-white/[0.06]">
               <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]">Fermer</button>
-              <Link href={`/dashboard/scans/${launchedScanId}`} onClick={onClose} className="rounded-lg bg-[#ee6018] px-4 py-2 text-xs font-semibold text-white hover:bg-[#d95514]">Suivre le scan</Link>
             </div>
           </div>
         ) : (

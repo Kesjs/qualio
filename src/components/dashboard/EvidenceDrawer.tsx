@@ -222,15 +222,8 @@ export function EvidenceDrawer({
             {evidence.type === 'screenshot' && (
               <>
                 {/* Afficher Before/After si l'incident est RESOLVED */}
-                {isResolved && beforeAfter && (beforeAfter.before || beforeAfter.after) ? (
-                  <BeforeAfterComparison
-                    beforeScreenshotId={beforeAfter.before?.id || null}
-                    afterScreenshotId={beforeAfter.after?.id || null}
-                    issueTitle={evidence.issueTitle || evidence.title}
-                  />
-                ) : (
-                  /* Affichage normal pour les incidents non résolus */
-                  <>
+                {/* Comparaison avant/après reportée hors V1. */}
+                <>
                     {firstScreenshot ? (
                       <ScreenshotViewer
                         screenshotId={firstScreenshot.id}
@@ -241,8 +234,7 @@ export function EvidenceDrawer({
                     ) : (
                       <NoScreenshotAvailable />
                     )}
-                  </>
-                )}
+                </>
 
                 {payload.selector && (
                   <div className="p-3 rounded-lg bg-gray-100 dark:bg-[#16181E] border border-gray-200 dark:border-white/[0.08] text-xs">

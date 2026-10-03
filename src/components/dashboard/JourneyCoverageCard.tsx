@@ -1,36 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { getJourneyCoverage, getJourneyTemplates, type JourneyVertical } from '@/lib/qa/journeys/templates'
+import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { getJourneyTemplates } from '@/lib/qa/journeys/templates'
 import type { JourneyDefinition, JourneyStepDefinition, JourneyActionType, JourneyStepAction } from '@/lib/qa/types'
 
 interface JourneyCoverageCardProps {
   siteId: string
   journeys: unknown
-  defaultVertical?: string | null
 }
 
-const VERTICALS: Array<{ value: JourneyVertical; label: string }> = [
-  { value: 'saas', label: 'SaaS / application web' },
-  { value: 'ecommerce', label: 'E-commerce' },
-  { value: 'booking', label: 'Réservation' },
-  { value: 'marketing', label: 'Site vitrine / marketing' },
-  { value: 'media', label: 'Média / contenu' },
-  { value: 'marketplace', label: 'Marketplace' },
-  { value: 'other', label: 'Autre' },
-]
-
-function normalizeVertical(value: string | null | undefined): JourneyVertical {
-  if (value === 'ecommerce' || value === 'booking' || value === 'marketing' || value === 'media' || value === 'marketplace' || value === 'other') return value
-  if (value === 'shopify') return 'ecommerce'
-  if (value === 'webflow' || value === 'wordpress') return 'marketing'
-  if (value === 'react_vite' || value === 'nextjs') return 'saas'
-  return 'saas'
-}
-
-export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: JourneyCoverageCardProps) {
-  const [vertical, setVertical] = useState<JourneyVertical>(normalizeVertical(defaultVertical))
+export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardProps) {
   const [configuredJourneys, setConfiguredJourneys] = useState<JourneyDefinition[]>(Array.isArray(journeys) ? journeys as JourneyDefinition[] : [])
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -39,43 +19,8 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
   const [secretValue, setSecretValue] = useState('')
   const [isSavingSecret, setIsSavingSecret] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<Array<{ kind: string; pageUrl: string; target: string; label: string }>>([])
-  const [isDetecting, setIsDetecting] = useState(false)
-  const coverage = useMemo(() => getJourneyCoverage(configuredJourneys, vertical), [configuredJourneys, vertical])
-  const templates = getJourneyTemplates(vertical)
-
-  const detectSelectors = async () => {
-    setIsDetecting(true)
-    setError(null)
-    try {
-      const response = await fetch(`/api/sites/${siteId}/journey-suggestions`)
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(payload.error || 'Impossible d’analyser les sélecteurs.')
-      setSuggestions(payload.suggestions || [])
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Impossible d’analyser les sélecteurs.')
-    } finally { setIsDetecting(false) }
-  }
-
-  const applySuggestion = (suggestion: { kind: string; target: string }) => {
-    if (configuredJourneys.length === 0) {
-      setError('Activez d’abord un parcours pour utiliser ce sélecteur détecté.')
-      return
-    }
-    const journeyIndex = editingIndex ?? 0
-    const journey = configuredJourneys[journeyIndex]
-    if (!journey) return
-    const stepIndex = journey.steps.findIndex((step) => ['click', 'navigate', 'wait', 'assert'].includes(step.action.type))
-    const targetStepIndex = stepIndex >= 0 ? stepIndex : 0
-    updateStep(journeyIndex, targetStepIndex, {
-      action: {
-        type: suggestion.kind === 'link' ? 'click' : journey.steps[targetStepIndex].action.type,
-        target: suggestion.target,
-      },
-    })
-    setEditingIndex(journeyIndex)
-    setError('Sélecteur appliqué à l’étape correspondante. Vérifiez le parcours puis enregistrez.')
-  }
+  const templates = useMemo(() => getJourneyTemplates('saas').filter((template) => template.id === 'saas-login' || template.id === 'marketing-contact'), [])
+  const coverage = useMemo(() => ({ configured: configuredJourneys.filter((journey) => templates.some((template) => template.name === journey.name)).length, total: templates.length }), [configuredJourneys, templates])
 
   useEffect(() => {
     fetch(`/api/sites/${siteId}/secrets`).then(async (response) => response.ok ? setSecrets(await response.json()) : undefined).catch(() => undefined)
@@ -169,18 +114,7 @@ export function JourneyCoverageCard({ siteId, journeys, defaultVertical }: Journ
           <h2 className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{coverage.configured}/{coverage.total} parcours P0 configurés</h2>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-gray-500 dark:text-zinc-400">Activez les parcours qui comptent pour ce site. Qualio les rejouera après les prochains déploiements.</p>
         </div>
-        <select value={vertical} onChange={(event) => setVertical(event.target.value as JourneyVertical)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 outline-none focus:border-[#ee6018] dark:border-white/[0.08] dark:bg-[#111216] dark:text-zinc-200">
-          {VERTICALS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-        </select>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void detectSelectors()} disabled={isDetecting} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-[#ee6018] dark:border-white/[0.08] dark:text-zinc-200">
-          {isDetecting ? <ArrowPathIcon className="h-3.5 w-3.5 animate-spin" /> : <MagnifyingGlassIcon className="h-3.5 w-3.5" />}
-          {isDetecting ? 'Analyse en cours…' : 'Détecter les sélecteurs'}
-        </button>
-        {suggestions.length > 0 && <span className="text-xs text-gray-500 dark:text-zinc-400">{suggestions.length} cible(s) détectée(s)</span>}
-      </div>
-      {suggestions.length > 0 && <div className="mt-3 rounded-lg border border-blue-200/70 bg-blue-50/60 p-3 text-xs dark:border-blue-500/20 dark:bg-blue-500/10"><p className="font-semibold text-blue-800 dark:text-blue-200">Suggestions issues du dernier crawl</p><div className="mt-2 grid gap-1.5">{suggestions.slice(0, 6).map((suggestion, index) => <button key={`${suggestion.target}-${index}`} type="button" onClick={() => applySuggestion(suggestion)} className="truncate text-left text-blue-700 hover:underline dark:text-blue-300">Utiliser · {suggestion.label} · {suggestion.target}</button>)}</div></div>}
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {templates.filter((template) => template.priority === 'P0').map((template) => {
           const enabled = configuredJourneys.some((journey) => journey.name === template.name)
