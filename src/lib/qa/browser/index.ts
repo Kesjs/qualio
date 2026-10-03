@@ -291,10 +291,18 @@ export class BrowserEngine {
 
     // Capturer les erreurs console
     const consoleErrors: string[] = []
+    const failedRequests: Array<{ url: string; method: string; failure: string | null }> = []
     page.on('console', msg => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text())
       }
+    })
+    page.on('requestfailed', request => {
+      failedRequests.push({
+        url: request.url(),
+        method: request.method(),
+        failure: request.failure()?.errorText ?? null,
+      })
     })
 
     try {
@@ -320,12 +328,26 @@ export class BrowserEngine {
         }
 
         try {
+          const consoleErrorStart = consoleErrors.length
+          const failedRequestStart = failedRequests.length
+
           // Exécuter l'action selon son type
           await this.executeStepAction(page, stepDef.action, stepResult)
 
           // Vérifier le résultat attendu si spécifié
           if (stepDef.expectedResult) {
             await this.verifyStepResult(page, stepDef.expectedResult, stepResult)
+          }
+
+          const stepConsoleErrors = consoleErrors.slice(consoleErrorStart)
+          const stepFailedRequests = failedRequests.slice(failedRequestStart)
+          if (stepConsoleErrors.length > 0 || stepFailedRequests.length > 0) {
+            stepResult.resultPayload = {
+              ...stepResult.resultPayload,
+              consoleErrors: stepConsoleErrors,
+              failedRequests: stepFailedRequests,
+              currentUrl: page.url(),
+            }
           }
 
           // Si on arrive ici, l'étape a réussi
@@ -341,6 +363,7 @@ export class BrowserEngine {
             error: error.message,
             stack: error.stack,
             consoleErrors: consoleErrors.length > 0 ? consoleErrors : undefined,
+            failedRequests: failedRequests.length > 0 ? failedRequests : undefined,
             currentUrl: page.url(),
           }
           stepsFailed++
