@@ -8,6 +8,8 @@ import { redactSensitiveData } from '../security/redact-sensitive-data'
 
 export class AIEngine {
   private provider: QAAIProvider
+  public lastStatus: 'not_needed' | 'success' | 'failed' = 'not_needed'
+  public lastError: string | null = null
 
   constructor() {
     const providerName = process.env.QA_AI_PROVIDER || 'openai'
@@ -28,6 +30,8 @@ export class AIEngine {
    * into a finalized AI Diagnostic.
    */
   public async diagnoseIncident(incident: Incident): Promise<QAAIDiagnostic | null> {
+    this.lastStatus = 'failed'
+    this.lastError = null
     const t0 = Date.now()
     // Prepare structured payload for the AI
     const firstEvidence = incident.checks.flatMap((check) => check.evidence ?? [])[0]
@@ -92,11 +96,13 @@ export class AIEngine {
         }
 
         console.log(`[AI Engine] Diagnosed incident ${incident.id} in ${Date.now() - t0}ms (success: true, validation_success: true)`)
+        this.lastStatus = 'success'
         return diagnostic
       }
     } catch (e) {
       console.error(`[AI Engine] Diagnosed incident ${incident.id} in ${Date.now() - t0}ms (success: false)`)
       console.error('Error details:', e)
+      this.lastError = e instanceof Error ? e.message : 'AI provider error'
     }
     
     return null

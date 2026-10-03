@@ -18,6 +18,8 @@ export interface ScanStatus {
   criticalCount: number | null
   majorCount: number | null
   aiCallsCount: number | null
+  aiStatus?: 'not_needed' | 'success' | 'failed' | null
+  aiError?: string | null
 }
 
 export interface ScanResults {

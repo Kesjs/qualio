@@ -16,9 +16,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase
     .from('scans')
-    .select('id, status, started_at, completed_at, error, summary, pages_discovered, checks_total, checks_failed, critical_count, major_count, ai_calls_count')
+    .select('id, status, started_at, completed_at, error, summary, pages_discovered, checks_total, checks_failed, critical_count, major_count, ai_calls_count, ai_status, ai_error') as any)
     .eq('id', scanId)
     .eq('user_id', user.id)
     .single()
@@ -39,5 +39,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     criticalCount: data.critical_count,
     majorCount: data.major_count,
     aiCallsCount: data.ai_calls_count,
+    aiStatus: data.ai_status,
+    aiError: data.ai_error,
   })
 }

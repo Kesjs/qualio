@@ -168,6 +168,8 @@ export interface ScanResult {
   aiTokensOutput?: number
   aiCostUsd?: number
   aiDurationMs?: number
+  aiStatus?: 'not_needed' | 'success' | 'failed'
+  aiError?: string
   issues: Issue[]
   checks: CheckResult[]
   pages: PageResult[]

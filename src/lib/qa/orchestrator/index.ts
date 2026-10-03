@@ -272,6 +272,8 @@ export class QAOrchestrator {
       result.aiTokensOutput = 0
       result.aiCostUsd = undefined
       result.aiDurationMs = 0
+      result.aiStatus = incidents.length === 0 ? 'not_needed' : 'failed'
+      result.aiError = undefined
       
       // Re-diagnose persistent issues with the latest evidence instead of
       // carrying a stale explanation forever.
@@ -285,6 +287,8 @@ export class QAOrchestrator {
           evidence: incident.checks.flatMap(c => c.evidence || [])
         }
         const diagnostic = await aiEngine.diagnoseIncident(incident)
+        if (aiEngine.lastStatus === 'success') result.aiStatus = 'success'
+        if (aiEngine.lastError) result.aiError = aiEngine.lastError
         if (diagnostic) {
           refreshedIssue.title = diagnostic.title
           refreshedIssue.severity = diagnostic.severity
@@ -355,6 +359,8 @@ export class QAOrchestrator {
         
         // AI Diagnosis
         const diagnostic = await aiEngine.diagnoseIncident(incident)
+        if (aiEngine.lastStatus === 'success') result.aiStatus = 'success'
+        if (aiEngine.lastError) result.aiError = aiEngine.lastError
         if (diagnostic) {
           title = diagnostic.title
           severity = diagnostic.severity
@@ -659,6 +665,8 @@ export class QAOrchestrator {
       ai_tokens_output: result.aiTokensOutput ?? 0,
       ai_cost_usd: result.aiCostUsd ?? 0,
       ai_duration_ms: result.aiDurationMs ?? 0,
+      ai_status: result.aiStatus ?? 'not_needed',
+      ai_error: result.aiError ?? null,
     } as any).eq('id', scanId)
 
     if (error) {
