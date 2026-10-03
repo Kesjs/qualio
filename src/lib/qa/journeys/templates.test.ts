@@ -11,7 +11,7 @@ describe('journey templates', () => {
     const login = getJourneyTemplates('saas').find((template) => template.name === 'Connexion')!
     const coverage = getJourneyCoverage([login], 'saas')
     expect(coverage.configured).toBe(1)
-    expect(coverage.total).toBe(2)
+    expect(coverage.total).toBe(3)
     expect(coverage.missing.map((template) => template.name)).toContain('Inscription')
   })
 })
