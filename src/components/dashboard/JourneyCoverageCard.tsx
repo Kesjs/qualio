@@ -4,13 +4,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { CheckCircleIcon, PlusIcon, ArrowPathIcon, PencilIcon, TrashIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { getJourneyTemplates } from '@/lib/qa/journeys/templates'
 import type { JourneyDefinition, JourneyStepDefinition, JourneyActionType, JourneyStepAction } from '@/lib/qa/types'
+import { formatDistanceToNow } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 interface JourneyCoverageCardProps {
   siteId: string
   journeys: unknown
+  monitorEnabled?: boolean | null
+  monitorLastRunAt?: string | null
+  monitorNextRunAt?: string | null
+  latestMonitorScan?: { status: string; completed_at: string | null; created_at: string | null } | null
 }
 
-export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardProps) {
+export function JourneyCoverageCard({ siteId, journeys, monitorEnabled: initialMonitorEnabled = false, monitorLastRunAt, monitorNextRunAt, latestMonitorScan }: JourneyCoverageCardProps) {
   const [configuredJourneys, setConfiguredJourneys] = useState<JourneyDefinition[]>(Array.isArray(journeys) ? journeys as JourneyDefinition[] : [])
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -21,10 +27,10 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<Array<{ id: string; label: string; pageUrl: string; kind: string; target: string }>>([])
   const [isDiscovering, setIsDiscovering] = useState(false)
-  const [monitorEnabled, setMonitorEnabled] = useState(false)
+  const [monitorEnabled, setMonitorEnabled] = useState(Boolean(initialMonitorEnabled))
   const [frequencyHours, setFrequencyHours] = useState(24)
   const [monitorSaving, setMonitorSaving] = useState(false)
-  const templates = useMemo(() => getJourneyTemplates('saas').filter((template) => template.id === 'saas-login' || template.id === 'marketing-contact'), [])
+  const templates = useMemo(() => getJourneyTemplates().filter((template) => template.id === 'saas-login' || template.id === 'marketing-contact' || template.id === 'media-newsletter'), [])
   const coverage = useMemo(() => ({ configured: configuredJourneys.filter((journey) => templates.some((template) => template.name === journey.name)).length, total: templates.length }), [configuredJourneys, templates])
 
   useEffect(() => {
@@ -175,7 +181,7 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
         {suggestions.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{suggestions.map((suggestion) => <div key={suggestion.id} className="rounded-lg border border-orange-200/70 bg-white p-3 dark:border-white/[0.08] dark:bg-[#16181E]"><p className="text-xs font-semibold text-gray-900 dark:text-white">{suggestion.label}</p><p className="mt-1 truncate text-[11px] font-mono text-gray-500 dark:text-zinc-500">{suggestion.pageUrl}</p><button type="button" onClick={() => void prepareSuggestion(suggestion)} disabled={savingId !== null} className="mt-2 text-xs font-semibold text-[#ee6018] hover:underline">Préparer ce test</button></div>)}</div>}
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        {templates.filter((template) => template.priority === 'P0').map((template) => {
+        {templates.map((template) => {
           const enabled = configuredJourneys.some((journey) => journey.name === template.name)
           return <div key={template.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-200/80 px-3 py-3 dark:border-white/[0.08]">
             <div className="min-w-0"><p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{template.name}</p><p className="mt-0.5 truncate text-xs text-gray-500 dark:text-zinc-500">{template.goal}</p></div>
@@ -199,6 +205,7 @@ export function JourneyCoverageCard({ siteId, journeys }: JourneyCoverageCardPro
       <div className="mt-5 border-t border-gray-200/80 pt-5 dark:border-white/[0.08]">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Surveillance automatique</p><p className="mt-1 text-xs text-gray-500 dark:text-zinc-500">La fréquence est libre. La valeur proposée est une fois par jour.</p></div><label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-zinc-300"><input type="checkbox" checked={monitorEnabled} onChange={(event) => setMonitorEnabled(event.target.checked)} className="accent-[#ee6018]" /> Activer</label></div>
         <div className="mt-3 flex flex-wrap items-center gap-2"><select value={frequencyHours} onChange={(event) => setFrequencyHours(Number(event.target.value))} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-white/[0.08] dark:bg-[#111216] dark:text-white"><option value={1}>Toutes les heures</option><option value={6}>Toutes les 6 heures</option><option value={12}>Toutes les 12 heures</option><option value={24}>Une fois par jour</option><option value={168}>Une fois par semaine</option></select><button type="button" onClick={() => void saveMonitor()} disabled={monitorSaving || configuredJourneys.length === 0} className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:border-[#ee6018] hover:text-[#ee6018] disabled:opacity-50 dark:border-white/[0.08] dark:text-zinc-300">{monitorSaving ? 'Enregistrement…' : 'Enregistrer la surveillance'}</button></div>
+        {monitorEnabled && <div className="mt-3 space-y-1 text-xs text-gray-500 dark:text-zinc-400"><p>Dernière vérification : {monitorLastRunAt ? formatDistanceToNow(new Date(monitorLastRunAt), { addSuffix: true, locale: fr }) : 'pas encore exécutée'}</p><p>Prochaine vérification : {monitorNextRunAt ? formatDistanceToNow(new Date(monitorNextRunAt), { addSuffix: true, locale: fr }) : 'non planifiée'}</p>{latestMonitorScan && <p className={latestMonitorScan.status === 'completed' ? 'text-emerald-600 dark:text-emerald-400' : latestMonitorScan.status === 'failed' || latestMonitorScan.status === 'partial' || latestMonitorScan.status === 'blocked' ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}>Dernier résultat : {latestMonitorScan.status === 'completed' ? 'succès' : latestMonitorScan.status === 'failed' || latestMonitorScan.status === 'partial' || latestMonitorScan.status === 'blocked' ? 'échec' : 'en cours'}</p>}</div>}
       </div>
       <div className="mt-5 border-t border-gray-200/80 pt-5 dark:border-white/[0.08]">
         <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Identifiants de test</p>

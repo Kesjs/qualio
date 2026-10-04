@@ -800,6 +800,10 @@ export default function SiteWorkspacePage() {
       <JourneyCoverageCard
         siteId={siteId}
         journeys={site?.journey_definitions}
+        monitorEnabled={site?.monitor_enabled}
+        monitorLastRunAt={site?.monitor_last_run_at}
+        monitorNextRunAt={site?.monitor_next_run_at}
+        latestMonitorScan={site?.scans?.find((scan) => scan.monitor_triggered) ?? null}
       />
       <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#16181E] shadow-xs overflow-hidden">
         {/* Tab Headers Bar */}

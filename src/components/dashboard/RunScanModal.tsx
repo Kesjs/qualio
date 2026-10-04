@@ -18,29 +18,9 @@ import { ScanProgressPanel } from './ScanProgressPanel'
 
 const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
   {
-    label: "Exploration des pages (Crawler)",
-    value: "pages",
-    description: "Crawl des liens internes, détection des erreurs 404 & 500",
-  },
-  {
-    label: "Interactions & Boutons CTA",
-    value: "cta",
-    description: "Vérification de la cliquabilité des boutons principaux",
-  },
-  {
-    label: "Formulaires de base",
+    label: "Formulaires de connexion et de contact",
     value: "forms",
-    description: "Présence des champs requis et boutons de validation",
-  },
-  {
-    label: "Erreurs JavaScript (Console & Réseau)",
-    value: "consoleErrors",
-    description: "Capture des exceptions non gérées et requêtes échouées",
-  },
-  {
-    label: "Navigation Mobile (Responsive)",
-    value: "mobileResponsive",
-    description: "Détection des débordements horizontaux et menus mobiles",
+    description: "Repérage des champs, champs requis et boutons d’envoi",
   },
 ]
 
@@ -140,7 +120,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-gray-900 dark:text-white font-sans">
-                Nouveau scan QA
+                Nouvel audit des formulaires
               </h2>
               {activeSite.environment && (
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-800/40">
@@ -200,7 +180,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
           {/* Test suites checklist */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Modules de vérification Playwright
+              Périmètre de l’audit
             </label>
             <div className="rounded-xl border border-gray-200/80 bg-gray-50/30 p-1 dark:border-white/[0.06] dark:bg-white/[0.01]">
               <CheckboxGroup
@@ -210,7 +190,7 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
               />
             </div>
             <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">
-              Sélectionnez au moins un module. Vous pouvez lancer un scan ciblé avec une seule case.
+              Le périmètre est volontairement limité aux formulaires pour ce premier audit.
             </p>
           </div>
 
@@ -225,13 +205,13 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
               />
               <span className="text-xs text-gray-700 dark:text-gray-300 leading-snug">
                 Je confirme avoir l'autorisation de tester ce site web. Qualio effectuera des
-                requêtes de lecture et des vérifications fonctionnelles.
+                requêtes de lecture et vérifiera uniquement les formulaires visibles.
               </span>
             </label>
           </div>
 
           {/* Actions */}
-          {!hasConfiguredJourneys && <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs leading-relaxed text-orange-800 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">Configurez un parcours critique (connexion, contact...) pour des résultats plus fiables. <a href={activeSite ? `/dashboard/sites/${activeSite.id}#journeys` : '/dashboard/sites'} className="font-semibold underline underline-offset-2">Configurer les parcours</a></div>}
+          {!hasConfiguredJourneys && <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-gray-600 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-zinc-400">Les parcours de connexion, de contact et la vérification de l’e-mail seront ajoutés après ce premier repérage.</div>}
           <div className="sticky bottom-0 flex items-center justify-end gap-2.5 border-t border-gray-100 bg-white/95 pt-3 backdrop-blur dark:border-white/[0.06] dark:bg-[#16181E]/95">
             <button
               type="button"

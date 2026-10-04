@@ -12,6 +12,9 @@ export interface SiteDetail {
   created_at: string | null
   updated_at: string | null
   last_scan_id: string | null
+  monitor_enabled?: boolean
+  monitor_last_run_at?: string | null
+  monitor_next_run_at?: string | null
   journey_definitions?: unknown
   scans: ScanSummary[]
 }
@@ -32,6 +35,8 @@ export interface ScanSummary {
   major_count: number | null
   summary: string | null
   error: string | null
+  journey_scope?: 'all' | 'p0' | null
+  monitor_triggered?: boolean | null
 }
 
 async function fetchSite(siteId: string): Promise<SiteDetail> {

@@ -4,11 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
-import { NotificationDrawer } from '@/components/dashboard/NotificationDrawer'
 import {
   Bars3Icon,
   XMarkIcon,
-  BellIcon,
 } from '@heroicons/react/24/outline'
 import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 
@@ -80,14 +78,6 @@ export default function DashboardLayout({
 
             <button
               type="button"
-              onClick={() => setIsNotificationsOpen(true)}
-              className="relative p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
-            >
-              <BellIcon className="h-5 w-5" />
-            </button>
-
-            <button
-              type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               className="p-1.5 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06]"
             >
@@ -101,7 +91,6 @@ export default function DashboardLayout({
           <Header
             isCollapsed={isCollapsed}
             onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-            onOpenNotifications={() => setIsNotificationsOpen(true)}
           />
         </div>
 
@@ -114,10 +103,6 @@ export default function DashboardLayout({
       </div>
 
       {/* ─── Real Right Notification Slide-Over Drawer ─────────────────────── */}
-      <NotificationDrawer
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
-      />
     </div>
   )
 }

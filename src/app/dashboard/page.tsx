@@ -33,7 +33,7 @@ function ActivationPanel({
   onRunScan: () => void
 }) {
   const siteAdded = Boolean(site)
-  const completedSteps = Number(siteAdded) + Number(hasCompletedScan) + Number(hasCompletedScan)
+  const completedSteps = Number(siteAdded) + Number(hasCompletedScan)
 
   return (
     <section className="overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]" aria-labelledby="activation-title">
@@ -41,14 +41,14 @@ function ActivationPanel({
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ee6018]">Premières étapes</p>
           <h2 id="activation-title" className="mt-1 text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
-            Mettez votre espace en mouvement
+            Vérifiez vos formulaires
           </h2>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-gray-500 dark:text-zinc-400">
-            Trois actions réelles pour passer d’un espace vide à votre premier signal QA.
+            Un premier audit ciblé pour repérer les formulaires qui comptent avant de brancher l’envoi d’e-mails.
           </p>
         </div>
         <span className="shrink-0 text-xs font-medium tabular-nums text-gray-500 dark:text-zinc-400">
-          {Math.min(completedSteps, 3)} / 3 étapes
+          {Math.min(completedSteps, 2)} / 2 étapes
         </span>
       </div>
 
@@ -65,17 +65,17 @@ function ActivationPanel({
         <div className="flex items-center gap-3 px-5 py-4">
           <CheckCircleIcon className={`h-5 w-5 shrink-0 ${hasCompletedScan ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Lancer votre premier scan</p>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Qualio teste les parcours et collecte les preuves dans un vrai navigateur.</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Lancer l’audit des formulaires</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Qualio repère les champs, les boutons d’envoi et les formulaires de connexion ou de contact.</p>
           </div>
-          {!hasCompletedScan && <button type="button" onClick={onRunScan} disabled={!siteAdded} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/[0.12] dark:bg-transparent dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">{siteAdded ? 'Lancer le scan' : 'Ajoutez un site d’abord'}<ArrowRightIcon className="h-3.5 w-3.5" /></button>}
+          {!hasCompletedScan && <button type="button" onClick={onRunScan} disabled={!siteAdded} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-white/[0.12] dark:bg-transparent dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">{siteAdded ? 'Auditer les formulaires' : 'Ajoutez un site d’abord'}<ArrowRightIcon className="h-3.5 w-3.5" /></button>}
         </div>
 
         <div className="flex items-center gap-3 px-5 py-4">
           <CheckCircleIcon className={`h-5 w-5 shrink-0 ${hasCompletedScan ? 'text-emerald-500' : 'text-gray-300 dark:text-zinc-700'}`} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Votre premier diagnostic est prêt</p>
-            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Retrouvez les incidents, les preuves et le prompt de correction.</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Le résultat de l’audit est prêt</p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-zinc-400">Voyez quels formulaires existent et lesquels nécessitent une vérification.</p>
           </div>
           {hasCompletedScan && <Link href="/dashboard/scans" className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-white/[0.12] dark:text-zinc-200 dark:hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/40">Voir le rapport<ArrowRightIcon className="h-3.5 w-3.5" /></Link>}
           {!hasCompletedScan && <DocumentTextIcon className="hidden h-5 w-5 text-gray-300 dark:text-zinc-700 sm:block" />}

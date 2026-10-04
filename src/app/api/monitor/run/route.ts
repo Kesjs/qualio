@@ -30,11 +30,12 @@ export async function POST(req: NextRequest) {
       status: 'queued',
       scan_modules: DEFAULT_SCAN_MODULES,
       journey_scope: 'p0',
+      monitor_triggered: true,
       queued_at: now.toISOString(),
       consent_confirmed_at: now.toISOString(),
     } as any)
     if (scanError) continue
-    await admin.from('sites').update({ monitor_next_run_at: nextRun, monitor_last_run_at: now.toISOString() } as any).eq('id', site.id)
+    await admin.from('sites').update({ monitor_next_run_at: nextRun } as any).eq('id', site.id)
     scheduled += 1
   }
   return NextResponse.json({ scheduled })

@@ -3,6 +3,7 @@ import { QAOrchestrator } from '@/lib/qa'
 import { assertPublicScanUrl } from '@/lib/qa/ssrf'
 import { DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
+import { sendMonitorFailureEmail } from '@/lib/monitor/notifications'
 
 const STALE_WORKER_MS = 10 * 60 * 1000
 
@@ -122,6 +123,10 @@ export async function POST(req: NextRequest) {
       journeys: site.journey_definitions,
       journeyScope: (scan as typeof scan & { journey_scope?: 'all' | 'p0' }).journey_scope ?? 'all',
     })
+    if ((scan as typeof scan & { monitor_triggered?: boolean }).monitor_triggered) {
+      await sendMonitorFailureEmail(admin, scan.id)
+      await admin.from('sites').update({ monitor_last_run_at: new Date().toISOString() } as any).eq('id', scan.site_id)
+    }
     return NextResponse.json({ success: true, scanId: scan.id })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown scan execution error'
