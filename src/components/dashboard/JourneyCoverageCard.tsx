@@ -30,7 +30,7 @@ export function JourneyCoverageCard({ siteId, journeys, monitorEnabled: initialM
   const [monitorEnabled, setMonitorEnabled] = useState(Boolean(initialMonitorEnabled))
   const [frequencyHours, setFrequencyHours] = useState(24)
   const [monitorSaving, setMonitorSaving] = useState(false)
-  const templates = useMemo(() => getJourneyTemplates().filter((template) => template.id === 'saas-login' || template.id === 'marketing-contact' || template.id === 'media-newsletter'), [])
+  const templates = useMemo(() => getJourneyTemplates().filter((template) => template.id === 'saas-login' || template.id === 'saas-signup' || template.id === 'saas-forgot-password' || template.id === 'marketing-contact' || template.id === 'media-newsletter'), [])
   const coverage = useMemo(() => ({ configured: configuredJourneys.filter((journey) => templates.some((template) => template.name === journey.name)).length, total: templates.length }), [configuredJourneys, templates])
 
   useEffect(() => {

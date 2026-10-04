@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
 import { validateUrl } from '@/lib/qa/utils'
 import { assertPublicScanUrl } from '@/lib/qa/ssrf'
-import { DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
+import { AVAILABLE_SCAN_MODULES, DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
 
 // POST /api/scan/start
 // Creates a scan record and returns the real scanId immediately.
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   const modules = Array.isArray(selectedModules)
-    ? selectedModules.filter((module): module is ScanModule => DEFAULT_SCAN_MODULES.includes(module))
+    ? selectedModules.filter((module): module is ScanModule => AVAILABLE_SCAN_MODULES.includes(module))
     : DEFAULT_SCAN_MODULES
   if (modules.length === 0) return NextResponse.json({ error: 'Select at least one scan module' }, { status: 400 })
 

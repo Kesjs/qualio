@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useStartScan } from '@/lib/hooks/useScan'
 import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
-import { DEFAULT_SCAN_MODULES } from '@/lib/qa/types'
+import { AVAILABLE_SCAN_MODULES, DEFAULT_SCAN_MODULES } from '@/lib/qa/types'
 import { ScanProgressPanel } from './ScanProgressPanel'
 
 const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
@@ -22,6 +22,13 @@ const SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
     value: "forms",
     description: "Repérage des champs, champs requis et boutons d’envoi",
   },
+]
+
+const ADVANCED_SCAN_MODULE_OPTIONS: CheckboxGroupOption[] = [
+  { label: 'Pages et liens', value: 'pages', description: 'Repérer les pages inaccessibles et les liens en erreur' },
+  { label: 'Boutons et CTA', value: 'cta', description: 'Vérifier les actions principales visibles' },
+  { label: 'Erreurs JavaScript', value: 'consoleErrors', description: 'Capturer les erreurs console et réseau observées' },
+  { label: 'Responsive mobile', value: 'mobileResponsive', description: 'Repérer les débordements sur la page d’accueil' },
 ]
 
 interface RunScanModalProps {
@@ -189,9 +196,17 @@ export function RunScanModal({ isOpen, onClose, site, availableSites, onSuccess 
                 onChange={setSelectedModules}
               />
             </div>
-            <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">
-              Le périmètre est volontairement limité aux formulaires pour ce premier audit.
-            </p>
+            <p className="mt-2 text-[11px] text-gray-500 dark:text-zinc-500">Le périmètre principal reste volontairement limité aux formulaires.</p>
+            <details className="mt-3 rounded-lg border border-gray-200/80 dark:border-white/[0.08]">
+              <summary className="cursor-pointer list-none px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-zinc-300">Options avancées <span className="font-normal text-gray-400">(facultatives)</span></summary>
+              <div className="border-t border-gray-200/80 p-1 dark:border-white/[0.08]">
+                <CheckboxGroup
+                  options={ADVANCED_SCAN_MODULE_OPTIONS.filter((option) => AVAILABLE_SCAN_MODULES.includes(option.value as typeof AVAILABLE_SCAN_MODULES[number]))}
+                  value={selectedModules}
+                  onChange={setSelectedModules}
+                />
+              </div>
+            </details>
           </div>
 
           {/* Consent Checkbox */}

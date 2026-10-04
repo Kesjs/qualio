@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { QAOrchestrator } from '@/lib/qa'
 import { assertPublicScanUrl } from '@/lib/qa/ssrf'
-import { DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
+import { AVAILABLE_SCAN_MODULES, DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { sendMonitorFailureEmail } from '@/lib/monitor/notifications'
 
@@ -9,7 +9,7 @@ const STALE_WORKER_MS = 10 * 60 * 1000
 
 function parseModules(value: unknown): ScanModule[] {
   if (!Array.isArray(value)) return DEFAULT_SCAN_MODULES
-  const allowed = new Set<ScanModule>(DEFAULT_SCAN_MODULES)
+  const allowed = new Set<ScanModule>(AVAILABLE_SCAN_MODULES)
   const modules = value.filter((item): item is ScanModule => typeof item === 'string' && allowed.has(item as ScanModule))
   return modules.length > 0 ? modules : DEFAULT_SCAN_MODULES
 }

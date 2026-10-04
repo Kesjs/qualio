@@ -30,8 +30,9 @@ export type EvidenceType = 'url' | 'action' | 'network' | 'console' | 'screensho
 export type IssueStatus = 'open' | 'fixed' | 'ignored' | 'resolved' | 'new' | 'persistent'
 export type Confidence = 'high' | 'medium' | 'low'
 export type ScanModule = 'pages' | 'cta' | 'forms' | 'consoleErrors' | 'mobileResponsive'
-// Qualio currently focuses on the form audit. Broader site coverage can return
-// as an explicit product surface once the identification/contact workflow is solid.
+export const AVAILABLE_SCAN_MODULES: ScanModule[] = ['pages', 'cta', 'forms', 'consoleErrors', 'mobileResponsive']
+// The product starts with the form audit; advanced site checks remain available
+// when a user explicitly opts into them.
 export const DEFAULT_SCAN_MODULES: ScanModule[] = ['forms']
 
 // Types pour les User Journeys (Phase 3)
