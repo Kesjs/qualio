@@ -28,7 +28,7 @@ const TERMINAL_LOGS = [
     { c:C.graphite, t:"  Confidence· Medium" },
   ],
   [
-    { c:C.stone,  t:"Copy correction prompt → coding assistant" },
+    { c:C.stone,  t:"Apply fix in codebase → deploy" },
     { c:C.green,  t:"✓  Deploy fix → re-scan started" },
     { c:C.green,  t:"✓  /pricing CTA → resolved" },
     { c:C.orange, t:"↑  /login redirect → regression" },

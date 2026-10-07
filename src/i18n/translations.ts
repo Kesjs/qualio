@@ -6,11 +6,11 @@ export const translations = {
       badge: "Your website QA workspace",
       titleStart: "Ship updates without",
       titleHighlight: "holding your breath",
-      description: "Qualio explores key user journeys in a real browser, gathers evidence, and turns each issue into a correction prompt your team can use.",
+      description: "Qualio explores key user journeys in a real browser, gathers evidence, and turns each issue into a clear, structured diagnosis your team can act on.",
       ctaPrimary: "Run your first scan",
       stats: {
         checks: { value: "Real", label: "browser journeys" },
-        speed: { value: "AI", label: "correction prompt" },
+        speed: { value: "AI", label: "structured diagnosis" },
         sdk: { value: "0", label: "code needed" },
       },
       tabs: {
@@ -41,11 +41,11 @@ export const translations = {
       buttonIdle: "Create account and scan →",
       buttonLoading: "Preparing workspace…",
       buttonDone: "Scan complete — view results",
-      caption: "Browser scan · Evidence · Correction prompt",
+      caption: "Browser scan · Evidence · AI diagnosis",
       checks: ["Links", "Buttons", "Forms", "Console", "Network", "Responsive"],
       stats: [
         { value: "Real", label: "browser session" },
-        { value: "AI", label: "actionable prompt" },
+        { value: "AI", label: "structured diagnosis" },
         { value: "0", label: "code changes" },
       ],
     },
@@ -73,7 +73,7 @@ export const translations = {
     howItWorks: {
       badge: "How it works",
       titleStart: "From URL to surgical",
-      titleHighlight: "diagnosis and a correction prompt.",
+      titleHighlight: "diagnosis.",
       steps: [
         {
           label: "Submit URL",
@@ -91,9 +91,9 @@ export const translations = {
           body: "AI uses the collected evidence to describe impact, probable cause, reproduction steps, and uncertainties."
         },
         {
-          label: "Copy. Fix. Re-scan.",
-          title: "Use the prompt. Then verify.",
-          body: "Copy the generated correction prompt into your coding assistant, deploy the change, and re-scan to verify the result. Qualio never accesses your repository."
+          label: "Fix. Re-scan. Verify.",
+          title: "Ship the fix. Then verify.",
+          body: "Use the diagnosis to fix the issue in your own codebase, deploy, and re-scan to confirm it's resolved. Qualio never accesses your repository."
         }
       ]
     },
@@ -111,7 +111,7 @@ export const translations = {
         {
           label: "Intelligence",
           title: "AI diagnosis.\nNot logs.",
-          body: "Impact, probable cause, confidence, reproduction steps, and a copy-ready correction prompt for each issue.",
+          body: "Impact, probable cause, confidence, and clear reproduction steps for each issue.",
           metricLabel: "signal to noise"
         },
         {
@@ -145,7 +145,7 @@ export const translations = {
         eyebrow: "What you receive",
         title: "Evidence you can act on.",
         description: "Every issue comes with the context your team needs to reproduce it, prioritize it, and verify the fix after deployment.",
-        items: ["Screenshot of the failing step", "Impact and reproduction steps", "Likely cause with confidence level", "Copy-ready correction prompt", "Resolved vs new regressions after a re-scan"]
+        items: ["Screenshot of the failing step", "Impact and reproduction steps", "Likely cause with confidence level", "Resolved vs new regressions after a re-scan"]
       }
     },
     onboarding: {
@@ -185,59 +185,19 @@ export const translations = {
       consent: "I confirm that I am authorized to test this site.",
     },
     pricing: {
-      badge: "Early access",
-      titleStart: "Try the complete Qualio flow",
-      titleHighlight: "while pricing is being finalized.",
+      badge: "Pricing",
+      titleStart: "Simple pricing,",
+      titleHighlight: "built to grow with your usage.",
       toggleMonthly: "Monthly",
       toggleAnnual: "Annual",
       mostPopularBadge: "Most popular",
-      accessLabel: "Free during early access",
-      footerNote: "No credit card required · Pricing will be announced before paid plans launch",
+      footerNote: "No credit card required for Free · Paid plans launching soon — join free today and we'll notify you.",
       plans: [
-        {
-          label: "Qualio early access",
-          desc: "Create an account, add a site, run a scan, inspect the evidence, and copy the generated correction prompt.",
-          cta: "Create my account"
-        }
-      ],
-      planFeatures: {
-        sites: "Sites",
-        scansPerMonth: "Scans / month",
-        pagesPerScan: "Pages / scan",
-        aiDiagnosis: "AI diagnosis",
-        evidence: "Evidence",
-        report: "Client report",
-        beforeAfter: "Before / After",
-        history: "History",
-        integrations: "Integrations",
-        prioritySupport: "Priority support",
-        reportTooltip: "Export the full scan results as a PDF for a clean record of what was found and fixed.",
-        beforeAfterTooltip: "See the screenshot from before the fix and after the fix, side by side, for any resolved issue.",
-        evidenceTooltip: "Screenshots, network requests, console output, and DOM state captured around the failing step."
-      },
-      planValues: {
-        site: "Site workspace",
-        browserScan: "Real-browser scan",
-        aiDiagnosis: "Evidence-based AI diagnosis",
-        evidence: "Screenshots, network, and console evidence",
-        fixPrompt: "Copy-ready correction prompt",
-        scanHistory: "Scan history and re-scan",
-        unlimited: "Unlimited",
-        aiBasic: "Basic",
-        aiFull: "Full — impact + cause + fix",
-        aiFullPlus: "Full + regression tracking",
-        evidenceBasic: "Screenshot only",
-        evidenceFull: "Screenshot + Network + Console",
-        evidenceVideo: "Screenshot + Network + Console",
-        reportNone: "Dashboard only",
-        reportPdf: "PDF export",
-        reportShareable: "Dashboard only",
-        reportBranded: "Branded + PDF export",
-        historyStarter: "7 days",
-        historyPro: "90 days + diffs",
-        historyTeam: "1 year + diffs",
-        supportTeam: "Dedicated channel"
-      }
+        { id: "free", label: "Free", price: "€0", period: "/month", desc: "Try the full loop on one site.", features: ["1 site", "3 scans / month", "AI diagnosis", "7-day history"], cta: "Start for free" },
+        { id: "starter", label: "Starter", price: "€19", period: "/month", desc: "For a single project you ship often.", features: ["1 site", "10 scans / month", "AI diagnosis", "7-day history"], cta: "Choose Starter" },
+        { id: "pro", label: "Pro", price: "€49", period: "/month", desc: "For teams running several projects.", features: ["5 sites", "50 scans / month", "AI diagnosis", "90-day history + diffs"], cta: "Choose Pro", highlighted: true },
+        { id: "team", label: "Team", price: "€149", period: "/month", desc: "For teams that need scale and support.", features: ["Unlimited sites", "200 scans / month", "AI diagnosis", "1-year history + diffs", "Dedicated support channel"], cta: "Choose Team" }
+      ]
     },
     faq: {
       badge: "FAQ",
@@ -356,7 +316,7 @@ export const translations = {
           visibleIssues: 'Visible issues and broken interactions',
           formsCtas: 'Forms and CTAs',
           mobile: 'Mobile experience',
-          diagnosis: 'A diagnosis with a correction prompt',
+          diagnosis: 'A structured diagnosis for each issue',
         },
         selected: 'Choice saved for your first scan.',
         continue: 'Continue to email confirmation',
@@ -369,11 +329,11 @@ export const translations = {
       badge: "Votre espace de QA pour le web",
       titleStart: "Déployez enfin sans",
       titleHighlight: "retenir votre souffle",
-      description: "Qualio explore les parcours clés dans un vrai navigateur, collecte les preuves et transforme chaque problème en prompt de correction exploitable.",
+      description: "Qualio explore les parcours clés dans un vrai navigateur, collecte les preuves et transforme chaque problème en diagnostic clair et structuré.",
       ctaPrimary: "Lancer un premier scan",
       stats: {
         checks: { value: "Réels", label: "parcours navigateur" },
-        speed: { value: "IA", label: "prompt de correction" },
+        speed: { value: "IA", label: "diagnostic structuré" },
         sdk: { value: "0", label: "code requis" },
       },
       tabs: {
@@ -398,17 +358,17 @@ export const translations = {
       badge: "Sans carte bancaire",
       titleStart: "Vous construisez.",
       titleHighlight: "On s'assure que rien ne casse.",
-      description: "De vraies interactions navigateur, des preuves lisibles et un prompt de correction à copier. Aucun SDK à installer.",
+      description: "De vraies interactions navigateur, des preuves lisibles et un diagnostic structuré. Aucun SDK à installer.",
       inputLabel: "URL du site web",
       inputPlaceholder: "https://votre-site.com",
       buttonIdle: "Créer mon compte et lancer le scan →",
       buttonLoading: "Préparation de l’espace…",
       buttonDone: "Scan terminé — voir les résultats",
-      caption: "Scan navigateur · Preuves · Prompt de correction",
+      caption: "Scan navigateur · Preuves · Diagnostic IA",
       checks: ["Liens", "Boutons", "Formulaires", "Console", "Réseau", "Responsive"],
       stats: [
         { value: "Réel", label: "navigateur" },
-        { value: "IA", label: "prompt exploitable" },
+        { value: "IA", label: "diagnostic structuré" },
         { value: "0", label: "ligne de code" },
       ],
     },
@@ -436,7 +396,7 @@ export const translations = {
     howItWorks: {
       badge: "Comment ça marche",
       titleStart: "De l'URL au diagnostic",
-      titleHighlight: "et au prompt de correction.",
+      titleHighlight: "clair et exploitable.",
       steps: [
         {
           label: "1. Entrez l'URL",
@@ -454,9 +414,9 @@ export const translations = {
           body: "L’IA utilise les preuves collectées pour décrire l’impact, la cause probable, les étapes de reproduction et les incertitudes."
         },
         {
-          label: "4. Copiez. Corrigez. Re-scannez.",
-          title: "Utilisez le prompt, puis validez.",
-          body: "Copiez le prompt de correction dans votre assistant de code, déployez puis relancez le scan. Qualio n’accède jamais à votre dépôt."
+          label: "4. Corrigez. Re-scannez. Validez.",
+          title: "Appliquez le correctif, puis vérifiez.",
+          body: "Utilisez le diagnostic pour corriger le problème dans votre propre code, déployez puis relancez le scan pour confirmer. Qualio n’accède jamais à votre dépôt."
         }
       ]
     },
@@ -474,7 +434,7 @@ export const translations = {
         {
           label: "Intelligence",
           title: "Diagnostic par IA.\nPas des logs bruts.",
-          body: "Impact, cause probable, niveau de confiance, reproduction et prompt de correction prêt à copier pour chaque problème.",
+          body: "Impact, cause probable, niveau de confiance et étapes de reproduction claires pour chaque problème.",
           metricLabel: "du bruit au signal utile"
         },
         {
@@ -508,7 +468,7 @@ export const translations = {
         eyebrow: "Ce que vous recevez",
         title: "Des preuves directement exploitables.",
         description: "Chaque problème contient le contexte nécessaire pour le reproduire, le prioriser et vérifier sa correction après déploiement.",
-        items: ["Capture d'écran de l'étape en échec", "Impact et étapes de reproduction", "Cause probable et niveau de confiance", "Prompt de correction prêt à copier", "Bugs résolus et nouvelles régressions après re-scan"]
+        items: ["Capture d'écran de l'étape en échec", "Impact et étapes de reproduction", "Cause probable et niveau de confiance", "Bugs résolus et nouvelles régressions après re-scan"]
       }
     },
     onboarding: {
@@ -548,59 +508,19 @@ export const translations = {
       consent: "Je confirme être autorisé à tester ce site.",
     },
     pricing: {
-      badge: "Accès anticipé",
-      titleStart: "Testez tout le parcours Qualio",
-      titleHighlight: "pendant la finalisation des tarifs.",
+      badge: "Tarifs",
+      titleStart: "Un tarif simple,",
+      titleHighlight: "qui grandit avec votre usage.",
       toggleMonthly: "Mensuel",
       toggleAnnual: "Annuel",
       mostPopularBadge: "Le plus populaire",
-      accessLabel: "Gratuit pendant l’accès anticipé",
-      footerNote: "Aucune carte bancaire · Les tarifs seront annoncés avant le lancement des offres payantes",
+      footerNote: "Aucune carte bancaire pour le plan Free · Offres payantes bientôt disponibles — inscrivez-vous gratuitement dès maintenant.",
       plans: [
-        {
-          label: "Accès anticipé Qualio",
-          desc: "Créez un compte, ajoutez un site, lancez un scan, consultez les preuves et copiez le prompt de correction généré.",
-          cta: "Créer mon compte"
-        }
-      ],
-      planFeatures: {
-        sites: "Sites suivis",
-        scansPerMonth: "Scans / mois",
-        pagesPerScan: "Pages / scan",
-        aiDiagnosis: "Diagnostic IA",
-        evidence: "Preuves collectées",
-        report: "Rapport client",
-        beforeAfter: "Avant / Après",
-        history: "Historique des scans",
-        integrations: "Intégrations",
-        prioritySupport: "Support prioritaire",
-        reportTooltip: "Exportez le résultat complet du scan en PDF pour garder une trace claire de ce qui a été trouvé et corrigé.",
-        beforeAfterTooltip: "Voyez la capture d'écran avant correction et après correction, côte à côte, pour tout incident résolu.",
-        evidenceTooltip: "Captures d'écran, requêtes réseau, console et état du DOM autour de l'étape en échec."
-      },
-      planValues: {
-        site: "Espace de travail par site",
-        browserScan: "Scan dans un vrai navigateur",
-        aiDiagnosis: "Diagnostic IA fondé sur les preuves",
-        evidence: "Captures, réseau et console",
-        fixPrompt: "Prompt de correction prêt à copier",
-        scanHistory: "Historique et re-scan",
-        unlimited: "Illimité",
-        aiBasic: "Basique",
-        aiFull: "Complet — impact + cause + correctif",
-        aiFullPlus: "Complet + suivi des régressions",
-        evidenceBasic: "Captures d'écran uniquement",
-        evidenceFull: "Captures d'écran + Réseau + Console",
-        evidenceVideo: "Capture + Réseau + Console",
-        reportNone: "Dashboard uniquement",
-        reportPdf: "Export PDF",
-        reportShareable: "Dashboard uniquement",
-        reportBranded: "Brandé + export PDF",
-        historyStarter: "7 jours",
-        historyPro: "90 jours + diffs",
-        historyTeam: "1 an + diffs",
-        supportTeam: "Canal dédié (Slack / Discord)"
-      }
+        { id: "free", label: "Free", price: "0 €", period: "/mois", desc: "Testez la boucle complète sur un site.", features: ["1 site", "3 scans / mois", "Diagnostic IA", "Historique 7 jours"], cta: "Commencer gratuitement" },
+        { id: "starter", label: "Starter", price: "19 €", period: "/mois", desc: "Pour un projet unique que vous déployez souvent.", features: ["1 site", "10 scans / mois", "Diagnostic IA", "Historique 7 jours"], cta: "Choisir Starter" },
+        { id: "pro", label: "Pro", price: "49 €", period: "/mois", desc: "Pour une équipe qui gère plusieurs projets.", features: ["5 sites", "50 scans / mois", "Diagnostic IA", "Historique 90 jours + diffs"], cta: "Choisir Pro", highlighted: true },
+        { id: "team", label: "Team", price: "149 €", period: "/mois", desc: "Pour une équipe qui a besoin d'échelle et de support.", features: ["Sites illimités", "200 scans / mois", "Diagnostic IA", "Historique 1 an + diffs", "Canal de support dédié"], cta: "Choisir Team" }
+      ]
     },
     faq: {
       badge: "FAQ",
@@ -719,7 +639,7 @@ export const translations = {
           visibleIssues: 'Les problèmes visibles et interactions cassées',
           formsCtas: 'Les formulaires et les CTA',
           mobile: 'L’expérience mobile',
-          diagnosis: 'Un diagnostic avec un prompt de correction',
+          diagnosis: 'Un diagnostic structuré pour chaque problème',
         },
         selected: 'Choix enregistré pour votre premier scan.',
         continue: 'Continuer vers la confirmation email',

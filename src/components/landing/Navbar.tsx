@@ -14,11 +14,11 @@ type MenuItem = readonly [string, string, string];
 const menus: Record<"en" | "fr", Record<MenuKey, readonly MenuItem[]>> = {
   en: {
     product: [["Overview", "See the complete QA flow", "/product"], ["Live browser scans", "Real clicks, forms, links, and journeys", "/product#scans"], ["Evidence & diagnosis", "Screenshots, network, console, and impact", "/product#evidence"], ["Scan history", "Verify fixes and catch regressions", "/product#history"]],
-    resources: [["How Qualio works", "From a URL to a correction prompt", "/resources#how-it-works"], ["What Qualio detects", "The failures users actually feel", "/resources#detects"], ["Documentation", "The product details, in plain language", "/resources#docs"], ["System status", "See the current service status", "https://status.qualio.dev"]],
+    resources: [["How Qualio works", "From a URL to a structured diagnosis", "/resources#how-it-works"], ["What Qualio detects", "The failures users actually feel", "/resources#detects"], ["Documentation", "The product details, in plain language", "/resources#docs"], ["System status", "See the current service status", "https://status.qualio.dev"]],
   },
   fr: {
     product: [["Vue d’ensemble", "Voir tout le parcours QA", "/product"], ["Scans navigateur", "Clics, formulaires, liens et parcours réels", "/product#scans"], ["Preuves & diagnostic", "Captures, réseau, console et impact", "/product#evidence"], ["Historique des scans", "Vérifier les correctifs et repérer les régressions", "/product#history"]],
-    resources: [["Comment ça marche", "De l’URL au prompt de correction", "/resources#how-it-works"], ["Ce que Qualio détecte", "Les erreurs que vos utilisateurs ressentent", "/resources#detects"], ["Documentation", "Les détails du produit, en langage clair", "/resources#docs"], ["État du service", "Consulter l’état actuel du service", "https://status.qualio.dev"]],
+    resources: [["Comment ça marche", "De l’URL au diagnostic structuré", "/resources#how-it-works"], ["Ce que Qualio détecte", "Les erreurs que vos utilisateurs ressentent", "/resources#detects"], ["Documentation", "Les détails du produit, en langage clair", "/resources#docs"], ["État du service", "Consulter l’état actuel du service", "https://status.qualio.dev"]],
   },
 };
 
@@ -119,8 +119,8 @@ function MenuPanel({ keyName, items, language }: { keyName: MenuKey; items: read
   const product = keyName === "product";
   const copy = product
     ? language === "fr"
-      ? { kicker: "Le parcours Qualio", title: "De l’URL à la preuve exploitable.", body: "Un vrai navigateur, des preuves autour de chaque problème, puis un prompt de correction prêt à copier.", action: "Voir le produit", href: "/product" }
-      : { kicker: "The Qualio workflow", title: "From URL to usable evidence.", body: "A real browser, evidence around every failure, and a correction prompt your team can copy.", action: "Explore the product", href: "/product" }
+      ? { kicker: "Le parcours Qualio", title: "De l’URL à la preuve exploitable.", body: "Un vrai navigateur, des preuves autour de chaque problème, puis un diagnostic structuré que votre équipe peut traiter.", action: "Voir le produit", href: "/product" }
+      : { kicker: "The Qualio workflow", title: "From URL to usable evidence.", body: "A real browser, evidence around every failure, and a structured diagnosis your team can act on.", action: "Explore the product", href: "/product" }
     : language === "fr"
       ? { kicker: "Le centre de ressources", title: "Comprendre avant de corriger.", body: "Les méthodes, les limites et les preuves qui expliquent ce que Qualio vérifie.", action: "Voir les ressources", href: "/resources" }
       : { kicker: "The resource center", title: "Understand before you fix.", body: "The workflow, boundaries, and evidence behind every Qualio check.", action: "Browse resources", href: "/resources" };
