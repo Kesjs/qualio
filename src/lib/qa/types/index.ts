@@ -75,11 +75,42 @@ export interface DiscoveryResult {
   scripts: string[]
 }
 
+export type FormType = 'login' | 'signup' | 'contact' | 'newsletter' | 'other'
+
+export type FormUntestableReason =
+  | 'captcha'
+  | 'third_party_iframe'
+  | 'multi_step'
+  | 'file_upload'
+  | 'unsupported_spa'
+
+/** Testability describes passive detection, never the result of a submission. */
+export type FormTestability =
+  | { testable: true }
+  | { testable: false; code: FormUntestableReason; reason: string }
+
 export interface FormInfo {
   action: string
   method: string
   fields: FieldInfo[]
   submitButton: string | null
+  /** Hash of the resolved action, normalized method and sorted field names. */
+  signature?: string
+  formType?: FormType
+  testability?: FormTestability
+}
+
+export interface FormOccurrence {
+  pageUrl: string
+  pageTitle?: string
+}
+
+/** Enriched, deduplicated form exposed by passive discovery for user selection. */
+export interface DiscoveredForm extends FormInfo {
+  signature: string
+  formType: FormType
+  testability: FormTestability
+  occurrences: FormOccurrence[]
 }
 
 export interface FieldInfo {
@@ -87,7 +118,41 @@ export interface FieldInfo {
   type: string
   required: boolean
   label: string | null
+  hidden?: boolean
+  autocomplete?: string
+  min?: string
+  max?: string
+  maxLength?: number
 }
+
+/** Persist only the selected target; login credentials remain in site-secrets. */
+export type FormSelection = {
+  signature: string
+  pageUrl: string
+} & (
+  | {
+      formType: 'signup'
+      /** Generated before launch and displayed in the consent step. */
+      testEmail: `qualio-test-${number}@qualio-test.dev`
+    }
+  | {
+      formType: Exclude<FormType, 'signup'>
+      testEmail?: never
+    }
+)
+
+/** Reuse check statuses for submission outcomes; pending precedes execution. */
+export type FormScanStatus = 'pending' | CheckStatus
+
+export type FormScanProgress = {
+  signature: string
+  pageUrl: string
+  formType: FormType
+} & (
+  | { status: 'pending' | 'running'; reason?: never }
+  | { status: 'passed' | 'warning' | 'failed'; reason?: string }
+  | { status: 'skipped' | 'inconclusive'; reason: string }
+)
 
 export interface CrawlResult {
   pages: PageResult[]

@@ -54,6 +54,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (![1, 6, 12, 24, 168].includes(frequencyHours)) return NextResponse.json({ error: 'Fréquence non supportée.' }, { status: 400 })
     const admin = getSupabaseAdminClient()
     const enabled = body.monitor.enabled === true
+    if (enabled) {
+      const { data: selectedScan } = await admin.from('scans').select('selected_forms')
+        .eq('site_id', siteId).eq('user_id', user.id).not('selected_forms', 'is', null)
+        .not('consent_confirmed_at', 'is', null).in('status', ['completed', 'partial'])
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (!Array.isArray(selectedScan?.selected_forms) || !selectedScan.selected_forms.length) return NextResponse.json({ error: 'Lancez d’abord un audit avec une sélection de formulaires et un consentement.' }, { status: 400 })
+    }
     const nextRun = enabled ? new Date(Date.now() + frequencyHours * 60 * 60 * 1000).toISOString() : null
     const { data, error } = await admin.from('sites').update({
       monitor_enabled: enabled,

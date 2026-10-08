@@ -5,7 +5,7 @@ import { CrawlerEngine } from '../crawler'
 import { BrowserEngine } from '../browser'
 import { QAConfigManager } from '../config'
 import type {
-  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult, ScanModule, JourneyDefinition, Evidence, JourneyResult,
+  ScanResult, ScanStatus, CheckResult, Issue, IssueSeverity, PageResult, ScanModule, JourneyDefinition, Evidence, JourneyResult, FormSelection,
 } from '../types'
 import { EvidenceEngine, Incident } from '../evidence'
 import { DiffEngine } from '../diff'
@@ -14,6 +14,8 @@ import { persistJourneyResults } from '../journeys/persistence'
 import type { FixContext } from '../fix-context/types'
 import { isFixContext, toFixContextJson } from '../fix-context/types'
 import { detectRepositoryProvider, detectSiteStack } from '../stack-detection/detect-site-stack'
+import { loginCredentialsForPage } from '../browser/login-credentials'
+import { validateFormSelection } from '../discovery/validate-selection'
 import { decryptSiteSecret, isSiteSecretReference, getSiteSecretName } from '../security/site-secrets'
 interface ScanOptions {
   scanId?: string
@@ -26,6 +28,7 @@ interface ScanOptions {
   modules?: ScanModule[]
   journeys?: unknown
   journeyScope?: 'all' | 'p0'
+  selectedForms?: FormSelection[]
 }
 
 function parseJourneys(value: unknown, baseUrl: string): JourneyDefinition[] {
@@ -141,6 +144,7 @@ export class QAOrchestrator {
         user_id: options.userId,
         status: 'created' as ScanStatus,
         previous_scan_id: options.previousScanId ?? null,
+        ...(options.selectedForms ? { selected_forms: options.selectedForms, max_attempts: 1 } : {}),
         consent_confirmed_at: options.consentConfirmedAt
           ? new Date(options.consentConfirmedAt).toISOString()
           : null,
@@ -157,7 +161,8 @@ export class QAOrchestrator {
     const { siteId, userId, url, previousScanId, consentConfirmedAt } = options
 
     // 1. Create scan record
-    const scanId = options.scanId ?? await this.createScan({ siteId, userId, url, previousScanId, consentConfirmedAt })
+    const scanId = options.scanId ?? await this.createScan({ siteId, userId, url, previousScanId, consentConfirmedAt, selectedForms: options.selectedForms })
+    const selectedForms = options.selectedForms ? validateFormSelection(options.selectedForms, url) : undefined
     const enabledModules = new Set(options.modules ?? ['pages', 'cta', 'forms', 'consoleErrors', 'mobileResponsive'])
 
     const result: ScanResult = {
@@ -174,6 +179,7 @@ export class QAOrchestrator {
     const aiEngine = new AIEngine()
 
     try {
+      if (enabledModules.has('forms') && !selectedForms) throw new Error('Une sélection explicite de formulaires est requise. Ouvrez la page d’audit pour la préparer.')
       await this.initEngines()
       // Utility timeout wrapper
       const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
@@ -188,12 +194,14 @@ export class QAOrchestrator {
 
       // Phase 1: Discovery (15s timeout)
       await this.updateStatus(scanId, 'discovering')
-      const discovery = await withTimeout(this.discovery.discover(url), 15000, 'Discovery')
-      await this.saveDiscoveredPages(scanId, discovery.internalLinks)
+      if (!selectedForms) {
+        const discovery = await withTimeout(this.discovery.discover(url), 15000, 'Discovery')
+        await this.saveDiscoveredPages(scanId, discovery.internalLinks)
+      }
 
       // Phase 2: Crawl (45s timeout)
       await this.updateStatus(scanId, 'crawling')
-      const crawl = await withTimeout(this.crawler.crawl(url), 45000, 'Crawler')
+      const crawl = await withTimeout(this.crawler.crawl(url, selectedForms ? [...new Set(selectedForms.map(form => form.pageUrl))] : undefined), 45000, 'Crawler')
       const crawledPages = await this.saveCrawledPages(scanId, crawl.pages)
       await this.updateSiteTechnology(siteId, crawl.pages)
       result.pages = crawledPages
@@ -202,6 +210,35 @@ export class QAOrchestrator {
       // Phase 3: Browser testing (2m timeout)
       await this.updateStatus(scanId, 'browser_testing')
       const allChecks: CheckResult[] = []
+
+      const { data: secretRows, error: secretError } = await (this.supabase as any)
+        .from('site_secrets').select('name, encrypted_value').eq('site_id', siteId).eq('user_id', userId)
+      if (secretError && !/relation .*site_secrets.*does not exist|schema cache/i.test(secretError.message)) {
+        throw new Error('Unable to load site secrets')
+      }
+      const secrets = new Map<string, string>()
+      for (const row of secretRows ?? []) secrets.set(row.name, decryptSiteSecret(row.encrypted_value))
+      const configuredJourneys = parseJourneys(options.journeys, url)
+      if (selectedForms) {
+        const submissionStarted = Date.now()
+        for (const selection of selectedForms) {
+          const pageId = crawledPages.find(page => page.url === selection.pageUrl)?.id ?? null
+          let check: Omit<CheckResult, 'id' | 'scanId' | 'pageId'>
+          if (Date.now() - submissionStarted > 140000) {
+            check = { key: `form_submission:${selection.signature}`, category: 'forms', status: 'skipped',
+              severity: null, title: `Formulaire ${selection.formType}`, message: 'Budget de temps du scan atteint avant cette soumission.',
+              duration: 0, evidence: [{ type: 'url', payload: { signature: selection.signature, formType: selection.formType, url: selection.pageUrl } }] }
+          } else {
+            const checks = await this.browser.testForms(selection.pageUrl, [selection], {
+              credentials: loginCredentialsForPage(configuredJourneys, secrets, selection.pageUrl),
+              onRunning: () => this.saveFormProgress(scanId, selection, 'running'),
+            })
+            check = checks[0]
+          }
+          allChecks.push({ ...check, id: crypto.randomUUID(), scanId, pageId })
+          await this.saveFormProgress(scanId, selection, check.status, check.message)
+        }
+      }
 
       await withTimeout((async () => {
         for (const page of crawledPages.slice(0, this.config.getMaxPages())) {
@@ -213,7 +250,6 @@ export class QAOrchestrator {
                     consoleErrors: enabledModules.has('consoleErrors'),
                   })
                 : []),
-              ...(enabledModules.has('forms') ? await this.browser.testForms(page.url) : []),
               ...(enabledModules.has('cta') ? await this.browser.testCTA(page.url) : []),
             ]
             checks.forEach(c =>
@@ -230,17 +266,7 @@ export class QAOrchestrator {
           )
         }
 
-        const { data: secretRows, error: secretError } = await (this.supabase as any)
-          .from('site_secrets')
-          .select('name, encrypted_value')
-          .eq('site_id', siteId)
-          .eq('user_id', userId)
-        if (secretError && !/relation .*site_secrets.*does not exist|schema cache/i.test(secretError.message)) {
-          throw new Error(`Unable to load site secrets: ${secretError.message}`)
-        }
-        const secrets = new Map<string, string>()
-        for (const row of secretRows ?? []) secrets.set(row.name, decryptSiteSecret(row.encrypted_value))
-        const journeys = parseJourneys(options.journeys, url)
+        const journeys = (selectedForms ? [] : configuredJourneys)
           .filter((journey) => options.journeyScope !== 'p0' || (journey as JourneyDefinition & { priority?: string }).priority === 'P0')
         for (const journey of journeys) {
           let journeyResult: JourneyResult
@@ -274,19 +300,26 @@ export class QAOrchestrator {
       // 4.2. Diff Engine: Compare with previous scan to find new vs persistent
       let previousIssues: Issue[] = []
       if (previousScanId) {
-        const { data } = await this.supabase.from('issues').select('*').eq('scan_id', previousScanId)
+        const { data } = await this.supabase.from('issues').select('*, evidence(*)').eq('scan_id', previousScanId)
         if (data) {
           previousIssues = data.map(d => ({
             id: d.id, scanId: d.scan_id, pageId: d.page_id,
             category: d.category as any, severity: d.severity as any,
             title: d.title, description: d.description || '',
             suggestion: d.suggestion || '', confidence: d.confidence as any,
-            status: d.status as any, evidence: [],
+            status: d.status as any, evidence: (d as any).evidence ?? [],
             fixContext: isFixContext(d.fix_context) ? d.fix_context : undefined,
           }))
         }
       }
       
+      // A targeted retest can resolve only a previously failing form that now passed.
+      if (selectedForms) {
+        const tested = new Set(allChecks.filter(check => ['passed', 'failed'].includes(check.status))
+          .flatMap(check => (check.evidence ?? []).map(ev => ev.payload.signature).filter((value): value is string => typeof value === 'string')))
+        previousIssues = previousIssues.filter(issue => issue.category === 'forms' &&
+          issue.evidence.some(ev => typeof ev.payload.signature === 'string' && tested.has(ev.payload.signature)))
+      }
       const { persistent, newIncidents, resolved } = diffEngine.diff(previousIssues, incidents)
       
       // Update resolved status in database for issues that are now gone
@@ -470,12 +503,31 @@ export class QAOrchestrator {
       // Phase 5: Reporting
       await this.updateStatus(scanId, 'reporting')
       result.summary = this.generateSummary(result)
+      if (selectedForms) {
+        const formSummaries = allChecks.filter(check => check.category === 'forms').map(check => ({
+          signature: String(check.evidence?.find(ev => ev.payload.signature)?.payload.signature ?? ''),
+          formType: String(check.evidence?.find(ev => ev.payload.formType)?.payload.formType ?? 'other'),
+          status: check.status, summary: check.message,
+        }))
+        const synthesis = await aiEngine.summarizeForms(formSummaries)
+        result.summary = JSON.stringify({ kind: 'selected_forms', formSummaries,
+          summary: `${formSummaries.length} formulaire(s) sélectionné(s) : ${formSummaries.filter(form => form.status === 'passed').length} réussi(s), ${formSummaries.filter(form => form.status === 'failed').length} en échec, ${formSummaries.filter(form => form.status === 'skipped').length} ignoré(s), ${formSummaries.filter(form => form.status === 'inconclusive').length} indéterminé(s).`,
+          aiSummary: synthesis?.summary ?? null })
+        if (synthesis?._meta) {
+          result.aiCallsCount = (result.aiCallsCount ?? 0) + 1
+          result.aiTokensInput = (result.aiTokensInput ?? 0) + (synthesis._meta.tokens_input ?? 0)
+          result.aiTokensOutput = (result.aiTokensOutput ?? 0) + (synthesis._meta.tokens_output ?? 0)
+          result.aiDurationMs = (result.aiDurationMs ?? 0) + (synthesis._meta.duration_ms ?? 0)
+          result.aiCostUsd = (result.aiCostUsd ?? 0) + (synthesis._meta.cost_usd ?? 0)
+          result.aiStatus = 'success'
+        }
+      }
 
       // Phase 6: Complete
-      await this.updateStatus(scanId, 'completed')
-      result.status = 'completed'
+      result.status = selectedForms && allChecks.some(check => ['skipped', 'inconclusive'].includes(check.status)) ? 'partial' : 'completed'
       result.completedAt = new Date()
       await this.finalizeScan(scanId, result)
+      await this.updateStatus(scanId, result.status)
       await this.updateSiteLastScan(siteId, scanId)
 
       return result
@@ -549,9 +601,16 @@ export class QAOrchestrator {
     return (data ?? []).map((d: any, i) => ({ ...pages[i], id: d.id }))
   }
 
+  private async saveFormProgress(scanId: string, selection: FormSelection, status: string, reason?: string) {
+    const { error } = await this.supabase.from('evidence').insert({ scan_id: scanId, issue_id: null, type: 'diagnostic',
+      payload: { kind: 'form_status', signature: selection.signature, formType: selection.formType,
+        url: selection.pageUrl, status, reason: reason ?? null } } as any)
+    if (error) throw new Error('Unable to persist form status; submission must not be retried')
+  }
+
   private async saveChecks(scanId: string, checks: CheckResult[]) {
     const rows = checks.map(c => ({
-      scan_id: scanId, page_id: c.pageId, category: c.category, key: c.key,
+      id: c.id, scan_id: scanId, page_id: c.pageId, category: c.category, key: c.key,
       status: c.status, severity: c.severity, title: c.title, message: c.message, duration_ms: c.duration,
     }))
     if (rows.length) await this.supabase.from('checks').insert(rows as any)

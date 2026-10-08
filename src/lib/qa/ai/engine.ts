@@ -5,6 +5,7 @@ import { OpenAIQAProvider } from './providers/openai'
 import { GeminiQAProvider } from './providers/gemini'
 import { MockQAProvider } from './providers/mock'
 import { redactSensitiveData } from '../security/redact-sensitive-data'
+import type { CheckStatus } from '../types'
 
 export class AIEngine {
   private provider: QAAIProvider
@@ -106,5 +107,19 @@ export class AIEngine {
     }
     
     return null
+  }
+
+  /** The provider receives only per-form conclusions, never raw DOM or secrets. */
+  public async summarizeForms(forms: Array<{ signature: string; formType: string; status: CheckStatus; summary: string }>): Promise<QAAIDiagnostic | null> {
+    if (!forms.length) return null
+    const checks = forms.map(form => ({
+      id: form.signature, scanId: '', pageId: null, category: 'forms' as const,
+      key: 'form_summary', status: form.status, severity: null,
+      title: `Résumé ${form.formType}`, message: form.summary, duration: 0,
+      evidence: [{ type: 'diagnostic' as const, payload: { formType: form.formType, status: form.status, summary: form.summary } }],
+    }))
+    return this.diagnoseIncident({ id: crypto.randomUUID(), category: 'forms_summary', pageId: null,
+      title: 'Synthèse globale : résumer uniquement ces conclusions, conserver leurs statuts, ne pas inventer de problème ni de réception d’email.',
+      severity: 'minor', checks })
   }
 }

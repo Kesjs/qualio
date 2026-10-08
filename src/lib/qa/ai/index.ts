@@ -238,7 +238,15 @@ export function parseIssueDiagnostic(issue: {
 
   if (category.includes('form') || titleUpper.includes('PAIEMENT') || titleUpper.includes('FORMULAIRE')) {
     impact = `${deviceContext}les visiteurs ne peuvent pas soumettre le formulaire — blocage direct du tunnel de conversion ou d'enregistrement.`.trim()
-    if (severity === 'critical') {
+    const formType = (issue as { evidence?: Array<{ payload?: Record<string, unknown> }> }).evidence?.find(ev => typeof ev.payload?.formType === 'string')?.payload?.formType
+    const formImpacts: Record<string, string> = {
+      login: 'La connexion ou le retour d’erreur de connexion est bloqué ; les utilisateurs ne peuvent pas accéder normalement à leur compte.',
+      signup: 'L’inscription est bloquée ; les visiteurs ne peuvent pas créer leur compte.',
+      contact: 'L’envoi de la demande de contact est bloqué ; les visiteurs ne peuvent pas transmettre leur message.',
+      newsletter: 'L’abonnement est bloqué ; les visiteurs ne peuvent pas s’inscrire à la newsletter.',
+    }
+    if (typeof formType === 'string' && formImpacts[formType]) impact = `${deviceContext}${formImpacts[formType]}`.trim()
+    if (severity === 'critical' && !formType) {
       impact = `${deviceContext}bloque complètement la soumission du formulaire. Les visiteurs ne peuvent pas se convertir.`.trim()
     }
     probableCause = 'Le serveur pourrait rejeter la soumission (erreur HTTP 4xx/5xx) ou un champ obligatoire attendu par l\'API serait manquant dans le payload frontend.'

@@ -22,7 +22,13 @@ export class DiffEngine {
     for (const oldIssue of previousIssues) {
       // Find a matching incident in the current scan by category
       const matchIndex = currentIncidents.findIndex(
-        inc => inc.category === oldIssue.category && !currentMatched.has(inc.id)
+        inc => {
+          if (inc.category !== oldIssue.category || currentMatched.has(inc.id)) return false
+          if (inc.category !== 'forms') return true
+          const oldSignature = oldIssue.evidence.find(ev => typeof ev.payload.signature === 'string')?.payload.signature
+          const signature = inc.checks.flatMap(check => check.evidence ?? []).find(ev => typeof ev.payload.signature === 'string')?.payload.signature
+          return !!oldSignature && oldSignature === signature
+        }
       )
 
       if (matchIndex !== -1) {

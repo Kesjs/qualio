@@ -242,6 +242,7 @@ export type Database = {
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
           scan_modules: Json
+          selected_forms: Json | null
           attempt_count: number
           max_attempts: number
           queued_at: string | null
@@ -273,6 +274,7 @@ export type Database = {
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
           scan_modules?: Json
+          selected_forms?: Json | null
           attempt_count?: number
           max_attempts?: number
           queued_at?: string | null
@@ -304,6 +306,7 @@ export type Database = {
           ai_cost_usd?: number | null
           ai_duration_ms?: number | null
           scan_modules?: Json
+          selected_forms?: Json | null
           attempt_count?: number
           max_attempts?: number
           queued_at?: string | null

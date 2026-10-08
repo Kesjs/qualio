@@ -1,5 +1,6 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
+import { scanSummaryText } from '@/lib/qa/selected-form-summary'
 
 export interface SiteDetail {
   id: string
@@ -42,7 +43,8 @@ export interface ScanSummary {
 async function fetchSite(siteId: string): Promise<SiteDetail> {
   const res = await fetch(`/api/sites/${siteId}`)
   if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to fetch site')
-  return res.json()
+  const site = await res.json() as SiteDetail
+  return { ...site, scans: site.scans.map(scan => ({ ...scan, summary: scanSummaryText(scan.summary) })) }
 }
 
 export function useSite(siteId: string) {

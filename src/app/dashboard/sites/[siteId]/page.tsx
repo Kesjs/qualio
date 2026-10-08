@@ -27,6 +27,7 @@ import {
 import { useSite } from '@/lib/hooks/useSite'
 import { useScanResults, useScanStatus, IssueRow, PageRow, CheckRow } from '@/lib/hooks/useScan'
 import { RunScanModal } from '@/components/dashboard/RunScanModal'
+import { FormIncidentDetails } from '@/components/dashboard/FormIncidentDetails'
 import { EvidenceDrawer, EvidenceDetail } from '@/components/dashboard/EvidenceDrawer'
 import { Pagination } from '@/components/ui/Pagination'
 import { ScreenshotIndicator } from '@/components/dashboard/ScreenshotIndicator'
@@ -39,6 +40,7 @@ import { JourneyCoverageCard } from '@/components/dashboard/JourneyCoverageCard'
 // ─── Issue Card Component avec Screenshot Indicator ───────────────────────────
 
 interface IssueCardProps {
+  siteId: string
   issue: IssueRow
   index: number
   isExpanded: boolean
@@ -50,6 +52,7 @@ interface IssueCardProps {
 }
 
 function IssueCard({
+  siteId,
   issue,
   index,
   isExpanded,
@@ -185,6 +188,7 @@ function IssueCard({
             </p>
           </div>
 
+          {issue.category === 'forms' && <FormIncidentDetails issue={issue} siteId={siteId} />}
           {/* Preuves techniques (Principes de confiance - Clickable buttons) */}
           <div className="pt-2 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-between flex-wrap gap-2">
             <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 font-mono">
@@ -949,6 +953,7 @@ export default function SiteWorkspacePage() {
 
                   return (
                     <IssueCard
+                      siteId={siteId}
                       key={issue.id}
                       issue={issue}
                       index={index}
@@ -1264,7 +1269,6 @@ export default function SiteWorkspacePage() {
     </div>
   )
 }
-
 
 
 

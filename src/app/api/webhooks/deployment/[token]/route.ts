@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { eventIdFromPayload, hashDeploymentWebhookToken, isSuccessfulDeployment, readDeploymentPayload } from '@/lib/automation/deployment'
+import { validateFormSelection } from '@/lib/qa/discovery/validate-selection'
 
 type Params = { params: Promise<{ token: string }> }
 
@@ -35,12 +36,20 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ received: true, queued: false, reason: 'Deployment was not successful' })
   }
 
-  const { data: previousScan } = await admin.from('scans').select('id, scan_modules, consent_confirmed_at').eq('site_id', site.id).eq('status', 'completed').order('completed_at', { ascending: false }).limit(1).maybeSingle()
+  const { data: previousScan } = await admin.from('scans').select('id, scan_modules, selected_forms, consent_confirmed_at')
+    .eq('site_id', site.id).eq('user_id', site.user_id).in('status', ['completed', 'partial'])
+    .not('selected_forms', 'is', null).not('consent_confirmed_at', 'is', null)
+    .order('completed_at', { ascending: false }).limit(1).maybeSingle()
   let scanId: string | null = null
-  if (site.deployment_scan_mode === 'automatic') {
+  if (site.deployment_scan_mode === 'automatic' && previousScan) {
+    let selectedForms
+    try { selectedForms = validateFormSelection(previousScan.selected_forms, site.url) } catch {
+      return NextResponse.json({ error: 'Préparez une sélection autorisée avant les audits automatiques.' }, { status: 409 })
+    }
     const { data: scan, error: scanError } = await admin.from('scans').insert({
       site_id: site.id, user_id: site.user_id, status: 'queued', previous_scan_id: previousScan?.id ?? null,
       scan_modules: previousScan?.scan_modules ?? null, journey_scope: 'p0', consent_confirmed_at: previousScan?.consent_confirmed_at ?? new Date().toISOString(), queued_at: new Date().toISOString(),
+      selected_forms: selectedForms, max_attempts: 1,
     } as never).select('id').single()
     if (scanError) return NextResponse.json({ error: scanError.message }, { status: 500 })
     scanId = scan.id

@@ -1,6 +1,8 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { FormSelection, FormScanProgress } from '@/lib/qa/types'
+import { scanSummaryText } from '@/lib/qa/selected-form-summary'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,7 @@ export interface ScanStatus {
   aiCallsCount: number | null
   aiStatus?: 'not_needed' | 'success' | 'failed' | null
   aiError?: string | null
+  forms?: FormScanProgress[]
 }
 
 export interface ScanResults {
@@ -36,6 +39,7 @@ export interface PageRow {
 
 export interface IssueRow {
   id: string
+  scan_id?: string
   category: string
   severity: string
   status: string | null
@@ -72,7 +76,7 @@ async function fetchScanResults(scanId: string): Promise<ScanResults> {
 }
 
 async function startScanAPI(data: {
-  siteId: string; url: string; consentConfirmedAt: string; previousScanId?: string; selectedModules: string[]
+  siteId: string; url: string; consentConfirmedAt: string; previousScanId?: string; selectedModules: string[]; selectedForms?: FormSelection[]
 }) {
   const res = await fetch('/api/scan/start', {
     method: 'POST',
@@ -127,7 +131,8 @@ export interface ScanWithSite {
 async function fetchScans(): Promise<ScanWithSite[]> {
   const res = await fetch('/api/scans')
   if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to fetch scans')
-  return res.json()
+  const scans = await res.json() as ScanWithSite[]
+  return scans.map(scan => ({ ...scan, summary: scanSummaryText(scan.summary) }))
 }
 
 export function useScans() {

@@ -4,6 +4,9 @@ import { assertPublicScanUrl } from '@/lib/qa/ssrf'
 import { AVAILABLE_SCAN_MODULES, DEFAULT_SCAN_MODULES, type ScanModule } from '@/lib/qa/types'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { sendMonitorFailureEmail } from '@/lib/monitor/notifications'
+import { validateFormSelection } from '@/lib/qa/discovery/validate-selection'
+
+export const maxDuration = 300
 
 const STALE_WORKER_MS = 10 * 60 * 1000
 
@@ -18,12 +21,12 @@ async function recoverStaleScans(admin: ReturnType<typeof getSupabaseAdminClient
   const staleBefore = new Date(Date.now() - STALE_WORKER_MS).toISOString()
   const { data: staleScans } = await admin
     .from('scans')
-    .select('id, attempt_count, max_attempts')
+    .select('id, attempt_count, max_attempts, selected_forms')
     .in('status', ['running', 'discovering', 'crawling', 'browser_testing', 'analyzing', 'reporting'])
     .lt('worker_started_at', staleBefore)
 
   await Promise.all((staleScans ?? []).map((scan) => {
-    const exhausted = scan.attempt_count >= scan.max_attempts
+    const exhausted = scan.attempt_count >= scan.max_attempts || Array.isArray(scan.selected_forms)
     return admin.from('scans').update(exhausted
       ? { status: 'failed', completed_at: new Date().toISOString(), error: 'Le worker a expiré après plusieurs tentatives.' }
       : { status: 'queued', queued_at: new Date().toISOString(), worker_started_at: null, error: 'Le worker a expiré ; nouvelle tentative planifiée.' }
@@ -120,6 +123,7 @@ export async function POST(req: NextRequest) {
       previousScanId: scan.previous_scan_id ?? undefined,
       consentConfirmedAt: scan.consent_confirmed_at,
       modules: parseModules(scan.scan_modules),
+      selectedForms: scan.selected_forms ? validateFormSelection(scan.selected_forms, site.url) : undefined,
       journeys: site.journey_definitions,
       journeyScope: (scan as typeof scan & { journey_scope?: 'all' | 'p0' }).journey_scope ?? 'all',
     })
@@ -131,7 +135,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown scan execution error'
     const diagnostic = `[${phase}] ${message}`
-    const retry = scan.attempt_count < scan.max_attempts
+    const retry = !Array.isArray(scan.selected_forms) && scan.attempt_count < scan.max_attempts
     console.error('[scan/run] Worker failed', { scanId: scan.id, phase, attempt: scan.attempt_count, retry, message })
     await admin.from('scans').update(retry
       ? { status: 'queued', queued_at: new Date().toISOString(), worker_started_at: null, error: diagnostic }

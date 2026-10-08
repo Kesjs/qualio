@@ -26,7 +26,8 @@ export class EvidenceEngine {
     for (const check of failedChecks) {
       // Basic grouping key: category + page + key (or title)
       // This is a simplistic correlation strategy. In a real world, this could involve more heuristics.
-      const groupingKey = `${check.category}_${check.pageId}_${check.key}`
+      const signature = check.category === 'forms' ? check.evidence?.find(ev => typeof ev.payload.signature === 'string')?.payload.signature : null
+      const groupingKey = signature ? `forms_${signature}` : `${check.category}_${check.pageId}_${check.key}`
 
       // Extract viewport from evidence if available
       let viewportFromCheck: { name: string; width: number; height: number } | undefined

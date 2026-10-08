@@ -19,12 +19,18 @@ import { parseIssueDiagnostic } from '@/lib/qa/ai'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FormIncidentDetails } from '@/components/dashboard/FormIncidentDetails'
+import { useScanStatus } from '@/lib/hooks/useScan'
 import { Pagination } from '@/components/ui/Pagination'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
 export default function BugsPage() {
   const router = useRouter()
+  const [scanFilter, setScanFilter] = useState<string | null>(null)
+  const [formsOnly, setFormsOnly] = useState(false)
+  const { data: focusedScan } = useScanStatus(scanFilter)
+  useEffect(() => { setScanFilter(new URLSearchParams(window.location.search).get('scanId')) }, [])
   const [search, setSearch] = useState('')
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'critical' | 'major' | 'minor'>('all')
   const [page, setPage] = useState(1)
@@ -57,9 +63,9 @@ export default function BugsPage() {
         (iss.site?.name || '').toLowerCase().includes(q) ||
         (iss.url || '').toLowerCase().includes(q)
 
-      return matchesSeverity && matchesSearch
+      return matchesSeverity && matchesSearch && (!scanFilter || iss.scan_id === scanFilter) && (!formsOnly || iss.selected_forms_scan)
     })
-  }, [issues, search, filterSeverity])
+  }, [issues, search, filterSeverity, formsOnly, scanFilter])
 
   const counts = useMemo(() => {
     let critical = 0
@@ -77,13 +83,21 @@ export default function BugsPage() {
   const resetFilters = () => {
     setSearch('')
     setFilterSeverity('all')
+    setFormsOnly(false)
+    setScanFilter(null)
   }
 
-  const hasActiveFilters = search.trim() !== '' || filterSeverity !== 'all'
+  const hasActiveFilters = search.trim() !== '' || filterSeverity !== 'all' || formsOnly || !!scanFilter
 
   useEffect(() => {
     setPage(1)
-  }, [search, filterSeverity])
+  }, [search, filterSeverity, formsOnly, scanFilter])
+
+  const formSynthesis = useMemo(() => {
+    const raw = focusedScan?.summary ?? filteredIssues.find((issue: any) => issue.selected_forms_scan)?.scan_summary
+    if (typeof raw !== 'string') return null
+    try { const parsed = JSON.parse(raw); return parsed.kind === 'selected_forms' ? parsed : null } catch { return null }
+  }, [focusedScan?.summary, filteredIssues])
 
   const paginatedIssues = filteredIssues.slice((page - 1) * pageSize, page * pageSize)
 
@@ -115,6 +129,8 @@ export default function BugsPage() {
         </Link>
       </div>
 
+      {formSynthesis && <section className="rounded-xl border border-[#ee6018]/25 bg-[#ee6018]/[0.04] p-4"><h2 className="text-sm font-semibold">{formSynthesis.aiSummary ? 'Synthèse globale IA' : 'Synthèse des formulaires sélectionnés'}</h2><p className="mt-2 text-sm text-gray-600 dark:text-zinc-300">{formSynthesis.aiSummary || formSynthesis.summary}</p>{formSynthesis.aiSummary && <p className="mt-2 text-xs text-gray-500">{formSynthesis.summary}</p>}<p className="mt-2 text-xs text-gray-500">Conclusions limitées aux formulaires sélectionnés ; les statuts proviennent des contrôles.</p></section>}
+      <button type="button" aria-pressed={formsOnly} onClick={() => setFormsOnly(value => !value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${formsOnly ? 'border-[#ee6018] text-[#ee6018]' : 'border-gray-200 text-gray-500 dark:border-white/10'}`}>Formulaires sélectionnés</button>
       {/* 2. Operational Filter & Search Bar (Clarify + Distill) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200/80 dark:bg-[#16181E] dark:border-white/[0.08] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
         {/* Search Input */}
@@ -261,6 +277,7 @@ export default function BugsPage() {
                 {/* Meta Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 border-b border-gray-100 dark:border-white/[0.06]">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {bug.selected_forms_scan && <span className="rounded-full border border-[#ee6018]/25 px-2 py-0.5 text-[11px] text-[#ee6018]">Formulaires sélectionnés</span>}
                     {/* Severity Pill */}
                     {diag.severity === 'critical' ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/70 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/30">
@@ -354,6 +371,7 @@ export default function BugsPage() {
                     </Link>
                   </div>
                 </div>
+                {bug.category === 'forms' && siteId && <FormIncidentDetails issue={bug} siteId={siteId} />}
               </div>
             )
             })}

@@ -3,6 +3,7 @@ import { chromium as playwrightChromium, type Browser, type BrowserContext } fro
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, PageResult, FormInfo } from '../types'
 import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
+import { extractForms } from '../discovery/extract-forms'
 
 export class CrawlerEngine {
   private config: QAConfigManager
@@ -32,8 +33,19 @@ export class CrawlerEngine {
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
       ignoreHTTPSErrors: false,
+      serviceWorkers: 'block',
     })
     await installPublicNetworkGuard(this.context)
+    // Crawling is passive: do not allow scripts to submit forms or mutate data.
+    await this.context.route('**/*', async route => {
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(route.request().method())) return route.abort('blockedbyclient')
+      await route.fallback()
+    })
+    await this.context.addInitScript(() => {
+      document.addEventListener('submit', event => event.preventDefault(), true)
+      HTMLFormElement.prototype.submit = function () {}
+      HTMLFormElement.prototype.requestSubmit = function () {}
+    })
   }
 
   async cleanup(): Promise<void> {
@@ -43,18 +55,18 @@ export class CrawlerEngine {
     this.browser = null
   }
 
-  async crawl(startUrl: string): Promise<{ pages: PageResult[]; total: number; duration: number }> {
+  async crawl(startUrl: string, targetUrls?: string[], budgetMs = 40000): Promise<{ pages: PageResult[]; total: number; duration: number }> {
     await assertPublicScanUrl(startUrl)
     const startTime = Date.now()
     const maxPages = this.config.getMaxPages()
     const maxDepth = this.config.getMaxCrawlDepth()
     const visited = new Set<string>()
-    const queue: Array<{ url: string; depth: number }> = [{ url: startUrl, depth: 0 }]
+    const queue: Array<{ url: string; depth: number }> = (targetUrls ?? [startUrl]).map(url => ({ url, depth: 0 }))
     const pages: PageResult[] = []
 
     const base = new URL(startUrl).origin
 
-    while (queue.length > 0 && pages.length < maxPages) {
+    while (queue.length > 0 && pages.length < maxPages && Date.now() - startTime < budgetMs) {
       const item = queue.shift()!
       const normalized = this.normalizeUrl(item.url)
       if (visited.has(normalized)) continue
@@ -72,7 +84,7 @@ export class CrawlerEngine {
         let navigationError: string | null = null
         try {
           await assertPublicScanUrl(item.url)
-          const response = await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: 20000 })
+          const response = await page.goto(item.url, { waitUntil: 'domcontentloaded', timeout: Math.min(10000, Math.max(1, budgetMs - (Date.now() - startTime))) })
           statusCode = response?.status() ?? null
           await assertPublicScanUrl(page.url())
         } catch (e: any) {
@@ -127,26 +139,7 @@ export class CrawlerEngine {
         ).catch(() => [] as string[])
 
         // Extract forms (in-browser scope — safe)
-        const forms = await page.$$eval('form', (formEls) =>
-          formEls.map(form => {
-            const f = form as HTMLFormElement
-            const fields = Array.from(f.querySelectorAll('input, select, textarea')).map(input => {
-              const el = input as HTMLInputElement
-              return {
-                name: el.name || el.id || '',
-                type: el.type || 'text',
-                required: el.required,
-                label: null as string | null,
-              }
-            })
-            return {
-              action: f.action || '',
-              method: f.method || 'get',
-              fields,
-              submitButton: f.querySelector('[type=submit]')?.textContent?.trim() || null,
-            }
-          })
-        ).catch(() => [] as FormInfo[])
+        const forms = await extractForms(page)
 
         const pageResult: PageResult = {
           url: item.url,
@@ -165,7 +158,7 @@ export class CrawlerEngine {
         pages.push(pageResult)
 
         // Enqueue unvisited links
-        if (item.depth < maxDepth) {
+        if (!targetUrls && item.depth < maxDepth) {
           for (const link of links) {
             const norm = this.normalizeUrl(link)
             if (!visited.has(norm)) {

@@ -3,6 +3,8 @@ import { chromium as playwrightChromium, type Browser, type BrowserContext, type
 import type { QAConfigManager } from '../config'
 import type { CheckResult, CheckCategory, CheckStatus, IssueSeverity, JourneyDefinition, JourneyResult, JourneyStepResult, JourneyActionType, Evidence } from '../types'
 import { assertPublicScanUrl, installPublicNetworkGuard } from '../ssrf'
+import type { FormSelection } from '../types'
+import { submitSelectedForm, type LoginTestCredentials, type FormCheck } from './submit-selected-form'
 
 export class BrowserEngine {
   private config: QAConfigManager
@@ -30,6 +32,7 @@ export class BrowserEngine {
     this.context = await this.browser.newContext({
       userAgent: 'Qualio-QA/1.0 (https://qualio.dev)',
       ignoreHTTPSErrors: false,
+      serviceWorkers: 'block',
     })
     await installPublicNetworkGuard(this.context)
   }
@@ -126,47 +129,25 @@ export class BrowserEngine {
     return results
   }
 
-  async testForms(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {
-    const page = await this.context!.newPage()
-    const t0 = Date.now()
-    let navigationError: string | null = null
-    try { await this.navigatePublicPage(page, url) } catch (error) {
-      navigationError = error instanceof Error ? error.message : String(error)
+  async testForms(url: string, selections: FormSelection[] = [], options: {
+    credentials?: LoginTestCredentials
+    onRunning?: (selection: FormSelection) => Promise<void>
+    onResult?: (selection: FormSelection, check: FormCheck) => Promise<void>
+  } = {}): Promise<FormCheck[]> {
+    if (!this.context) throw new Error('Browser is not initialized')
+    const checks: FormCheck[] = []
+    const seen = new Set<string>()
+    for (const selection of selections) {
+      if (selection.pageUrl !== url || seen.has(selection.signature)) continue
+      seen.add(selection.signature)
+      const check = await submitSelectedForm(this.context, selection, {
+        credentials: options.credentials,
+        onRunning: () => options.onRunning?.(selection) ?? Promise.resolve(),
+      })
+      checks.push(check)
+      await options.onResult?.(selection, check)
     }
-
-    if (navigationError) {
-      await page.close()
-      return [this.makeCheck('forms_navigation', 'forms', 'failed', 'Form Check', `Page failed to load: ${navigationError}`, 'critical', Date.now() - t0, [{ type: 'network', payload: { url, navigationError } }])]
-    }
-
-    const forms = await page.$$eval('form', fEls =>
-      fEls.map(f => ({
-        hasSubmit: !!f.querySelector('[type=submit], button[type=submit], button:not([type])'),
-        fieldCount: f.querySelectorAll('input:not([type=hidden]), select, textarea').length,
-        action: (f as HTMLFormElement).action || '',
-      }))
-    ).catch(() => [] as { hasSubmit: boolean; fieldCount: number; action: string }[])
-
-    await page.close()
-    const duration = Date.now() - t0
-
-    if (forms.length === 0) {
-      return [this.makeCheck('forms_detected', 'forms', 'passed', 'Form Check', 'No forms found on page', null, duration)]
-    }
-
-    const results: Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[] = []
-    for (const f of forms) {
-      if (!f.hasSubmit) {
-        results.push(this.makeCheck('form_no_submit', 'forms', 'warning', 'Form Missing Submit', 'A form has no visible submit button', 'minor', duration))
-      }
-      if (f.fieldCount === 0) {
-        results.push(this.makeCheck('form_empty', 'forms', 'warning', 'Empty Form', 'A form has no visible fields', 'minor', duration))
-      }
-    }
-    if (results.length === 0) {
-      results.push(this.makeCheck('forms_detected', 'forms', 'passed', 'Forms OK', `${forms.length} form(s) look valid`, null, duration))
-    }
-    return results
+    return checks
   }
 
   async testCTA(url: string): Promise<Omit<CheckResult, 'id' | 'scanId' | 'pageId'>[]> {

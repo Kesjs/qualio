@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
         id,
         site_id,
         ai_status,
+        summary,
+        selected_forms,
         sites!scans_site_id_fkey (id, user_id, url, name, environment)
       `)
       .eq('user_id', user.id)
@@ -53,6 +55,8 @@ export async function GET(req: NextRequest) {
       ...issue,
       site: sitesByScanId.get(issue.scan_id) ?? null,
       scan_ai_status: scans?.find((scan: any) => scan.id === issue.scan_id)?.ai_status ?? 'not_needed',
+      scan_summary: scans?.find((scan: any) => scan.id === issue.scan_id)?.summary ?? null,
+      selected_forms_scan: Array.isArray(scans?.find((scan: any) => scan.id === issue.scan_id)?.selected_forms),
       url: issue.page?.url ?? null,
     }))
 
