@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Dialog } from '@base-ui/react/dialog'
 import {
   XMarkIcon,
   GlobeAltIcon,
-  ShieldCheckIcon,
   ExclamationCircleIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
@@ -58,18 +58,6 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
     window.localStorage.setItem(ADD_SITE_DRAFT_KEY, JSON.stringify(draft))
   }, [draftLoaded, name, url])
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -121,33 +109,33 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) onClose() }}>
+      <Dialog.Portal>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-900/40 dark:bg-black/70 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
+      <Dialog.Backdrop
+        className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/70 backdrop-blur-xs transition-opacity"
       />
+      <Dialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-md rounded-xl bg-white dark:bg-[#16181E] p-6 shadow-2xl border border-gray-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-200">
+      <Dialog.Popup className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white dark:bg-[#16181E] p-6 shadow-2xl border border-gray-100 dark:border-white/[0.08] animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-white/[0.06]">
           <div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white font-sans">
+            <Dialog.Title className="text-base font-bold text-gray-900 dark:text-white font-sans">
               Ajouter un nouveau site
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            </Dialog.Title>
+            <Dialog.Description className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
               Enregistrez un environnement web à surveiller.
-            </p>
+            </Dialog.Description>
           </div>
-          <button
+          <Dialog.Close
             type="button"
-            onClick={onClose}
             aria-label="Fermer"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
           >
             <XMarkIcon className="h-4 w-4" />
-          </button>
+          </Dialog.Close>
         </div>
 
         {draftRestored && (
@@ -159,7 +147,7 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50/80 border border-red-200 dark:bg-rose-500/10 dark:border-rose-500/20 text-xs text-red-700 dark:text-rose-400">
+            <div role="alert" className="flex items-start gap-2.5 p-3 rounded-lg bg-red-50/80 border border-red-200 dark:bg-rose-500/10 dark:border-rose-500/20 text-xs text-red-700 dark:text-rose-400">
               <ExclamationCircleIcon className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
               <p className="leading-snug">{error}</p>
             </div>
@@ -167,10 +155,11 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
 
           {/* Project Name */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
+            <label htmlFor="add-site-name" className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
               Nom du projet <span className="text-gray-400 dark:text-zinc-500 font-normal">(Optionnel)</span>
             </label>
             <input
+              id="add-site-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -181,12 +170,13 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
 
           {/* Base URL */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
+            <label htmlFor="add-site-url" className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
               URL de base <span className="text-[#ee6018]">*</span>
             </label>
             <div className="relative">
               <GlobeAltIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-zinc-500" />
               <input
+                id="add-site-url"
                 type="text"
                 inputMode="url"
                 autoCapitalize="none"
@@ -232,7 +222,9 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </Dialog.Popup>
+      </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }

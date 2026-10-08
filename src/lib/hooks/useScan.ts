@@ -1,8 +1,10 @@
 'use client'
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { FormSelection, FormScanProgress } from '@/lib/qa/types'
 import { scanSummaryText } from '@/lib/qa/selected-form-summary'
+import { TERMINAL_SCAN_STATUSES, scanPollInterval, scanListPollInterval } from './scan-polling'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,7 +61,7 @@ export interface CheckRow {
   title: string | null; message: string | null; duration_ms: number | null; page_id: string | null
 }
 
-const TERMINAL_STATUSES = ['completed', 'failed', 'partial', 'blocked']
+const TERMINAL_STATUSES = TERMINAL_SCAN_STATUSES
 
 // ─── Fetchers ─────────────────────────────────────────────────────────────────
 
@@ -96,11 +98,7 @@ export function useScanStatus(scanId: string | null, enabled = true) {
     queryKey: ['scan', scanId, 'status'],
     queryFn: () => fetchScanStatus(scanId!),
     enabled: enabled && !!scanId,
-    refetchInterval: (query) => {
-      const status = query.state.data?.status
-      if (!status || TERMINAL_STATUSES.includes(status)) return false
-      return 2000 // Poll every 2s while running
-    },
+    refetchInterval: (query) => scanPollInterval(query.state.data?.status),
     staleTime: 0,
   })
 }
@@ -136,11 +134,27 @@ async function fetchScans(): Promise<ScanWithSite[]> {
 }
 
 export function useScans() {
-  return useQuery({
+  const qc = useQueryClient()
+  const previousStatuses = useRef(new Map<string, string>())
+  const query = useQuery({
     queryKey: ['scans'],
     queryFn: fetchScans,
+    refetchInterval: (query) => scanListPollInterval(query.state.data),
     staleTime: 5 * 60 * 1000, gcTime: 15 * 60 * 1000, refetchOnWindowFocus: false,
   })
+  useEffect(() => {
+    if (!query.data) return
+    const completedSites = new Set(query.data.filter(scan => {
+      const previous = previousStatuses.current.get(scan.id)
+      return previous && !TERMINAL_STATUSES.includes(previous) && TERMINAL_STATUSES.includes(scan.status)
+    }).map(scan => scan.site_id))
+    previousStatuses.current = new Map(query.data.map(scan => [scan.id, scan.status]))
+    if (completedSites.size) {
+      void qc.invalidateQueries({ queryKey: ['sites'] })
+      completedSites.forEach(siteId => { void qc.invalidateQueries({ queryKey: ['site', siteId] }) })
+    }
+  }, [query.data, qc])
+  return query
 }
 
 export function useScanResults(scanId: string | null, scanStatus?: string) {

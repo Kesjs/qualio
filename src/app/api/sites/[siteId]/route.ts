@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       scans!scans_site_id_fkey (
         id, status, started_at, completed_at, created_at, previous_scan_id,
         pages_discovered, checks_total, checks_passed, checks_warning, checks_failed,
-        critical_count, major_count, summary, error, journey_scope, monitor_triggered
+        critical_count, major_count, summary, error, journey_scope
       )
     `)
     .eq('id', siteId)

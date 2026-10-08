@@ -1,6 +1,7 @@
 'use client'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { scanListPollInterval } from './scan-polling'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ async function deleteSiteAPI(siteId: string) {
 export function useSites() {
   return useQuery({
     queryKey: ['sites'],
+    refetchInterval: (query) => scanListPollInterval(query.state.data?.flatMap(site => site.last_scan ? [site.last_scan] : [])),
     queryFn: fetchSites, staleTime: 5 * 60 * 1000, gcTime: 15 * 60 * 1000, refetchOnWindowFocus: false,
   })
 }
