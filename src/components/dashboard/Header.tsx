@@ -24,10 +24,10 @@ interface HeaderProps {
 
 function getBreadcrumb(pathname: string) {
   if (pathname === '/dashboard') return { title: 'Vue d’ensemble', parent: null }
-  if (pathname === '/dashboard/sites') return { title: 'Sites', parent: null }
-  if (pathname.startsWith('/dashboard/sites/')) return { title: 'Détail du site', parent: { label: 'Sites', href: '/dashboard/sites' } }
-  if (pathname === '/dashboard/scans') return { title: 'Scans', parent: null }
-  if (pathname === '/dashboard/bugs') return { title: 'Bugs', parent: null }
+  if (pathname === '/dashboard/feedback') return { title: 'Avis', parent: null }
+  if (pathname === '/dashboard/analysis') return { title: 'Synthèses', parent: null }
+  if (pathname === '/dashboard/recommendations') return { title: 'Recommandations', parent: null }
+  if (pathname === '/dashboard/collection') return { title: 'Sources', parent: null }
   if (pathname === '/dashboard/settings') return { title: 'Paramètres', parent: null }
   return { title: 'Dashboard', parent: null }
 }
@@ -115,18 +115,6 @@ export function Header({
           </Link>
 
           <ChevronRightIcon className="h-3 w-3 text-gray-300 dark:text-zinc-600 stroke-[2]" />
-
-          {breadcrumb.parent && (
-            <>
-              <Link
-                href={breadcrumb.parent.href}
-                className="text-gray-500 hover:text-gray-900 font-medium transition-colors dark:text-zinc-400 dark:hover:text-white"
-              >
-                {breadcrumb.parent.label}
-              </Link>
-              <ChevronRightIcon className="h-3 w-3 text-gray-300 dark:text-zinc-600 stroke-[2]" />
-            </>
-          )}
 
           {/* Slightly framed / légèrement encadré current page */}
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-200/90 text-xs font-semibold text-gray-900 shadow-2xs dark:bg-[#16181E] dark:border-white/[0.08] dark:text-zinc-100">

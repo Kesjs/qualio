@@ -291,7 +291,7 @@ export default function LoginPage() {
 
     setIsLoading(true)
     try {
-      await redirectAfterAuth()
+      window.location.replace('/onboarding')
     } catch (err: any) {
       toast.error(err?.message || t.errors.signinFailed)
     } finally {

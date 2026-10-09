@@ -68,7 +68,7 @@ export default function DashboardLayout({
                 Qualio
               </span>
               <span className="text-[9px] font-mono font-medium text-gray-400 dark:text-zinc-500 mt-0.5">
-                QA WORKSPACE
+                FEEDBACK WORKSPACE
               </span>
             </div>
           </Link>

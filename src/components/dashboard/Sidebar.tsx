@@ -1,14 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
   GlobeAltIcon,
-  ClockIcon,
-  BugAntIcon,
   Cog6ToothIcon,
   ChevronUpDownIcon,
   ArrowRightOnRectangleIcon,
@@ -32,10 +29,11 @@ const navSections = [
   {
     title: 'Navigation',
     items: [
-      { label: 'Vue d’ensemble', href: '/dashboard', icon: HomeIcon },
-      { label: 'Sites', href: '/dashboard/sites', icon: GlobeAltIcon },
-      { label: 'Scans', href: '/dashboard/scans', icon: ClockIcon },
-      { label: 'Bugs', href: '/dashboard/bugs', icon: BugAntIcon },
+      { label: 'Accueil', href: '/dashboard', icon: HomeIcon },
+      { label: 'Avis', href: '/dashboard/feedback', icon: DocumentTextIcon },
+      { label: 'Synthèses', href: '/dashboard/analysis', icon: SparklesIcon },
+      { label: 'Recommandations', href: '/dashboard/recommendations', icon: ArrowTopRightOnSquareIcon },
+      { label: 'Sources', href: '/dashboard/collection', icon: PlusIcon },
     ],
   },
   {
@@ -50,16 +48,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { data: sites } = useSites()
-  const { data: issues } = useQuery({
-    queryKey: ['all-issues'],
-    queryFn: async () => {
-      const response = await fetch('/api/issues')
-      if (!response.ok) throw new Error('Impossible de charger les bugs')
-      const data = await response.json()
-      return Array.isArray(data) ? data : []
-    },
-    staleTime: 60 * 1000,
-  })
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [isSiteMenuOpen, setIsSiteMenuOpen] = useState(false)
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false)
@@ -121,7 +109,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
   const initials = userName.slice(0, 2).toUpperCase()
   const selectedSite = sites?.find((site) => site.id === selectedSiteId) ?? sites?.[0]
   const selectedSiteHost = selectedSite ? getSiteHostname(selectedSite.url) : null
-  const unresolvedIssueCount = issues?.filter((issue: { status?: string }) => issue.status !== 'resolved' && issue.status !== 'ignored').length ?? 0
 
   return (
     <aside
@@ -147,7 +134,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                   Qualio
                 </span>
                 <span className="text-[10px] font-mono font-medium text-gray-400 dark:text-zinc-500 mt-1 truncate">
-                  QA WORKSPACE
+                  FEEDBACK WORKSPACE
                 </span>
               </div>
             )}
@@ -162,19 +149,19 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
               onClick={() => setIsSiteMenuOpen((open) => !open)}
               className="flex w-full items-center gap-2.5 rounded-md border border-gray-200/80 bg-white px-2.5 py-2 text-left transition-colors hover:border-gray-300 dark:border-white/[0.08] dark:bg-[#16181E] dark:hover:border-white/20"
               aria-expanded={isSiteMenuOpen}
-              aria-label="Changer de site"
+              aria-label="Changer de projet"
             >
               <SiteFavicon site={selectedSite} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[9px] font-semibold uppercase tracking-[0.1em] text-gray-400 dark:text-zinc-500">Site actif</span>
-                <span className="mt-0.5 block truncate text-xs font-semibold text-gray-900 dark:text-zinc-100">{selectedSite?.name || selectedSiteHost || 'Aucun site'}</span>
+                <span className="block text-[9px] font-semibold uppercase tracking-[0.1em] text-gray-400 dark:text-zinc-500">Projet actif</span>
+                <span className="mt-0.5 block truncate text-xs font-semibold text-gray-900 dark:text-zinc-100">{selectedSite?.name || selectedSiteHost || 'Aucun projet'}</span>
               </span>
               <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 text-gray-400 transition-transform dark:text-zinc-500 ${isSiteMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isSiteMenuOpen && (
               <div className="absolute left-3 right-3 top-full z-40 mt-2 overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-xl dark:border-white/[0.1] dark:bg-[#16181E]">
-                <div className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-zinc-500">Vos sites</div>
+                <div className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-400 dark:text-zinc-500">Vos projets</div>
                 <div className="max-h-56 overflow-y-auto">
                   {sites?.map((site) => (
                     <button
@@ -195,11 +182,11 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                   ))}
                 </div>
                 <div className="mt-1 border-t border-gray-100 pt-1 dark:border-white/[0.07]">
-                  <Link href="/dashboard/sites" onClick={() => setIsSiteMenuOpen(false)} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/[0.05]">
-                    <GlobeAltIcon className="h-3.5 w-3.5 text-gray-400" /> Gérer les sites
+                    <Link href="/dashboard/projects" onClick={() => setIsSiteMenuOpen(false)} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/[0.05]">
+                    <GlobeAltIcon className="h-3.5 w-3.5 text-gray-400" /> Gérer les projets
                   </Link>
                   <button type="button" onClick={() => { setIsSiteMenuOpen(false); setIsAddSiteOpen(true) }} className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-[#ee6018] hover:bg-orange-50 dark:hover:bg-[#ee6018]/10">
-                    <PlusIcon className="h-3.5 w-3.5" /> Ajouter un site
+                    <PlusIcon className="h-3.5 w-3.5" /> Ajouter un projet
                   </button>
                 </div>
               </div>
@@ -246,12 +233,6 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                       />
                       {!isCollapsed && (
                         <span className="flex-1 truncate">{item.label}</span>
-                      )}
-
-                      {!isCollapsed && item.label === 'Bugs' && unresolvedIssueCount > 0 && !isActive && (
-                        <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-red-50 text-red-600 border border-red-200/60 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 mr-1.5">
-                          {unresolvedIssueCount > 99 ? '99+' : unresolvedIssueCount}
-                        </span>
                       )}
 
                       {/* Signature active state: a rounded orange notch confirms the selected item. */}

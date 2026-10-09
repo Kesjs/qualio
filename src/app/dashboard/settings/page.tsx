@@ -57,7 +57,7 @@ const NOTIFICATION_OPTIONS: CheckboxGroupOption[] = [
 const TABS = [
   { id: 'profile', label: 'Profil', icon: UserIcon },
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
-  { id: 'billing', label: 'Abonnement', icon: CreditCardIcon, comingSoon: true },
+  { id: 'billing', label: 'Abonnement', icon: CreditCardIcon },
   { id: 'integrations', label: 'Intégrations', icon: PuzzlePieceIcon },
   { id: 'api', label: 'API & Webhooks', icon: CommandLineIcon },
   { id: 'security', label: 'Sécurité', icon: ShieldCheckIcon },
@@ -94,6 +94,16 @@ function ComingSoonPanel({ tab }: { tab: Exclude<SettingsTab, 'profile' | 'notif
       <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-zinc-400">{copy.description}</p>
     </div>
   )
+}
+
+function BillingPanel() {
+  const [billing, setBilling] = useState<{ plan: string; status: string; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean } | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  useEffect(() => { fetch('/api/billing/status').then((response) => response.json()).then(setBilling).catch(() => setError('Impossible de charger votre abonnement.')) }, [])
+  async function openPortal() { setLoading(true); setError(''); const response = await fetch('/api/billing/portal', { method: 'POST' }); const result = await response.json().catch(() => ({})); if (!response.ok) setError(result.error ?? 'Le portail de facturation est indisponible.'); else window.location.assign(result.url); setLoading(false) }
+  const planLabel = billing?.plan === 'pro' ? 'Pro' : billing?.plan === 'essential' ? 'Essentiel' : 'Gratuit'
+  return <div className="space-y-6 p-5 md:p-7"><div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#ee6018]">Abonnement</p><h2 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">Votre plan Qualio</h2><p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Le plan actif est confirmé par Stripe et contrôlé côté serveur.</p></div>{error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-500/10 dark:text-red-200">{error}</p>}<div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10"><div><span className="text-xs text-gray-500 dark:text-zinc-400">Plan actuel</span><strong className="mt-1 block text-2xl text-gray-950 dark:text-white">{billing ? planLabel : 'Chargement…'}</strong>{billing?.currentPeriodEnd && <span className="mt-1 block text-xs text-gray-500 dark:text-zinc-400">Période jusqu’au {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(billing.currentPeriodEnd))}{billing.cancelAtPeriodEnd ? ' · résiliation prévue' : ''}</span>}</div>{billing?.plan !== 'free' && <button type="button" onClick={openPortal} disabled={loading} className="rounded-lg border border-gray-200 px-4 py-2.5 text-xs font-bold hover:border-gray-400 disabled:opacity-50 dark:border-white/10">{loading ? 'Ouverture…' : 'Gérer la facturation'}</button>}</div><p className="text-xs leading-5 text-gray-500 dark:text-zinc-400">Vous pouvez modifier votre moyen de paiement, consulter vos factures ou annuler depuis le portail sécurisé Stripe.</p></div>
 }
 
 export default function SettingsPage() {
@@ -228,7 +238,7 @@ export default function SettingsPage() {
   }
 
   const isSaving = saveState === 'saving'
-  const activeTabIsComingSoon = activeTab === 'billing'
+  const activeTabIsComingSoon = activeTab === 'integrations'
 
   return (
     <div className="max-w-6xl space-y-6 pb-12">
@@ -285,6 +295,8 @@ export default function SettingsPage() {
                 <ComingSoonPanel tab={activeTab} />
               </div>
             ) : null}
+
+            {activeTab === 'billing' ? <div id="settings-panel-billing" role="tabpanel" aria-labelledby="settings-tab-billing"><BillingPanel /></div> : null}
 
             {activeTab === 'profile' ? (
               <div id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
