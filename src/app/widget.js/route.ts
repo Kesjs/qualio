@@ -81,10 +81,16 @@ export function GET(request: NextRequest) {
     const translations = {
       fr: { button: 'Laisser un avis', title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', close: 'Fermer', content: 'Votre avis', contentPlaceholder: 'Écrivez votre avis…', name: 'Votre nom (facultatif)', email: 'Votre email (facultatif)', submit: 'Envoyer', sending: 'Envoi', success: 'Merci pour votre avis', successCopy: 'Votre message a bien été envoyé.' },
       en: { button: 'Feedback', title: 'Your feedback matters', intro: 'Tell us what works well or what could be improved.', close: 'Close', content: 'Your feedback', contentPlaceholder: 'Write your feedback…', name: 'Your name (optional)', email: 'Your email (optional)', submit: 'Send', sending: 'Sending', success: 'Thanks for your feedback', successCopy: 'Your message has been sent.' },
+      de: { button: 'Feedback geben', title: 'Ihr Feedback zählt', intro: 'Sagen Sie uns, was gut funktioniert oder verbessert werden könnte.', close: 'Schließen', content: 'Ihr Feedback', contentPlaceholder: 'Schreiben Sie Ihr Feedback…', name: 'Ihr Name (optional)', email: 'Ihre E-Mail (optional)', submit: 'Senden', sending: 'Wird gesendet', success: 'Vielen Dank für Ihr Feedback', successCopy: 'Ihre Nachricht wurde gesendet.' },
+      it: { button: 'Lascia un feedback', title: 'Il tuo feedback conta', intro: 'Dicci cosa funziona bene o cosa potrebbe essere migliorato.', close: 'Chiudi', content: 'Il tuo feedback', contentPlaceholder: 'Scrivi il tuo feedback…', name: 'Il tuo nome (facoltativo)', email: 'La tua email (facoltativa)', submit: 'Invia', sending: 'Invio', success: 'Grazie per il tuo feedback', successCopy: 'Il tuo messaggio è stato inviato.' },
     };
     const getLanguage = () => {
       const candidate = requestedLanguage || document.documentElement.lang || navigator.languages?.[0] || navigator.language || 'fr';
-      return String(candidate).toLowerCase().startsWith('en') ? 'en' : 'fr';
+      const normalized = String(candidate).toLowerCase();
+      if (normalized.startsWith('en')) return 'en';
+      if (normalized.startsWith('de')) return 'de';
+      if (normalized.startsWith('it')) return 'it';
+      return 'fr';
     };
     const applyLanguage = () => {
       const copy = translations[getLanguage()];
@@ -104,6 +110,8 @@ export function GET(request: NextRequest) {
       return copy;
     };
     applyLanguage();
+    const languageObserver = new MutationObserver(() => applyLanguage());
+    languageObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
     const setOpen = (open) => {
       if (open && !success.hidden) {
