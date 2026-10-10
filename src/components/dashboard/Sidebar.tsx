@@ -13,6 +13,7 @@ import {
   ArrowTopRightOnSquareIcon,
   UserCircleIcon,
   DocumentTextIcon,
+  ArrowDownTrayIcon,
   PlusIcon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline'
@@ -29,11 +30,11 @@ const navSections = [
   {
     title: 'Navigation',
     items: [
-      { label: 'Accueil', href: '/dashboard', icon: HomeIcon },
+      { label: 'Vue d’ensemble', href: '/dashboard', icon: HomeIcon },
       { label: 'Avis', href: '/dashboard/feedback', icon: DocumentTextIcon },
       { label: 'Synthèses', href: '/dashboard/analysis', icon: SparklesIcon },
       { label: 'Recommandations', href: '/dashboard/recommendations', icon: ArrowTopRightOnSquareIcon },
-      { label: 'Sources', href: '/dashboard/collection', icon: PlusIcon },
+      { label: 'Collecte', href: '/dashboard/collection', icon: ArrowDownTrayIcon },
     ],
   },
   {

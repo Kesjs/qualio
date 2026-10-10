@@ -5,14 +5,15 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { useSites } from '@/lib/hooks/useSites'
+import { FeedbackInbox } from '@/components/dashboard/FeedbackInbox'
 
 const content = {
   projects: { label: 'Projets', title: 'Les espaces où vos retours prennent du contexte.', body: 'Un projet rassemble son domaine, ses sources de collecte, ses retours et ses rapports.' },
-  feedback: { label: 'Retours', title: 'Tous les retours, au même endroit.', body: 'Recherchez, filtrez et ouvrez chaque retour avant de le relier à un thème ou une décision.' },
-  analysis: { label: 'Analyses', title: 'Les signaux structurés par Qualio.', body: 'Chaque analyse sépare le résumé, le thème, la confiance et les éléments qui restent incertains.' },
+  feedback: { label: 'Avis', title: 'Tous les avis, au même endroit.', body: 'Recherchez, filtrez et traitez chaque avis avant de le relier à un thème ou une décision.' },
+  analysis: { label: 'Synthèses', title: 'Les tendances structurées par Qualio.', body: 'Chaque synthèse relie les thèmes aux avis qui les justifient et sépare les faits des éléments encore incertains.' },
   recommendations: { label: 'Recommandations', title: 'Les décisions qui attendent votre équipe.', body: 'Une recommandation est une proposition sourcée, jamais une action automatique sur votre produit.' },
   reports: { label: 'Rapports', title: 'Une synthèse périodique des retours.', body: 'Retrouvez les thèmes, leur évolution, les exemples sourcés et les données manquantes.' },
-  collection: { label: 'Collecte', title: 'Choisissez comment les retours arrivent.', body: 'Ajoutez un retour manuellement pour commencer. Les sources externes utiliseront la même base persistante.' },
+  collection: { label: 'Collecte', title: 'Gérez les sources de vos avis.', body: 'Le widget collecte les nouveaux avis. L’import CSV conserve votre historique dans le même espace.' },
 } as const
 
 type FeedbackItem = { id: string; content: string; source: string; theme: string | null; status: string; created_at: string; author_name: string | null }
@@ -28,10 +29,10 @@ export function FeedbackSectionPage({ section }: { section: keyof typeof content
       if (!response.ok) throw new Error('Impossible de charger les retours')
       return response.json() as Promise<FeedbackItem[]>
     },
-    enabled: Boolean(site?.id) && section !== 'collection',
+    enabled: Boolean(site?.id) && section !== 'collection' && section !== 'feedback',
   })
 
-  return <div className="space-y-6 pb-16"><Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-[#ee6018] dark:text-zinc-400"><ArrowLeftIcon className="h-4 w-4" />Retour à l’accueil</Link><div className="rounded-xl border border-gray-200/80 bg-white p-6 dark:border-white/[0.08] dark:bg-[#181B21]"><span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ee6018]">{page.label}</span><h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-gray-950 dark:text-white">{page.title}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">{page.body}</p></div>{section === 'collection' ? <CollectionPanel /> : section === 'analysis' ? <><SynthesisPanel siteId={site?.id} feedbackCount={feedback.length} /><FeedbackCards feedback={feedback} isLoading={isLoading} /></> : section === 'feedback' || section === 'recommendations' ? <FeedbackCards feedback={feedback} isLoading={isLoading} /> : <InfoCards section={section} />}</div>
+  return <div className="space-y-6 pb-16"><Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-[#ee6018] dark:text-zinc-400"><ArrowLeftIcon className="h-4 w-4" />Retour à la vue d’ensemble</Link><div className="rounded-xl border border-gray-200/80 bg-white p-6 dark:border-white/[0.08] dark:bg-[#181B21]"><span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ee6018]">{page.label}</span><h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-gray-950 dark:text-white">{page.title}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">{page.body}</p></div>{section === 'collection' ? <CollectionPanel /> : section === 'feedback' ? <FeedbackInbox siteId={site?.id} /> : section === 'analysis' ? <><SynthesisPanel siteId={site?.id} feedbackCount={feedback.length} /><FeedbackCards feedback={feedback} isLoading={isLoading} /></> : section === 'recommendations' ? <FeedbackCards feedback={feedback} isLoading={isLoading} /> : <InfoCards section={section} />}</div>
 }
 
 type Synthesis = { id: string; title: string; summary: string; themes: Array<{ name: string; count: number; insight: string; feedback_ids: string[] }>; recommendations: Array<{ title: string; action: string; rationale: string; priority: string; feedback_ids: string[] }>; created_at: string }

@@ -12,6 +12,12 @@ type FeedbackPayload = {
   metadata?: Record<string, unknown>
 }
 
+type FeedbackUpdatePayload = {
+  id?: string
+  status?: 'open' | 'reviewed' | 'archived'
+  theme?: string | null
+}
+
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
 }
@@ -97,4 +103,39 @@ export async function POST(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
+}
+
+export async function PATCH(request: NextRequest) {
+  const { supabase, user } = await getUserAndClient()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let body: FeedbackUpdatePayload
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const id = cleanText(body.id, 64)
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+
+  const updates: Record<string, unknown> = {}
+  if (body.status !== undefined) {
+    if (!['open', 'reviewed', 'archived'].includes(body.status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    updates.status = body.status
+  }
+  if (body.theme !== undefined) updates.theme = cleanText(body.theme, 80) || null
+  if (!Object.keys(updates).length) return NextResponse.json({ error: 'No changes provided' }, { status: 400 })
+
+  const { data, error } = await (supabase as any)
+    .from('feedback_items')
+    .update(updates)
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select('*')
+    .maybeSingle()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Feedback not found' }, { status: 404 })
+  return NextResponse.json(data)
 }
