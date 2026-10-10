@@ -33,9 +33,16 @@ export default function OnboardingPage() {
     const script = `<script src="${window.location.origin}/widget.js" data-key="${widgetKey}"></script>`
     setCopyStatus('copying')
     try {
+      let copied = false
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(script)
-      } else {
+        try {
+          await navigator.clipboard.writeText(script)
+          copied = true
+        } catch {
+          copied = false
+        }
+      }
+      if (!copied) {
         const textarea = document.createElement('textarea')
         textarea.value = script
         textarea.setAttribute('readonly', '')
@@ -44,7 +51,7 @@ export default function OnboardingPage() {
         document.body.appendChild(textarea)
         textarea.select()
         textarea.setSelectionRange(0, script.length)
-        const copied = document.execCommand('copy')
+        copied = document.execCommand('copy')
         textarea.remove()
         if (!copied) throw new Error('Copy command failed')
       }
