@@ -5,6 +5,7 @@ export function GET(request: NextRequest) {
   const script = `(() => {
   const current = document.currentScript;
   const key = current && current.getAttribute('data-key');
+  const requestedLanguage = current && current.getAttribute('data-lang');
   if (!key || window.__qualioWidgetLoaded) return;
   window.__qualioWidgetLoaded = true;
 
@@ -33,22 +34,35 @@ export function GET(request: NextRequest) {
         .qualio-panel label { display: block; margin: 10px 0 0; color: #374151; font-size: 12px; font-weight: 600; }
         .qualio-panel textarea, .qualio-panel input { display: block; width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #111827; padding: 10px; font: inherit; }
         .qualio-panel textarea { resize: vertical; }
-        .qualio-submit { margin-top: 14px; border: 0; border-radius: 9px; background: #111827; color: #fff; padding: 10px 13px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
+        .qualio-submit { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 92px; margin-top: 14px; border: 0; border-radius: 9px; background: #111827; color: #fff; padding: 10px 13px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
         .qualio-submit:disabled { cursor: wait; opacity: .6; }
-        .qualio-status { min-height: 18px; margin-top: 10px; color: #166534; font-size: 12px; }
+        .qualio-submit-dots { display: inline-flex; gap: 3px; align-items: center; }
+        .qualio-submit-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: qualio-dot 1s infinite ease-in-out; }
+        .qualio-submit-dots i:nth-child(2) { animation-delay: .12s; }
+        .qualio-submit-dots i:nth-child(3) { animation-delay: .24s; }
+        @keyframes qualio-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-3px); opacity: 1; } }
+        .qualio-status { min-height: 18px; margin-top: 10px; color: #b42318; font-size: 12px; }
         .qualio-status.error { color: #b42318; }
+        .qualio-success { display: grid; justify-items: center; gap: 10px; padding: 22px 8px 10px; text-align: center; }
+        .qualio-success[hidden] { display: none; }
+        .qualio-success-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: #ecfdf3; color: #16803c; animation: qualio-success-in .28s ease-out both; }
+        .qualio-success-icon svg { width: 25px; height: 25px; }
+        .qualio-success strong { color: #111827; font-size: 15px; }
+        .qualio-success p { margin: 0; color: #6b7280; font-size: 13px; }
+        @keyframes qualio-success-in { from { transform: scale(.65); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @media (max-width: 480px) { .qualio-button { right: 0; bottom: 0; } .qualio-panel { right: 0; bottom: 58px; } }
       </style>
-      <button class="qualio-button" type="button" aria-expanded="false" aria-controls="qualio-feedback-panel">Partager mon retour</button>
+      <button class="qualio-button" type="button" aria-expanded="false" aria-controls="qualio-feedback-panel"></button>
       <section class="qualio-panel" id="qualio-feedback-panel" role="dialog" aria-modal="false" aria-labelledby="qualio-feedback-title" hidden>
-        <div class="qualio-panel-header"><div><h2 id="qualio-feedback-title">Votre retour nous aide</h2><p>Dites-nous ce qui fonctionne ou ce qui mérite d’être amélioré.</p></div><button class="qualio-close" type="button" aria-label="Fermer">×</button></div>
+        <div class="qualio-panel-header"><div><h2 id="qualio-feedback-title"></h2><p class="qualio-intro"></p></div><button class="qualio-close" type="button"></button></div>
         <form>
-          <label>Votre retour<textarea name="content" rows="4" required maxlength="10000" placeholder="Écrivez votre retour..."></textarea></label>
-          <label>Votre nom (facultatif)<input name="authorName" maxlength="160" autocomplete="name"></label>
-          <label>Votre email (facultatif)<input name="authorEmail" type="email" maxlength="320" autocomplete="email"></label>
-          <button class="qualio-submit" type="submit">Envoyer mon retour</button>
+          <label><span class="qualio-content-label"></span><textarea name="content" rows="4" required maxlength="10000"></textarea></label>
+          <label><span class="qualio-name-label"></span><input name="authorName" maxlength="160" autocomplete="name"></label>
+          <label><span class="qualio-email-label"></span><input name="authorEmail" type="email" maxlength="320" autocomplete="email"></label>
+          <button class="qualio-submit" type="submit"><span class="qualio-submit-label"></span><span class="qualio-submit-dots" hidden aria-hidden="true"><i></i><i></i><i></i></span></button>
           <div class="qualio-status" role="status" aria-live="polite"></div>
         </form>
+        <div class="qualio-success" hidden role="status" aria-live="polite"><div class="qualio-success-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg></div><strong class="qualio-success-title"></strong><p class="qualio-success-copy"></p></div>
       </section>
     \`;
 
@@ -57,10 +71,47 @@ export function GET(request: NextRequest) {
     const close = shadow.querySelector('.qualio-close');
     const form = shadow.querySelector('form');
     const submit = shadow.querySelector('.qualio-submit');
+    const submitLabel = shadow.querySelector('.qualio-submit-label');
+    const submitDots = shadow.querySelector('.qualio-submit-dots');
     const status = shadow.querySelector('.qualio-status');
-    if (!button || !panel || !close || !form || !submit || !status) return;
+    const success = shadow.querySelector('.qualio-success');
+    if (!button || !panel || !close || !form || !submit || !submitLabel || !submitDots || !status || !success) return;
+
+    const translations = {
+      fr: { button: 'Laisser un avis', title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', close: 'Fermer', content: 'Votre avis', contentPlaceholder: 'Écrivez votre avis…', name: 'Votre nom (facultatif)', email: 'Votre email (facultatif)', submit: 'Envoyer', sending: 'Envoi', success: 'Merci pour votre avis', successCopy: 'Votre message a bien été envoyé.' },
+      en: { button: 'Feedback', title: 'Your feedback matters', intro: 'Tell us what works well or what could be improved.', close: 'Close', content: 'Your feedback', contentPlaceholder: 'Write your feedback…', name: 'Your name (optional)', email: 'Your email (optional)', submit: 'Send', sending: 'Sending', success: 'Thanks for your feedback', successCopy: 'Your message has been sent.' },
+    };
+    const getLanguage = () => {
+      const candidate = requestedLanguage || document.documentElement.lang || navigator.languages?.[0] || navigator.language || 'fr';
+      return String(candidate).toLowerCase().startsWith('en') ? 'en' : 'fr';
+    };
+    const applyLanguage = () => {
+      const copy = translations[getLanguage()];
+      button.textContent = copy.button;
+      button.setAttribute('aria-label', copy.button);
+      shadow.querySelector('#qualio-feedback-title').textContent = copy.title;
+      shadow.querySelector('.qualio-intro').textContent = copy.intro;
+      close.textContent = '×';
+      close.setAttribute('aria-label', copy.close);
+      shadow.querySelector('.qualio-content-label').textContent = copy.content;
+      shadow.querySelector('textarea').setAttribute('placeholder', copy.contentPlaceholder);
+      shadow.querySelector('.qualio-name-label').textContent = copy.name;
+      shadow.querySelector('.qualio-email-label').textContent = copy.email;
+      submitLabel.textContent = copy.submit;
+      shadow.querySelector('.qualio-success-title').textContent = copy.success;
+      shadow.querySelector('.qualio-success-copy').textContent = copy.successCopy;
+      return copy;
+    };
+    applyLanguage();
 
     const setOpen = (open) => {
+      if (open && !success.hidden) {
+        success.hidden = true;
+        form.hidden = false;
+        status.textContent = '';
+        submitLabel.textContent = applyLanguage().submit;
+        submitDots.hidden = true;
+      }
       panel.hidden = !open;
       button.setAttribute('aria-expanded', String(open));
       if (open) shadow.querySelector('textarea')?.focus();
@@ -73,17 +124,24 @@ export function GET(request: NextRequest) {
       const data = new FormData(form);
       submit.disabled = true;
       status.classList.remove('error');
-      status.textContent = 'Envoi en cours…';
+      const copy = applyLanguage();
+      submitLabel.textContent = copy.sending;
+      submitDots.hidden = false;
+      status.textContent = '';
       try {
         const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail') }) });
         if (!response.ok) throw new Error();
         form.reset();
-        status.textContent = 'Merci, votre retour a bien été envoyé.';
+        form.hidden = true;
+        success.hidden = false;
+        window.setTimeout(() => setOpen(false), 1300);
       } catch {
         status.classList.add('error');
-        status.textContent = 'Impossible d’envoyer votre retour pour le moment.';
+        status.textContent = getLanguage() === 'en' ? 'Unable to send your feedback right now.' : 'Impossible d’envoyer votre avis pour le moment.';
       } finally {
         submit.disabled = false;
+        submitLabel.textContent = applyLanguage().submit;
+        submitDots.hidden = true;
       }
     });
     document.body.appendChild(host);
