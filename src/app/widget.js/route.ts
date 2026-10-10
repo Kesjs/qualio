@@ -36,7 +36,8 @@ export function GET(request: NextRequest) {
         .qualio-panel textarea { resize: vertical; }
         .qualio-submit { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 92px; margin-top: 14px; border: 0; border-radius: 9px; background: #111827; color: #fff; padding: 10px 13px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
         .qualio-submit:disabled { cursor: wait; opacity: .6; }
-        .qualio-submit-dots { display: inline-flex; gap: 3px; align-items: center; }
+        .qualio-submit-dots { display: none; gap: 3px; align-items: center; }
+        .qualio-submit-dots:not([hidden]) { display: inline-flex; }
         .qualio-submit-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: qualio-dot 1s infinite ease-in-out; }
         .qualio-submit-dots i:nth-child(2) { animation-delay: .12s; }
         .qualio-submit-dots i:nth-child(3) { animation-delay: .24s; }
