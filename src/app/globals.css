@@ -166,6 +166,19 @@ html:not(.dark), body:not(.dark) {
 .qualio-marketing-text-link:hover { color: #111827; }
 .qualio-marketing-proof { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 38px; }
 .qualio-marketing-proof span { padding: 7px 10px; border: 1px solid #e5e7eb; border-radius: 999px; color: #6b7280; font-size: 11px; font-weight: 700; background: #fff; }
+.qualio-marketing-hero--centered { display: block; max-width: 1180px; padding-top: clamp(58px, 8vw, 104px); padding-bottom: clamp(82px, 10vw, 132px); text-align: center; }
+.qualio-marketing-hero--centered .qualio-marketing-hero-copy { max-width: 980px; margin: 0 auto; }
+.qualio-marketing-hero--centered .qualio-marketing-eyebrow { padding: 10px 16px; border: 1px solid #cfd6f5; border-radius: 999px; background: #fff; color: #17205d; font-family: var(--font-sans), ui-sans-serif, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; }
+.qualio-marketing-hero--centered .qualio-marketing-eyebrow i { width: 8px; height: 8px; margin-right: 2px; background: #ee6018; box-shadow: none; }
+.qualio-marketing-hero--centered h1 { max-width: 1060px; margin: 58px auto 26px; font-size: clamp(52px, 7.1vw, 108px); line-height: .98; letter-spacing: -.075em; font-weight: 750; }
+.qualio-marketing-hero--centered h1 .qualio-title-accent { position: relative; display: inline-block; isolation: isolate; color: #ee6018; padding: 0 .12em .03em; white-space: nowrap; }
+.qualio-marketing-hero--centered h1 .qualio-title-accent::before { position: absolute; content: ''; inset: 13% -.02em 5%; z-index: -1; background: #fff0e8; clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
+.qualio-marketing-hero--centered .qualio-marketing-hero-copy > p { max-width: 690px; margin: 0 auto; color: #667085; font-size: clamp(16px, 1.6vw, 20px); line-height: 1.55; }
+.qualio-marketing-hero--centered .qualio-marketing-actions-row { justify-content: center; margin-top: 34px; }
+.qualio-marketing-hero--centered .qualio-marketing-button { padding: 15px 26px; border-radius: 12px; font-size: 15px; }
+.qualio-marketing-hero--centered .qualio-marketing-proof { justify-content: center; margin-top: 24px; }
+.qualio-marketing-hero--centered .qualio-marketing-proof span { border: 0; background: transparent; padding: 0; color: #98a2b3; font-size: 12px; font-weight: 600; }
+.qualio-marketing-hero--centered .qualio-marketing-proof span + span::before { content: '·'; margin-right: 8px; color: #ee6018; }
 .qualio-marketing-hero-art { position: relative; min-height: 440px; display: grid; place-items: center; }
 .qualio-signal-card { position: relative; z-index: 2; width: min(100%, 470px); padding: 28px; border: 1px solid #e5e7eb; border-radius: 22px; background: rgba(255,255,255,.94); box-shadow: 0 30px 80px #11182712; transform: rotate(2deg); }
 .qualio-signal-top { display: flex; align-items: center; gap: 8px; color: #166534; font: 700 10px/1 var(--font-mono), monospace; letter-spacing: .07em; text-transform: uppercase; }
@@ -186,12 +199,33 @@ html:not(.dark), body:not(.dark) {
 .qualio-marketing-intro { max-width: 650px; }
 .qualio-marketing-intro h2, .qualio-ai-copy h2 { margin: 18px 0 14px; font-size: clamp(32px, 4vw, 54px); line-height: 1.03; letter-spacing: -.055em; text-wrap: balance; }
 .qualio-marketing-intro p, .qualio-ai-copy p { margin: 0; color: #6b7280; font-size: 16px; line-height: 1.7; }
-.qualio-feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 60px; }
-.qualio-feature-grid article { min-height: 270px; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; transition: transform .2s ease, box-shadow .2s ease; }
-.qualio-feature-grid article:hover { transform: translateY(-4px); box-shadow: 0 18px 40px #1118270d; }
-.qualio-feature-grid article > span { color: #ee6018; font: 700 11px/1 var(--font-mono), monospace; }
-.qualio-feature-grid h3, .qualio-flow-cards h3, .qualio-ai-stack b { margin: 66px 0 10px; font-size: 18px; letter-spacing: -.025em; }
-.qualio-feature-grid p, .qualio-flow-cards p { margin: 0; color: #6b7280; font-size: 14px; line-height: 1.65; }
+.qualio-feature-section { max-width: 1440px; margin: 0 auto; padding: 132px 0 0; overflow: hidden; background: #fff7f2; }
+.qualio-feature-intro { max-width: 760px; margin: 0 auto; padding: 0 24px; text-align: center; }
+.qualio-feature-intro .qualio-marketing-eyebrow { color: #ee6018; }
+.qualio-feature-intro h2 { margin: 18px 0 16px; font-size: clamp(34px, 4.4vw, 62px); line-height: 1.02; letter-spacing: -.06em; text-wrap: balance; }
+.qualio-feature-intro p { max-width: 680px; margin: 0 auto; color: #667085; font-size: 16px; line-height: 1.7; }
+.qualio-feature-marquee { position: relative; display: grid; gap: 10px; margin: 58px 0 0; padding: 10px 0; }
+.qualio-feature-marquee::before, .qualio-feature-marquee::after { position: absolute; top: 0; bottom: 0; z-index: 2; width: 13vw; content: ''; pointer-events: none; }
+.qualio-feature-marquee::before { left: 0; background: linear-gradient(90deg, #fff7f2 10%, transparent); }
+.qualio-feature-marquee::after { right: 0; background: linear-gradient(270deg, #fff7f2 10%, transparent); }
+.qualio-feature-marquee-row { display: block; width: 100%; overflow: hidden; }
+.qualio-feature-marquee-track { display: flex; gap: 10px; min-width: max-content; animation: qualio-feature-marquee 42s linear infinite; }
+.qualio-feature-marquee-row.is-reversed .qualio-feature-marquee-track { animation-name: qualio-feature-marquee-reverse; animation-duration: 48s; }
+.qualio-feature-chip { display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; border: 1px solid #f2d7c8; border-radius: 5px; background: #ffe8dc; color: #8e441f; font-size: 14px; font-weight: 650; white-space: nowrap; }
+.qualio-feature-marquee.is-reduced .qualio-feature-marquee-track { animation: none; }
+.qualio-feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 72px; border-top: 1px dashed #d9b9a8; }
+.qualio-feature-grid article { min-height: 330px; padding: 28px clamp(20px, 2.4vw, 34px) 34px; border-right: 1px dashed #d9b9a8; }
+.qualio-feature-grid article:last-child { border-right: 0; }
+.qualio-feature-number { color: #ee6018; font: 700 11px/1 var(--font-mono), monospace; letter-spacing: .1em; }
+.qualio-feature-mark { display: grid; place-items: center; width: 56px; height: 56px; margin-top: 26px; border: 1px solid #e6b79e; border-radius: 50%; background: #fffaf7; }
+.qualio-feature-mark svg { width: 25px; height: 25px; color: #ee6018; }
+.qualio-feature-copy { margin-top: 48px; }
+.qualio-feature-grid h3 { margin: 0 0 12px; font-size: clamp(21px, 2vw, 29px); line-height: 1.08; letter-spacing: -.04em; }
+.qualio-feature-grid p { max-width: 260px; margin: 0; color: #667085; font-size: 14px; line-height: 1.65; }
+.qualio-flow-cards h3, .qualio-ai-stack b { margin: 66px 0 10px; font-size: 18px; letter-spacing: -.025em; }
+.qualio-flow-cards p { margin: 0; color: #6b7280; font-size: 14px; line-height: 1.65; }
+@keyframes qualio-feature-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes qualio-feature-marquee-reverse { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 .qualio-flow-section { padding-top: 20px; }
 .qualio-flow-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 54px; }
 .qualio-flow-cards > div { padding: 30px; border-radius: 18px; background: #111827; color: #fff; }
@@ -222,13 +256,16 @@ html:not(.dark), body:not(.dark) {
 .qualio-pricing-grid a { display: block; margin-top: 30px; color: #c95720; text-decoration: none; font-size: 13px; font-weight: 750; }
 .qualio-marketing-final { max-width: 1280px; margin: 0 auto; padding: 100px clamp(20px, 5vw, 76px) 130px; text-align: center; }
 .qualio-marketing-final h2 { margin: 18px 0 28px; font-size: clamp(42px, 6vw, 78px); line-height: .98; letter-spacing: -.07em; }
+.qualio-marketing-final p { max-width: 620px; margin: -8px auto 30px; color: #667085; font-size: 16px; line-height: 1.65; }
 .qualio-marketing-footer { display: flex; justify-content: space-between; gap: 30px; align-items: flex-end; max-width: 1280px; margin: 0 auto; padding: 28px clamp(20px, 5vw, 76px) 35px; border-top: 1px solid #e5e7eb; }
 .qualio-marketing-footer img { width: 92px; }
 .qualio-marketing-footer p { margin: 10px 0 0; color: #9ca3af; font-size: 12px; }
 .qualio-marketing-footer > div:nth-child(2) { display: flex; gap: 20px; }
 .qualio-marketing-footer > span { color: #9ca3af; font-size: 11px; }
 @media (max-width: 840px) { .qualio-marketing-links { display: none; } .qualio-marketing-hero, .qualio-ai-section { grid-template-columns: 1fr; } .qualio-marketing-hero { padding-top: 60px; } .qualio-marketing-hero-art { min-height: 360px; } .qualio-feature-grid, .qualio-pricing-grid { grid-template-columns: 1fr; } .qualio-flow-cards { grid-template-columns: 1fr; } .qualio-marketing-footer { align-items: flex-start; flex-direction: column; } }
-@media (max-width: 560px) { .qualio-marketing-header { padding: 18px 20px; } .qualio-marketing-nav { gap: 10px; } .qualio-marketing-actions { margin-left: auto; gap: 10px; } .qualio-marketing-actions > a:first-child { display: none; } .qualio-marketing-actions .qualio-marketing-cta { padding: 9px 11px; font-size: 11px; } .qualio-marketing-hero h1 { font-size: 48px; } .qualio-marketing-actions-row { align-items: flex-start; flex-direction: column; gap: 18px; } .qualio-marketing-rule { justify-content: flex-start; gap: 10px; overflow: auto; white-space: nowrap; } .qualio-signal-card { padding: 22px; } .qualio-signal-card h2 { margin-top: 34px; font-size: 24px; } .qualio-signal-orbit { display: none; } .qualio-ai-stack > div:nth-child(2), .qualio-ai-stack > div:nth-child(3) { margin-left: 0; } .qualio-marketing-footer > div:nth-child(2) { flex-wrap: wrap; } }
+@media (max-width: 840px) { .qualio-feature-section { padding-top: 94px; } .qualio-feature-grid { grid-template-columns: repeat(2, 1fr); } .qualio-feature-grid article:nth-child(2n) { border-right: 0; } .qualio-feature-grid article:nth-child(n + 3) { border-top: 1px dashed #d9b9a8; } }
+@media (max-width: 560px) { .qualio-marketing-header { padding: 18px 20px; } .qualio-marketing-nav { gap: 10px; } .qualio-marketing-actions { margin-left: auto; gap: 10px; } .qualio-marketing-actions > a:first-child { display: none; } .qualio-marketing-actions .qualio-marketing-cta { padding: 9px 11px; font-size: 11px; } .qualio-marketing-hero h1 { font-size: 48px; } .qualio-marketing-hero--centered { padding-top: 48px; padding-bottom: 72px; } .qualio-marketing-hero--centered h1 { margin-top: 38px; font-size: clamp(44px, 13vw, 64px); line-height: 1; } .qualio-marketing-hero--centered .qualio-marketing-eyebrow { font-size: 12px; } .qualio-marketing-hero--centered .qualio-marketing-hero-copy > p { font-size: 16px; } .qualio-marketing-hero--centered .qualio-marketing-proof { gap: 7px; } .qualio-marketing-hero--centered .qualio-marketing-proof span { font-size: 11px; } .qualio-marketing-actions-row { align-items: flex-start; flex-direction: column; gap: 18px; } .qualio-marketing-hero--centered .qualio-marketing-actions-row { align-items: center; } .qualio-marketing-rule { justify-content: flex-start; gap: 10px; overflow: auto; white-space: nowrap; } .qualio-signal-card { padding: 22px; } .qualio-signal-card h2 { margin-top: 34px; font-size: 24px; } .qualio-signal-orbit { display: none; } .qualio-ai-stack > div:nth-child(2), .qualio-ai-stack > div:nth-child(3) { margin-left: 0; } .qualio-marketing-footer > div:nth-child(2) { flex-wrap: wrap; } }
+@media (max-width: 560px) { .qualio-feature-section { padding-top: 78px; } .qualio-feature-intro { padding: 0 20px; } .qualio-feature-intro h2 { font-size: clamp(32px, 10vw, 46px); } .qualio-feature-marquee { margin-top: 40px; } .qualio-feature-chip { min-height: 38px; padding: 0 13px; font-size: 12px; } .qualio-feature-grid { grid-template-columns: 1fr; margin-top: 54px; } .qualio-feature-grid article, .qualio-feature-grid article:nth-child(n + 3) { min-height: 0; padding: 24px 20px 32px; border-right: 0; border-top: 1px dashed #d9b9a8; } .qualio-feature-grid article:first-child { border-top: 0; } .qualio-feature-copy { margin-top: 30px; } }
 
 /* Shadcn variables for underlying standard components if any */
 @layer base {
