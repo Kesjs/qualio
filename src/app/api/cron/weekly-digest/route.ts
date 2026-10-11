@@ -55,13 +55,14 @@ export async function GET(request: NextRequest) {
     if (reminder && await sendServiceEmail(admin, resend, origin, trial.user_id, recipient, reminder[0], reminder[1], reminder[2])) sent += 1
   }
   for (const site of sites ?? []) {
-    const [{ data: billing }, { data: preferences }, { data: latest }, { data: existingWeek }] = await Promise.all([
+    const [{ data: billing }, { data: preferences }, { data: latest }, { data: existingWeek }, { data: suppressedDigest }] = await Promise.all([
       admin.from('billing_subscriptions').select('plan, status, source, trial_ends_at, current_period_end').eq('user_id', site.user_id).maybeSingle(),
       admin.from('notification_preferences').select('weekly_digest').eq('user_id', site.user_id).maybeSingle(),
       admin.from('feedback_syntheses').select('created_at').eq('site_id', site.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       admin.from('feedback_syntheses').select('id').eq('site_id', site.id).eq('week_key', weekKey).maybeSingle(),
+      admin.from('email_log').select('id').eq('user_id', site.user_id).eq('event_type', 'weekly_digest').eq('status', 'suppressed').limit(1).maybeSingle(),
     ])
-    if (resolvePlan(billing) !== 'pro' || !preferences?.weekly_digest || existingWeek) continue
+    if (resolvePlan(billing) !== 'pro' || !preferences?.weekly_digest || existingWeek || suppressedDigest) continue
     const since = latest?.created_at ?? new Date(Date.now() - 7 * 86400000).toISOString()
     const { data: feedback } = await admin.from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('site_id', site.id).neq('status', 'archived').gt('created_at', since).order('created_at', { ascending: false }).limit(301)
     if (!feedback || feedback.length < 3) continue
