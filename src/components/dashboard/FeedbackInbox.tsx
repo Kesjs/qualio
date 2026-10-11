@@ -22,7 +22,7 @@ type StatusFilter = 'all' | FeedbackItem['status']
 const statusLabels: Record<StatusFilter, string> = {
   all: 'Tous',
   open: 'Nouveaux',
-  reviewed: 'Nouveaux',
+  reviewed: 'Examinés',
   archived: 'Archivés',
 }
 

@@ -4,7 +4,7 @@ import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { useSites } from '@/lib/hooks/useSites'
+import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import { FeedbackInbox } from '@/components/dashboard/FeedbackInbox'
 
 const content = {
@@ -20,8 +20,7 @@ type FeedbackItem = { id: string; content: string; source: string; theme: string
 
 export function FeedbackSectionPage({ section }: { section: keyof typeof content }) {
   const page = content[section]
-  const { data: sites } = useSites()
-  const site = sites?.[0]
+  const { activeSite: site } = useActiveSite()
   const { data: feedback = [], isLoading } = useQuery({
     queryKey: ['feedback', site?.id],
     queryFn: async () => {
@@ -61,11 +60,11 @@ function FeedbackCards({ feedback, isLoading }: { feedback: FeedbackItem[]; isLo
 function InfoCards({ section }: { section: keyof typeof content }) { const labels = section === 'projects' ? ['Projets connectés', 'Domaine', 'Équipe'] : ['Rapport périodique', 'Évolution des thèmes', 'Export']; return <div className="grid gap-4 md:grid-cols-3">{labels.map((item) => <article key={item} className="rounded-xl border border-gray-200/80 bg-white p-5 dark:border-white/[0.08] dark:bg-[#181B21]"><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-600 dark:text-emerald-300">Disponible</span><h2 className="mt-3 text-lg font-semibold text-gray-950 dark:text-white">{item}</h2><p className="mt-2 text-sm leading-6 text-gray-500 dark:text-zinc-400">Cette vue sera alimentée par les données persistées de votre espace.</p></article>)}</div> }
 
 function CollectionPanel() {
-  const { data: sites, isLoading } = useSites()
+  const { isLoading, activeSite } = useActiveSite()
   const [feedback, setFeedback] = useState('')
   const [authorName, setAuthorName] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const site = sites?.[0]
+  const site = activeSite
 
   async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setStatus(null); if (!site?.id || !feedback.trim()) return setStatus('Sélectionnez un projet et saisissez un retour.'); const response = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: site.id, content: feedback, authorName }) }); const result = await response.json().catch(() => ({})); if (!response.ok) return setStatus(result.error ?? 'Impossible d’enregistrer ce retour.'); setFeedback(''); setAuthorName(''); setStatus('Retour enregistré. Il apparaît maintenant dans Accueil et Retours.') }
 
