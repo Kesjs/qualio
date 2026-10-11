@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { ArrowLeft } from 'lucide-react'
@@ -10,41 +10,48 @@ const C = {
   ink: '#17201d', orange: '#ee6018', muted: '#68736f', subtle: '#98a29d',
 }
 
-const REVIEW_EXAMPLES = [
-  { quote: 'La création de compte est claire, mais le formulaire est trop long.', source: 'SaaS', rating: 4 },
-  { quote: 'J’ai trouvé ce que je cherchais, mais le prix manque de contexte.', source: 'E-commerce', rating: 3 },
-  { quote: 'L’application est fluide et j’ai trouvé la réponse en quelques secondes.', source: 'Mobile', rating: 5 },
-  { quote: 'Le support a été rapide, mais les étapes de suivi restent difficiles à comprendre.', source: 'Support', rating: 4 },
-]
-
 function ProductVisual() {
   const shouldReduceMotion = useReducedMotion()
+  const [typedText, setTypedText] = useState('')
+  const typingText = 'Des décisions claires.'
+
+  useEffect(() => {
+    if (shouldReduceMotion) {
+      setTypedText(typingText)
+      return
+    }
+
+    let index = 0
+    let interval: ReturnType<typeof setInterval> | undefined
+    const timeout = setTimeout(() => {
+      interval = setInterval(() => {
+        index += 1
+        setTypedText(typingText.slice(0, index))
+        if (index >= typingText.length && interval) clearInterval(interval)
+      }, 78)
+    }, 900)
+
+    return () => {
+      clearTimeout(timeout)
+      if (interval) clearInterval(interval)
+    }
+  }, [shouldReduceMotion])
 
   return (
-    <div className={`auth-review-panel${shouldReduceMotion ? ' is-reduced' : ''}`} aria-label="Aperçu d’avis clients d’exemple">
-      <div className="auth-review-stage">
-        <div className="auth-review-row">
-          <div className="auth-review-track">
-            {[...REVIEW_EXAMPLES, ...REVIEW_EXAMPLES].map((review, index) => (
-              <article className="auth-review-card" key={`${review.source}-${index}`} aria-hidden={index >= REVIEW_EXAMPLES.length}>
-                <div className="auth-review-card-top">
-                  <span className="auth-review-card-label">Avis d’exemple</span>
-                    <span className="auth-review-stars" aria-label={`${review.rating} étoiles sur 5`}>
-                      <span aria-hidden="true">{'★'.repeat(review.rating)}<span className="auth-review-stars-muted">{'★'.repeat(5 - review.rating)}</span></span>
-                    </span>
-                </div>
-                <p className="auth-review-quote">“{review.quote}”</p>
-                <span className="auth-review-source">{review.source}</span>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div className="auth-review-grid" aria-hidden="true">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div className="auth-review-grid-card" key={index}><span /><span /><span /></div>
-          ))}
-        </div>
+    <div className={`auth-typography-panel${shouldReduceMotion ? ' is-reduced' : ''}`} aria-label="Vos avis. Des décisions claires.">
+      <img className="auth-typography-backdrop" src="/qualio-auth-typography-clean.png" alt="" aria-hidden="true" />
+      <div className="auth-typography-copy" aria-live="polite">
+        <motion.span
+          className="auth-typography-line auth-typography-line-muted"
+          initial={shouldReduceMotion ? false : { opacity: 0, y: -180 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        >
+          Vos avis.
+        </motion.span>
+        <span className="auth-typography-line auth-typography-line-main">
+          {typedText}<span className={`auth-typography-cursor${typedText.length === typingText.length || shouldReduceMotion ? ' is-done' : ''}`} aria-hidden="true" />
+        </span>
       </div>
     </div>
   )
@@ -174,11 +181,12 @@ export function AuthLayout({ children, title, description, showBack = false }: A
   return (
     <div style={{
       display: 'flex', minHeight: '100vh',
+      flexDirection: 'row-reverse',
       background: C.canvas,
       fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
       color: C.ink,
     }}>
-      {/* Left — Form */}
+      {/* Right — Form */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         justifyContent: 'center', alignItems: 'center',
@@ -220,7 +228,7 @@ export function AuthLayout({ children, title, description, showBack = false }: A
         </p>
       </div>
 
-      {/* Right — Product visual (desktop only) */}
+      {/* Left — Product visual (desktop only) */}
       <div style={{
         width: '44%', background: C.canvas,
         display: 'none', // géré par media query via globals.css

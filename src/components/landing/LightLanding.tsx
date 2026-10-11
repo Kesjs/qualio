@@ -436,7 +436,7 @@ function ConnectorLine({ i, t }: { i: number; t: MotionValue<number> }) {
   )
 }
 
-function HeroIllustration() {
+function AnimatedHeroIllustration() {
   const rootRef = useRef<HTMLDivElement>(null)
   const fitRef = useRef<HTMLDivElement>(null)
   const t = useSceneClock(rootRef)
@@ -860,13 +860,27 @@ const AUDIENCES = [
   { tag: 'Boutiques en ligne', title: 'Voyez la friction avant qu’elle ne coûte des ventes.', body: 'Livraison, paiement, retours : repérez les sujets qui reviennent dans les avis et traitez d’abord ceux qui touchent le plus de clients.', chips: ['Livraison', 'Paiement', 'Retours'] },
 ]
 
+function HeroIllustration() {
+  return (
+    <figure className="overflow-hidden rounded-[36px] border" style={{ borderColor: LINE, background: '#faf8f2' }}>
+      <img
+        src="/qualio-hero-feedback-map.png"
+        alt="Des avis clients regroupés par thèmes jusqu’à une recommandation concrète"
+        className="block h-auto w-full"
+        loading="eager"
+        fetchPriority="high"
+      />
+    </figure>
+  )
+}
+
 export function LightLanding() {
   return (
     <div className="min-h-screen bg-white font-sans" style={{ color: INK, scrollBehavior: 'smooth' }}>
       <Navbar />
 
       <main>
-        {/* Hero: centré dans le premier écran, produit animé juste dessous */}
+        {/* Hero : une visualisation fixe explique le passage des avis aux décisions */}
         <section className="mx-auto max-w-6xl px-5 pb-10 text-center">
           <div className="flex min-h-[min(calc(100svh-4.5rem),52rem)] flex-col items-center justify-center py-12">
             <Reveal className="w-full">

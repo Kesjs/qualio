@@ -346,6 +346,18 @@ input[type='password']::-ms-clear {
 @media (max-width: 1180px) { .auth-review-panel { padding: 32px; } .auth-review-card { flex-basis: 280px; } }
 @media (prefers-reduced-motion: reduce) { .auth-review-track { animation: none; } }
 
+.auth-typography-panel { position: relative; min-height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 48px; background: #0b0d10; }
+.auth-typography-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.auth-typography-copy { position: relative; z-index: 1; display: flex; width: min(82%, 520px); flex-direction: column; align-items: flex-start; transform: translateY(-1%); }
+.auth-typography-line { display: block; font-family: var(--font-manrope), 'Manrope', sans-serif; font-size: clamp(2.6rem, 5vw, 5rem); font-weight: 800; line-height: .95; letter-spacing: -.075em; }
+.auth-typography-line-muted { color: #66686d; }
+.auth-typography-line-main { min-height: 1.05em; color: #f2f0ed; }
+.auth-typography-cursor { display: inline-block; width: .06em; height: .82em; margin-left: .08em; vertical-align: -.06em; background: #ee6018; animation: auth-typography-blink .9s steps(1,end) infinite; }
+.auth-typography-cursor.is-done { animation: none; opacity: .85; }
+@keyframes auth-typography-blink { 0%, 45% { opacity: 1; } 46%, 100% { opacity: 0; } }
+@media (max-width: 1180px) { .auth-typography-panel { padding: 32px; } .auth-typography-copy { width: 88%; } }
+@media (prefers-reduced-motion: reduce) { .auth-typography-cursor { animation: none; } }
+
 /* Light feedback-intelligence landing page. The existing dark marketing components
    remain available for later reference; the public home route uses this surface. */
 .light-landing {
