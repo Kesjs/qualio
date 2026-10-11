@@ -2,38 +2,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const { client, query } = vi.hoisted(() => {
-  const query = { select: vi.fn(), eq: vi.fn(), order: vi.fn(), single: vi.fn() }
+  const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn(), update: vi.fn(), delete: vi.fn() }
   const client = { auth: { getUser: vi.fn() }, from: vi.fn() }
   return { client, query }
 })
 
 vi.mock('@/lib/supabase/server', () => ({
   getSupabaseServerClient: async () => client,
-  getSupabaseAdminClient: vi.fn(),
+  getSupabaseAdminClient: vi.fn(() => client),
 }))
 
 import { GET } from './route'
 
-describe('site detail on the deployed scan schema', () => {
+describe('site detail', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     client.auth.getUser.mockResolvedValue({ data: { user: { id: 'owner' } } })
     client.from.mockReturnValue(query)
-    query.select.mockImplementation((columns: string) => {
-      // Simulate PostgREST validating the deployed schema before reading rows.
-      query.single.mockResolvedValue(columns.includes('monitor_triggered')
-        ? { data: null, error: { code: '42703', message: 'column scans.monitor_triggered does not exist' } }
-        : { data: { id: 'site', scans: [] }, error: null })
-      return query
-    })
+    query.select.mockReturnValue(query)
     query.eq.mockReturnValue(query)
-    query.order.mockReturnValue(query)
+    query.maybeSingle.mockResolvedValue({ data: { id: 'site', name: 'Mon projet', url: null }, error: null })
   })
 
-  it('returns the site with a schema that has no monitor_triggered column', async () => {
+  it('returns only the feedback project fields', async () => {
     const response = await GET(new NextRequest('http://localhost/api/sites/site'), { params: Promise.resolve({ siteId: 'site' }) })
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ id: 'site', scans: [] })
+    expect(await response.json()).toEqual({ id: 'site', name: 'Mon projet', url: null })
+    expect(query.select).toHaveBeenCalledWith('id, user_id, url, name, created_at, updated_at')
     expect(query.eq).toHaveBeenCalledWith('id', 'site')
     expect(query.eq).toHaveBeenCalledWith('user_id', 'owner')
   })

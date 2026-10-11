@@ -1,26 +1,105 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
+import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
+import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
+import { isDuplicateIntakeEvent, MAX_INTAKE_BODY_BYTES, validateIntakeBody } from '@/lib/feedback/intake-validation'
+import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
 
-function classify(content: string) {
-  const value = content.toLocaleLowerCase('fr-FR')
-  const theme = value.match(/navigation|menu|page|parcours/) ? 'Navigation' : value.match(/erreur|bug|bloqué|problème/) ? 'Fiabilité' : value.match(/lent|rapide|chargement/) ? 'Performance' : value.match(/prix|payer|tarif|coût/) ? 'Prix' : null
-  const sentiment = value.match(/difficile|confus|erreur|lent|bloqué|impossible|manque|problème|bug/) ? 'negative' : value.match(/merci|simple|rapide|clair|excellent|utile|facile/) ? 'positive' : 'neutral'
-  return { theme, sentiment, confidence: theme ? 0.72 : 0.35 }
+function corsHeaders(extra: Record<string, string> = {}) {
+  return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', ...extra }
+}
+
+function json(data: Record<string, unknown>, status = 200, extra: Record<string, string> = {}) {
+  return NextResponse.json(data, { status, headers: corsHeaders(extra) })
+}
+
+function getClientIp(request: NextRequest) {
+  const vercelIp = request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim()
+  if (vercelIp) return vercelIp.slice(0, 128)
+  if (process.env.VERCEL === '1') return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim().slice(0, 128) || 'unknown'
+  return 'unknown'
+}
+
+function monthStart() {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_INTAKE_BODY_BYTES) return json({ error: 'Votre message est trop volumineux.' }, 413)
+  if (!(request.headers.get('content-type') ?? '').toLowerCase().includes('application/json')) return json({ error: 'Le format JSON est obligatoire.' }, 415)
+
+  let body: Record<string, unknown>
+  try {
+    const raw = await request.arrayBuffer()
+    if (raw.byteLength > MAX_INTAKE_BODY_BYTES) return json({ error: 'Votre message est trop volumineux.' }, 413)
+    body = JSON.parse(new TextDecoder().decode(raw)) as Record<string, unknown>
+  } catch {
+    return json({ error: 'Le message envoyé est invalide.' }, 400)
+  }
+
+  if (typeof body.honeypot === 'string' && body.honeypot.trim()) return json({ ok: true }, 202)
   const key = typeof body.key === 'string' ? body.key.trim() : ''
-  const content = typeof body.content === 'string' ? body.content.trim().slice(0, 10000) : ''
-  if (!key || !content) return NextResponse.json({ error: 'key and content are required' }, { status: 400, headers: corsHeaders() })
-  const admin = getSupabaseAdminClient()
-  const { data: source } = await (admin as any).from('collection_sources').select('site_id, user_id, active').eq('public_key', key).eq('type', 'widget').maybeSingle()
-  if (!source?.active) return NextResponse.json({ error: 'Collection source not found' }, { status: 404, headers: corsHeaders() })
-  const classification = classify(content)
-  const { error } = await (admin as any).from('feedback_items').insert({ user_id: source.user_id, site_id: source.site_id, source: 'widget', content, author_name: typeof body.authorName === 'string' ? body.authorName.trim().slice(0, 160) || null : null, author_email: typeof body.authorEmail === 'string' ? body.authorEmail.trim().slice(0, 320) || null : null, source_url: request.headers.get('origin') ?? null, theme: classification.theme, sentiment: classification.sentiment, confidence: classification.confidence, metadata: { user_agent: request.headers.get('user-agent') ?? null } })
-  if (error) return NextResponse.json({ error: 'Unable to save feedback' }, { status: 500, headers: corsHeaders() })
-  return NextResponse.json({ ok: true }, { headers: corsHeaders() })
+  const content = typeof body.content === 'string' ? body.content.trim() : ''
+  const authorName = typeof body.authorName === 'string' ? body.authorName.trim() : ''
+  const authorEmail = typeof body.authorEmail === 'string' ? body.authorEmail.trim() : ''
+  const validationError = validateIntakeBody(body, new TextEncoder().encode(JSON.stringify(body)).byteLength)
+  if (validationError) return json({ error: validationError }, 400)
+
+  const admin = getSupabaseAdminClient() as any
+  const { data: source, error: sourceError } = await admin.from('collection_sources').select('site_id, user_id, active').eq('public_key', key).eq('type', 'widget').maybeSingle()
+  if (sourceError) {
+    console.error('[Feedback intake] source lookup failed', sourceError)
+    return json({ error: 'La collecte est temporairement indisponible.' }, 503)
+  }
+  if (!source) return json({ error: 'Cette clé de collecte est invalide.' }, 403)
+  if (!source.active) return json({ error: 'Cette clé de collecte est désactivée.' }, 403)
+
+  const ipAddress = getClientIp(request)
+  const contentHash = createHash('sha256').update(content.normalize('NFKC')).digest('hex')
+  const minuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const dedupeAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const [{ count: ipCount }, { count: keyCount }, { data: duplicate }] = await Promise.all([
+    admin.from('feedback_intake_events').select('id', { count: 'exact', head: true }).eq('ip_address', ipAddress).gte('created_at', minuteAgo),
+    admin.from('feedback_intake_events').select('id', { count: 'exact', head: true }).eq('public_key', key).gte('created_at', hourAgo),
+    admin.from('feedback_intake_events').select('id').eq('ip_address', ipAddress).eq('content_hash', contentHash).gte('created_at', dedupeAgo).limit(1).maybeSingle(),
+  ])
+  if ((ipCount ?? 0) >= 10) return json({ error: 'Trop d’avis envoyés en peu de temps. Réessayez dans une minute.' }, 429, { 'Retry-After': '60' })
+  if ((keyCount ?? 0) >= 200) return json({ error: 'La collecte de ce projet a atteint sa limite horaire. Réessayez plus tard.' }, 429, { 'Retry-After': '3600' })
+  if (isDuplicateIntakeEvent(duplicate)) return json({ ok: true, duplicate: true }, 202)
+
+  const { data: subscription } = await admin.from('billing_subscriptions').select('plan, status, source, trial_ends_at, current_period_end').eq('user_id', source.user_id).maybeSingle()
+  const plan = resolvePlan(subscription)
+  const { count: monthlyCount } = await admin.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', source.site_id).gte('created_at', monthStart())
+  if ((monthlyCount ?? 0) >= BILLING_PLANS[plan].monthlyFeedback) return json({ error: 'La limite mensuelle d’avis de ce projet est atteinte.' }, 429, { 'Retry-After': '3600' })
+
+  const { data: saved, error } = await admin.from('feedback_items').insert({
+    user_id: source.user_id,
+    site_id: source.site_id,
+    source: 'widget',
+    content,
+    author_name: authorName || null,
+    author_email: authorEmail || null,
+    source_url: request.headers.get('origin') ?? null,
+    sentiment: null,
+    theme: null,
+    confidence: null,
+    metadata: { ip_address: ipAddress, user_agent: request.headers.get('user-agent') ?? null, classification_status: 'pending' },
+  }).select('id').single()
+  if (error) {
+    console.error('[Feedback intake] insert failed', error)
+    return json({ error: 'Votre avis n’a pas pu être enregistré. Réessayez.' }, 500)
+  }
+  const { error: eventError } = await admin.from('feedback_intake_events').insert({ public_key: key, site_id: source.site_id, ip_address: ipAddress, content_hash: contentHash })
+  if (eventError) console.error('[Feedback intake] rate-limit event insert failed', eventError)
+  if (saved?.id) after(async () => {
+    try { await classifyAndSaveFeedback(admin, saved.id, source.site_id, content) } catch (classificationError) { console.error('[Feedback intake] async classification failed', classificationError) }
+  })
+  return json({ ok: true })
 }
 
-function corsHeaders() { return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } }
-export async function OPTIONS() { return new NextResponse(null, { status: 204, headers: corsHeaders() }) }
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders() })
+}

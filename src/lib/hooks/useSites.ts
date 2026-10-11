@@ -30,14 +30,6 @@ async function createSiteAPI(data: { name?: string; url?: string }): Promise<Sit
   return body
 }
 
-async function deleteSiteAPI(siteId: string) {
-  const response = await fetch(`/api/sites/${siteId}`, { method: 'DELETE' })
-  if (!response.ok && response.status !== 204) {
-    const body = await response.json().catch(() => ({}))
-    throw new Error(body.error ?? 'Impossible de supprimer le projet.')
-  }
-}
-
 export function useSites() {
   return useQuery({
     queryKey: ['sites'],
@@ -55,18 +47,6 @@ export function useCreateSite() {
     onSuccess: (site) => {
       queryClient.setQueryData<Site[]>(['sites'], (current) => current ? [site, ...current] : [site])
       toast.success('Projet ajouté à votre espace')
-    },
-    onError: (error: Error) => toast.error(error.message),
-  })
-}
-
-export function useDeleteSite() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: deleteSiteAPI,
-    onSuccess: (_, siteId) => {
-      queryClient.setQueryData<Site[]>(['sites'], (current) => current?.filter((site) => site.id !== siteId) ?? [])
-      toast.success('Projet supprimé')
     },
     onError: (error: Error) => toast.error(error.message),
   })

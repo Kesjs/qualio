@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { after, NextRequest, NextResponse } from 'next/server'
+import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
+import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
 
 type FeedbackPayload = {
   siteId?: string
   content?: string
-  source?: 'manual' | 'widget' | 'public_link' | 'csv'
+  source?: 'manual' | 'widget' | 'csv'
   authorName?: string
   authorEmail?: string
   sourceUrl?: string
@@ -20,21 +21,6 @@ type FeedbackUpdatePayload = {
 
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
-}
-
-function classifyFeedback(content: string) {
-  const normalized = content.toLocaleLowerCase('fr-FR')
-  const negativeWords = ['difficile', 'confus', 'erreur', 'lent', 'bloqué', 'impossible', 'manque', 'problème', 'bug']
-  const positiveWords = ['merci', 'simple', 'rapide', 'clair', 'excellent', 'utile', 'facile']
-  const sentiment = negativeWords.some((word) => normalized.includes(word))
-    ? 'negative'
-    : positiveWords.some((word) => normalized.includes(word)) ? 'positive' : 'neutral'
-  const theme = normalized.match(/navigation|menu|sidebar|page|parcours/) ? 'Navigation'
-    : normalized.match(/erreur|message|bug|bloqué|problème/) ? 'Fiabilité'
-      : normalized.match(/lent|rapide|chargement|performance/) ? 'Performance'
-        : normalized.match(/formulaire|inscription|connexion|login|compte/) ? 'Conversion'
-          : null
-  return { theme, sentiment, confidence: theme ? 0.72 : 0.35 }
 }
 
 async function getUserAndClient() {
@@ -73,15 +59,15 @@ export async function POST(request: NextRequest) {
   }
 
   const siteId = cleanText(body.siteId, 64)
-  const content = cleanText(body.content, 10000)
+  const content = cleanText(body.content, 2000)
   if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
   if (!content) return NextResponse.json({ error: 'content is required' }, { status: 400 })
+  if (typeof body.content === 'string' && body.content.trim().length > 2000) return NextResponse.json({ error: 'Votre avis ne peut pas dépasser 2 000 caractères.' }, { status: 400 })
 
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
-  const source = ['manual', 'widget', 'public_link', 'csv'].includes(body.source ?? '') ? body.source : 'manual'
-  const classification = classifyFeedback(content)
+  const source = ['manual', 'widget', 'csv'].includes(body.source ?? '') ? body.source : 'manual'
   const { data, error } = await (supabase as any)
     .from('feedback_items')
     .insert({
@@ -93,15 +79,18 @@ export async function POST(request: NextRequest) {
       author_email: cleanText(body.authorEmail, 320) || null,
       source_url: cleanText(body.sourceUrl, 2000) || null,
       external_id: cleanText(body.externalId, 240) || null,
-      theme: classification.theme,
-      sentiment: classification.sentiment,
-      confidence: classification.confidence,
-      metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
+       theme: null,
+       sentiment: null,
+       confidence: null,
+       metadata: { ...(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}), classification_status: 'pending' },
     })
     .select('*')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (data?.id) after(async () => {
+    try { await classifyAndSaveFeedback(getSupabaseAdminClient(), data.id, siteId, content) } catch (classificationError) { console.error('[Feedback] async classification failed', classificationError) }
+  })
   return NextResponse.json(data, { status: 201 })
 }
 

@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { getPlanFromPriceId } from '@/lib/billing/plans'
 import { getStripeClient } from '@/lib/billing/stripe'
+import { recordProductEvent } from '@/lib/analytics/product-events'
 
 async function syncSubscription(subscription: Stripe.Subscription) {
   const admin = getSupabaseAdminClient()
@@ -24,11 +25,14 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     stripe_price_id: priceId,
     plan,
     status,
+    source: 'stripe',
+    trial_ends_at: null,
     current_period_end: subscription.items.data[0]?.current_period_end ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString() : null,
     cancel_at_period_end: subscription.cancel_at_period_end,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
   if (error) throw error
+  return userId
 }
 
 export async function POST(request: NextRequest) {
@@ -45,16 +49,18 @@ export async function POST(request: NextRequest) {
   if (!existing) await (admin as any).from('stripe_webhook_events').insert({ stripe_event_id: event.id, event_type: event.type, payload: event })
 
   try {
+    let syncedUserId: string | null = null
     if (event.type.startsWith('customer.subscription.')) {
-      await syncSubscription(event.data.object as Stripe.Subscription)
+      syncedUserId = await syncSubscription(event.data.object as Stripe.Subscription)
     } else if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
-      if (typeof session.subscription === 'string') await syncSubscription(await getStripeClient().subscriptions.retrieve(session.subscription))
+      if (typeof session.subscription === 'string') syncedUserId = await syncSubscription(await getStripeClient().subscriptions.retrieve(session.subscription))
     } else if (event.type === 'invoice.paid' || event.type === 'invoice.payment_failed') {
       const invoice = event.data.object as Stripe.Invoice
       const parentSubscription = invoice.parent?.subscription_details?.subscription
-      if (typeof parentSubscription === 'string') await syncSubscription(await getStripeClient().subscriptions.retrieve(parentSubscription))
+      if (typeof parentSubscription === 'string') syncedUserId = await syncSubscription(await getStripeClient().subscriptions.retrieve(parentSubscription))
     }
+    if (syncedUserId && event.type === 'checkout.session.completed') await recordProductEvent(admin, syncedUserId, 'paid_conversion', `stripe:${event.id}`)
     await (admin as any).from('stripe_webhook_events').update({ processed_at: new Date().toISOString(), error: null }).eq('stripe_event_id', event.id)
     return NextResponse.json({ received: true })
   } catch (error) {

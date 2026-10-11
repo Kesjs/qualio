@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { FeedbackSectionPage } from '@/components/dashboard/FeedbackSectionPage'
 
-const sections = ['projects', 'feedback', 'analysis', 'recommendations', 'reports', 'collection'] as const
+const sections = ['feedback', 'analysis', 'syntheses', 'recommendations', 'collection'] as const
 
 export default async function DashboardSectionRoute({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params

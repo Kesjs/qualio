@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 
 const WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const RETENTION_MS = 24 * 60 * 60 * 1000
 const MAX_ATTEMPTS_PER_WINDOW = 5
 
 function getClientIp(req: NextRequest): string {
-  // Standard proxy header order: x-forwarded-for (may hold a list), then
-  // x-real-ip as fallback. Hostinger/most reverse proxies set one of these.
-  const forwardedFor = req.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0].trim()
-  const realIp = req.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
+  // On Vercel, only use headers added by the platform. Do not accept an
+  // arbitrary client-provided x-forwarded-for value when running elsewhere.
+  const vercelForwardedFor = req.headers.get('x-vercel-forwarded-for')
+  if (vercelForwardedFor) return vercelForwardedFor.split(',')[0].trim()
+  if (process.env.VERCEL === '1') {
+    const forwardedFor = req.headers.get('x-forwarded-for')
+    if (forwardedFor) return forwardedFor.split(',')[0].trim()
+  }
   return 'unknown'
 }
 
@@ -22,6 +25,13 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
   const admin = getSupabaseAdminClient()
   const cutoff = new Date(Date.now() - WINDOW_MS).toISOString()
+  const retentionCutoff = new Date(Date.now() - RETENTION_MS).toISOString()
+
+  const { error: purgeError } = await admin
+    .from('signup_attempts')
+    .delete()
+    .lt('created_at', retentionCutoff)
+  if (purgeError) console.error('[signup-check] retention purge failed:', purgeError.message)
 
   const { count, error: countError } = await admin
     .from('signup_attempts')
@@ -39,7 +49,7 @@ export async function POST(req: NextRequest) {
   if ((count ?? 0) >= MAX_ATTEMPTS_PER_WINDOW) {
     return NextResponse.json(
       { ok: false, error: 'too_many_attempts' },
-      { status: 429 }
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(WINDOW_MS / 1000)) } }
     )
   }
 

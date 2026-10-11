@@ -1,6 +1,6 @@
 ---
 name: Qualio
-description: Continuous Website QA Workspace
+description: Feedback intelligence workspace
 colors:
   primary: "#ee6018"
   success: "#a0ca92"
@@ -35,13 +35,13 @@ spacing:
 
 ## Overview
 
-**Creative North Star: "The Factory Quality Floor"**
+**Creative North Star: "The Feedback Decision Desk"**
 
-Qualio's interface is an unadorned, technical workspace for engineers and product teams. It prioritizes data density, absolute clarity, and functional precision over marketing flair. The atmosphere is stark and highly controlled: an OLED black canvas (`#101010`) provides maximum contrast for structural borders and metric data. 
+Qualio's interface is an unadorned, clear workspace for product teams. It prioritizes source-backed feedback, decision clarity, and functional precision over marketing flair.
 
 **Key Characteristics:**
 - **Operate Mode:** The user is here to complete a task, not to be entertained.
-- **Data-First:** Monospace fonts are used for all technical data (latencies, HTTP codes, URLs).
+- **Data-First:** Monospace fonts are used for dates, counts, URLs and source metadata.
 - **High-Contrast Semantics:** Status colors (Signal Orange, Metric Green, Danger Red) are reserved strictly for system states and actions, never for decoration.
 
 ## Colors
@@ -60,8 +60,8 @@ The palette is restrained and purposeful, providing a dark, high-contrast enviro
 - **Granite** (#8A8380): Secondary text and metadata.
 
 ### Semantic
-- **Metric Green** (#A0CA92): Used strictly for success states, passed checks, and resolved issues.
-- **Danger Red** (#EF4444): Used for critical issues, failed checks, and regressions.
+- **Metric Green** (#A0CA92): Used strictly for success states and completed decisions.
+- **Danger Red** (#EF4444): Used for errors and destructive confirmations.
 
 **The Functional Color Rule.** Color is reserved for state, action, and data visualization. Never use Signal Orange, Metric Green, or Danger Red for background decoration or non-interactive elements.
 
@@ -103,4 +103,4 @@ Forms and containers are sharp and geometric. Radii are kept tight (`6px` to `12
 ### Don't:
 - **Don't** use gradients, heavy box-shadows, or glassmorphism.
 - **Don't** use system generic fonts (Arial, system-ui) for data display; always use JetBrains Mono.
-- **Don't** invert the theme. Qualio is a dark-mode only application.
+- **Don't** invert the theme. Qualio supports the existing light and dark modes.

@@ -1,23 +1,24 @@
 # Qualio
 
-Ship updates without holding your breath.
+Qualio transforme des avis clients en décisions produit.
 
-Qualio is a continuous website QA workspace that tests real user journeys,
-explains what is broken, verifies fixes after deployment, and detects
-regressions between scans.
+Le parcours tient en trois entrées : import CSV, widget embarqué et ajout manuel. Les avis sont regroupés par thèmes, synthétisés avec leurs sources, puis convertis en recommandations que l’équipe accepte, refuse ou marque comme faites.
 
-Core loop:
+## Développement
 
-Scan → Detect → Diagnose → Fix → Rescan → Diff → Verify
+```text
+npm install
+npm run dev
+npx tsc --noEmit
+npm run lint
+npm test
+npm run build
+```
 
-Architecture:
-
-Playwright
-→ Evidence Engine
-→ Diff Engine
-→ AI QA Engine
-→ Qualio UI
+Les migrations nouvelles sont dans `supabase/migrations/`. Elles doivent être sauvegardées et relues avant toute application. Aucune commande distante Supabase ne fait partie du build.
 
 ## Documentation
-- [PRODUCT_VISION.md](docs/PRODUCT_VISION.md)
-- [QA_AI_ENGINE.md](docs/QA_AI_ENGINE.md)
+
+- [Vision Feedback](docs/PRODUCT_VISION.md)
+- [Plan de test réel](docs/TEST_PLAN.md)
+- [Checklist UI](docs/UI_CHECKLIST.md)

@@ -15,13 +15,13 @@ export async function POST(request: NextRequest) {
   const priceId = getPriceId(plan)
   if (!priceId) return NextResponse.json({ error: `Le prix Stripe du plan ${plan} n'est pas configuré.` }, { status: 503 })
 
-  const { data: current } = await (supabase as any).from('billing_subscriptions').select('stripe_customer_id, plan, status').eq('user_id', user.id).maybeSingle()
-  if (current && ['active', 'trialing', 'past_due', 'unpaid', 'paused'].includes(current.status)) {
+  const { data: current } = await (supabase as any).from('billing_subscriptions').select('stripe_customer_id, plan, status, source').eq('user_id', user.id).maybeSingle()
+  if (current && current.source !== 'trial' && ['active', 'trialing', 'past_due', 'unpaid', 'paused'].includes(current.status)) {
     return NextResponse.json({ error: 'Un abonnement existe déjà. Gérez-le depuis votre portail de facturation.', currentPlan: current.plan }, { status: 409 })
   }
 
   const stripe = getStripeClient()
-  const customer = current?.stripe_customer_id
+  const customer = current?.stripe_customer_id && !String(current.stripe_customer_id).startsWith('trial_')
     ? current.stripe_customer_id
     : (await stripe.customers.create({ email: user.email ?? undefined, metadata: { user_id: user.id } }, { idempotencyKey: `customer:${user.id}` })).id
   const origin = getBillingOrigin(request.nextUrl.origin)
@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
     subscription_data: { metadata: { user_id: user.id, plan } },
     success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/pricing?checkout=canceled`,
-    allow_promotion_codes: true,
   }, { idempotencyKey: `checkout:${user.id}:${plan}:${Math.floor(Date.now() / 60000)}` })
 
   return NextResponse.json({ url: session.url })

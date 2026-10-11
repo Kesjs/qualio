@@ -1,488 +1,147 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import {
-  BellIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  CommandLineIcon,
-  CreditCardIcon,
-  ExclamationCircleIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  PuzzlePieceIcon,
-  ShieldCheckIcon,
-  UserIcon,
-} from '@heroicons/react/24/outline'
-import { getSupabaseBrowserClient as createClient } from '@/lib/supabase/client'
-import { CheckboxGroup, type CheckboxGroupOption } from '@/components/ui/checkbox-group'
-
-const NOTIFICATION_OPTIONS: CheckboxGroupOption[] = [
-  {
-    label: 'Alertes de régression',
-    value: 'push',
-    description: 'Recevoir une alerte quand un scan détecte une régression',
-    group: 'Alertes Qualio',
-  },
-  {
-    label: 'Bilan hebdomadaire',
-    value: 'email',
-    description: 'Recevoir un résumé des tendances et des corrections par email',
-    group: 'Alertes Qualio',
-  },
-  {
-    label: 'Alertes critiques par SMS',
-    value: 'sms',
-    description: 'Être prévenu par SMS lorsqu’une production est bloquée',
-    group: 'Alertes Qualio',
-  },
-  {
-    label: 'Intégration Slack',
-    value: 'slack',
-    description: 'Envoyer les rapports terminés vers un canal QA',
-    disabled: true,
-    disabledReason: 'Disponible prochainement',
-    group: 'Intégrations externes',
-  },
-  {
-    label: 'Webhook Discord',
-    value: 'discord',
-    description: 'Distribuer les régressions en temps réel à une équipe Discord',
-    disabled: true,
-    disabledReason: 'Disponible prochainement',
-    group: 'Intégrations externes',
-  },
-]
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { BellIcon, CheckCircleIcon, CreditCardIcon, EyeIcon, EyeSlashIcon, ShieldCheckIcon, TrashIcon, UserIcon } from '@heroicons/react/24/outline'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { useActiveSite } from '@/lib/hooks/useActiveSite'
 
 const TABS = [
   { id: 'profile', label: 'Profil', icon: UserIcon },
   { id: 'notifications', label: 'Notifications', icon: BellIcon },
   { id: 'billing', label: 'Abonnement', icon: CreditCardIcon },
-  { id: 'integrations', label: 'Intégrations', icon: PuzzlePieceIcon },
-  { id: 'api', label: 'API & Webhooks', icon: CommandLineIcon },
   { id: 'security', label: 'Sécurité', icon: ShieldCheckIcon },
 ] as const
+type TabId = (typeof TABS)[number]['id']
+type BillingState = { plan: 'free' | 'pro'; label: string; status: string; source: string | null; trialEndsAt: string | null; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean; limits: { projects: number; monthlySyntheses: number }; usage: { projects: number; monthlySyntheses: number } }
+type NotificationState = { weekly_digest: boolean; consented_at: string | null; consent_source: string | null; unsubscribed_at: string | null }
 
-type SettingsTab = (typeof TABS)[number]['id']
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-
-const COMING_SOON_COPY: Record<Exclude<SettingsTab, 'profile' | 'notifications' | 'security' | 'api'>, { title: string; description: string }> = {
-  billing: {
-    title: 'Abonnement et facturation',
-    description: 'La gestion du plan, de la facturation et des factures sera disponible prochainement.',
-  },
-  integrations: {
-    title: 'Intégrations',
-    description: 'Connectez Slack, Discord et vos outils de travail depuis cet espace prochainement.',
-  },
-}
-
-function ComingSoonPanel({ tab }: { tab: Exclude<SettingsTab, 'profile' | 'notifications' | 'security' | 'api'> }) {
-  const Icon = TABS.find((item) => item.id === tab)?.icon ?? ClockIcon
-  const copy = COMING_SOON_COPY[tab]
-
-  return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-[#ee6018]/25 bg-[#ee6018]/10 text-[#ee6018] dark:bg-[#ee6018]/[0.12]">
-        <Icon className="h-5 w-5" strokeWidth={1.7} />
-      </div>
-      <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#ee6018]/25 bg-[#ee6018]/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#ee6018]">
-        <ClockIcon className="h-3 w-3" />
-        Disponible prochainement
-      </span>
-      <h2 className="text-base font-semibold text-gray-900 dark:text-white">{copy.title}</h2>
-      <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-zinc-400">{copy.description}</p>
-    </div>
-  )
-}
-
-function BillingPanel() {
-  const [billing, setBilling] = useState<{ plan: string; status: string; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean; limits: { projects: number; monthlySyntheses: number }; usage: { projects: number; monthlySyntheses: number } } | null>(null)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  useEffect(() => { fetch('/api/billing/status').then((response) => response.json()).then(setBilling).catch(() => setError('Impossible de charger votre abonnement.')) }, [])
-  async function openPortal() { setLoading(true); setError(''); const response = await fetch('/api/billing/portal', { method: 'POST' }); const result = await response.json().catch(() => ({})); if (!response.ok) setError(result.error ?? 'Le portail de facturation est indisponible.'); else window.location.assign(result.url); setLoading(false) }
-  const planLabel = billing?.plan === 'pro' ? 'Pro' : billing?.plan === 'essential' ? 'Essentiel' : 'Gratuit'
-  return <div className="space-y-6 p-5 md:p-7"><div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#ee6018]">Abonnement</p><h2 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">Votre plan Qualio</h2><p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Le plan actif est confirmé par Stripe et contrôlé côté serveur.</p></div>{error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-500/10 dark:text-red-200">{error}</p>}<div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10"><div><span className="text-xs text-gray-500 dark:text-zinc-400">Plan actuel</span><strong className="mt-1 block text-2xl text-gray-950 dark:text-white">{billing ? planLabel : 'Chargement…'}</strong>{billing?.currentPeriodEnd && <span className="mt-1 block text-xs text-gray-500 dark:text-zinc-400">Période jusqu’au {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(billing.currentPeriodEnd))}{billing.cancelAtPeriodEnd ? ' · résiliation prévue' : ''}</span>}</div>{billing?.plan !== 'free' && <button type="button" onClick={openPortal} disabled={loading} className="rounded-lg border border-gray-200 px-4 py-2.5 text-xs font-bold hover:border-gray-400 disabled:opacity-50 dark:border-white/10">{loading ? 'Ouverture…' : 'Gérer la facturation'}</button>}</div>{billing && <div className="grid gap-3 sm:grid-cols-2"><Usage label="Projets" used={billing.usage.projects} limit={billing.limits.projects} /><Usage label="Synthèses ce mois" used={billing.usage.monthlySyntheses} limit={billing.limits.monthlySyntheses} /></div>}<p className="text-xs leading-5 text-gray-500 dark:text-zinc-400">Vous pouvez modifier votre moyen de paiement, consulter vos factures ou annuler depuis le portail sécurisé Stripe.</p></div>
-}
-
-function Usage({ label, used, limit }: { label: string; used: number; limit: number }) { const percent = Math.min(Math.round((used / Math.max(limit, 1)) * 100), 100); return <div className="rounded-xl border border-gray-200 p-4 dark:border-white/10"><div className="flex items-center justify-between gap-3 text-xs"><span className="text-gray-500 dark:text-zinc-400">{label}</span><strong className="text-gray-900 dark:text-white">{used} / {limit}</strong></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]"><div className="h-full rounded-full bg-[#ee6018]" style={{ width: `${percent}%` }} /></div></div> }
+const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }).format(new Date(value)) : null
 
 export default function SettingsPage() {
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [fullName, setFullName] = useState('')
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
-  const [notificationPreferences, setNotificationPreferences] = useState<string[]>(['push', 'email'])
-  const [isLoading, setIsLoading] = useState(true)
-  const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [saveError, setSaveError] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const [passwordState, setPasswordState] = useState<SaveState>('idle')
-  const [passwordError, setPasswordError] = useState('')
-  const [sessionState, setSessionState] = useState<SaveState>('idle')
-  const [sessionError, setSessionError] = useState('')
-  const initialValues = useRef({ fullName: '', notificationPreferences: ['push', 'email'] })
+  const router = useRouter()
+  const supabase = getSupabaseBrowserClient()
+  const { activeSite, isLoading: sitesLoading, refetch: refetchSites } = useActiveSite()
+  const [activeTab, setActiveTab] = useState<TabId>('profile')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [weeklyDigest, setWeeklyDigest] = useState(false)
+  const [notificationMeta, setNotificationMeta] = useState<NotificationState | null>(null)
+  const [billing, setBilling] = useState<BillingState | null>(null)
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
+  const trialDays = billing?.trialEndsAt && billing.source === 'trial' ? Math.max(0, Math.ceil((new Date(billing.trialEndsAt).getTime() - Date.now()) / 86400000)) : null
 
-    async function loadSettings() {
-      const supabase = createClient()
-      const { data, error } = await supabase.auth.getUser()
-
-      if (!mounted) return
-
-      if (error || !data.user) {
-        setSaveError('Impossible de charger les paramètres du compte.')
-        setIsLoading(false)
-        return
-      }
-
-      const metadata = data.user.user_metadata ?? {}
-      const loadedName = typeof metadata.full_name === 'string' ? metadata.full_name : ''
-      const loadedPreferences = Array.isArray(metadata.notification_preferences)
-        ? metadata.notification_preferences.filter((value): value is string => typeof value === 'string')
-        : ['push', 'email']
-
-      setUserEmail(data.user.email ?? null)
-      setFullName(loadedName)
-      setNotificationPreferences(loadedPreferences)
-      initialValues.current = { fullName: loadedName, notificationPreferences: loadedPreferences }
-      setIsLoading(false)
-    }
-
-    loadSettings()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  const isDirty =
-    fullName !== initialValues.current.fullName ||
-    JSON.stringify(notificationPreferences) !== JSON.stringify(initialValues.current.notificationPreferences)
-
-  const handleSave = async () => {
-    if (!isDirty || saveState === 'saving') return
-
-    setSaveState('saving')
-    setSaveError('')
-
+  async function load() {
+    setLoading(true); setError(null)
     try {
-      const supabase = createClient()
-      const { data, error: userError } = await supabase.auth.getUser()
-      if (userError || !data.user) throw new Error('Session introuvable')
-
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          ...data.user.user_metadata,
-          full_name: fullName.trim(),
-          notification_preferences: notificationPreferences,
-        },
-      })
-
-      if (error) throw error
-
-      initialValues.current = {
-        fullName: fullName.trim(),
-        notificationPreferences,
+      const [{ data: { user } }, notificationResponse, billingResponse] = await Promise.all([
+        supabase.auth.getUser(), fetch('/api/settings/notifications'), fetch('/api/billing/status'),
+      ])
+      if (!user) { router.push('/login'); return }
+      setEmail(user.email ?? '')
+      setName(typeof user.user_metadata?.display_name === 'string' ? user.user_metadata.display_name : '')
+      if (notificationResponse.ok) {
+        const preferences = await notificationResponse.json() as NotificationState
+        setNotificationMeta(preferences); setWeeklyDigest(preferences.weekly_digest)
       }
-      setFullName(fullName.trim())
-      setSaveState('saved')
+      if (billingResponse.ok) setBilling(await billingResponse.json() as BillingState)
     } catch {
-      setSaveState('error')
-      setSaveError('Les modifications n’ont pas pu être enregistrées. Réessayez.')
-    }
+      setError('Impossible de charger les réglages. Réessayez.')
+    } finally { setLoading(false) }
   }
 
-  const handleChangePassword = async () => {
-    if (newPassword.length < 8) {
-      setPasswordState('error')
-      setPasswordError('Le mot de passe doit contenir au moins 8 caractères.')
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordState('error')
-      setPasswordError('Les deux mots de passe ne correspondent pas.')
-      return
-    }
+  // The initial load intentionally runs once per settings visit.
+  useEffect(() => { void load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (success) { const timer = window.setTimeout(() => setSuccess(null), 3500); return () => window.clearTimeout(timer) } }, [success])
 
-    setPasswordState('saving')
-    setPasswordError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-
-    if (error) {
-      setPasswordState('error')
-      setPasswordError(error.message || 'Le mot de passe n’a pas pu être modifié.')
-      return
-    }
-
-    setNewPassword('')
-    setConfirmPassword('')
-    setPasswordState('saved')
+  async function saveProfile() {
+    setBusy(true); setError(null)
+    const { error: updateError } = await supabase.auth.updateUser({ data: { display_name: name.trim().slice(0, 120) } })
+    setBusy(false)
+    if (updateError) return setError('Impossible d’enregistrer votre profil.')
+    setSuccess('Profil enregistré.')
   }
 
-  const handleSignOutOtherSessions = async () => {
-    setSessionState('saving')
-    setSessionError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.signOut({ scope: 'others' })
-
-    if (error) {
-      setSessionState('error')
-      setSessionError('Les autres sessions n’ont pas pu être déconnectées.')
-      return
-    }
-
-    setSessionState('saved')
+  async function saveNotifications() {
+    setBusy(true); setError(null)
+    const response = await fetch('/api/settings/notifications', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ weeklyDigest }) })
+    const result = await response.json().catch(() => ({}))
+    setBusy(false)
+    if (!response.ok) return setError(result.error ?? 'Impossible d’enregistrer cette préférence.')
+    setNotificationMeta(result); setSuccess(weeklyDigest ? 'Résumé hebdomadaire activé.' : 'Résumé hebdomadaire désactivé.')
   }
 
-  const isSaving = saveState === 'saving'
-  const activeTabIsComingSoon = activeTab === 'integrations'
+  async function changePassword() {
+    if (password.length < 8 || password !== confirmation) return setError(password !== confirmation ? 'Les mots de passe ne correspondent pas.' : 'Le mot de passe doit contenir au moins 8 caractères.')
+    setBusy(true); setError(null)
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    setBusy(false)
+    if (updateError) return setError('Impossible de modifier le mot de passe.')
+    setPassword(''); setConfirmation(''); setSuccess('Mot de passe modifié.')
+  }
 
-  return (
-    <div className="max-w-6xl space-y-6 pb-12">
-      <div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#ee6018]">Compte</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Paramètres</h1>
-        <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-zinc-400">
-          Gérez votre profil et vos préférences de suivi des régressions.
-        </p>
-      </div>
+  async function openPortal() {
+    setBusy(true); setError(null)
+    const response = await fetch('/api/billing/portal', { method: 'POST' })
+    const result = await response.json().catch(() => ({}))
+    setBusy(false)
+    if (!response.ok || !result.url) return setError(result.error ?? 'Le portail de facturation est indisponible.')
+    window.location.assign(result.url)
+  }
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-start">
-        <nav aria-label="Sections des paramètres" className="w-full shrink-0 md:w-56">
-          <div className="space-y-1" role="tablist" aria-orientation="vertical">
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.id
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`settings-tab-${tab.id}`}
-                  aria-selected={isActive}
-                  aria-controls={`settings-panel-${tab.id}`}
-                  onClick={() => {
-                    setActiveTab(tab.id)
-                    setSaveState('idle')
-                    setSaveError('')
-                  }}
-                  className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/50 ${
-                    isActive
-                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.05] dark:hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2 : 1.7} />
-                  <span className="min-w-0 flex-1 truncate">{tab.label}</span>
-                  {'comingSoon' in tab && tab.comingSoon ? (
-                    <span className={`font-mono text-[9px] uppercase tracking-[0.08em] ${isActive ? 'text-gray-500 dark:text-gray-500' : 'text-gray-400 dark:text-zinc-600'}`}>
-                      Soon
-                    </span>
-                  ) : null}
-                </button>
-              )
-            })}
-          </div>
-        </nav>
+  async function deleteProject() {
+    if (!activeSite) return
+    if (!window.confirm(`Supprimer le projet « ${activeSite.name || activeSite.url || 'sans nom'} » et tous ses avis ? Cette action est irréversible.`)) return
+    setBusy(true); setError(null)
+    const response = await fetch(`/api/sites/${activeSite.id}`, { method: 'DELETE' })
+    setBusy(false)
+    if (!response.ok) return setError('Le projet n’a pas pu être supprimé.')
+    window.localStorage.removeItem('qualio:selected-site')
+    window.dispatchEvent(new CustomEvent('qualio:project-changed', { detail: {} }))
+    await refetchSites(); setSuccess('Projet supprimé.')
+  }
 
-        <section className="min-w-0 flex-1" aria-live="polite">
-          <div className="overflow-hidden rounded-xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]">
-            {activeTabIsComingSoon ? (
-              <div id={`settings-panel-${activeTab}`} role="tabpanel" aria-labelledby={`settings-tab-${activeTab}`}>
-                <ComingSoonPanel tab={activeTab} />
-              </div>
-            ) : null}
+  async function deleteAccount() {
+    if (!window.confirm('Supprimer votre compte, vos projets et tous vos avis ? Cette action est irréversible.')) return
+    setBusy(true); setError(null)
+    const response = await fetch('/api/account', { method: 'DELETE' })
+    if (!response.ok) { setBusy(false); return setError('Le compte n’a pas pu être supprimé.') }
+    await supabase.auth.signOut(); router.push('/login?deleted=1')
+  }
 
-            {activeTab === 'billing' ? <div id="settings-panel-billing" role="tabpanel" aria-labelledby="settings-tab-billing"><BillingPanel /></div> : null}
+  if (loading || sitesLoading) return <SettingsShell><div className="space-y-4"><div className="h-8 w-48 animate-pulse rounded bg-gray-200 dark:bg-white/10" /><div className="h-48 animate-pulse rounded-2xl bg-gray-100 dark:bg-white/[0.05]" /><div className="h-32 animate-pulse rounded-2xl bg-gray-100 dark:bg-white/[0.05]" /></div></SettingsShell>
 
-            {activeTab === 'profile' ? (
-              <div id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="space-y-6 p-5 md:p-7">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Informations personnelles</h2>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Ces informations servent à personnaliser votre espace Qualio.</p>
-                  </div>
-
-                  <div className="max-w-xl space-y-5">
-                    <div>
-                      <label htmlFor="settings-email" className="mb-2 block text-xs font-medium text-gray-700 dark:text-zinc-300">Adresse email</label>
-                      <input
-                        id="settings-email"
-                        type="email"
-                        value={isLoading ? 'Chargement…' : userEmail ?? 'Email indisponible'}
-                        disabled
-                        className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-500 outline-none dark:border-white/[0.08] dark:bg-[#111216] dark:text-zinc-500"
-                      />
-                      <p className="mt-1.5 text-[11px] text-gray-400 dark:text-zinc-500">L’email est géré par Supabase Auth et ne peut pas être modifié ici.</p>
-                    </div>
-
-                    <div>
-                      <label htmlFor="settings-full-name" className="mb-2 block text-xs font-medium text-gray-700 dark:text-zinc-300">Nom complet</label>
-                      <input
-                        id="settings-full-name"
-                        type="text"
-                        value={fullName}
-                        onChange={(event) => {
-                          setFullName(event.target.value)
-                          setSaveState('idle')
-                        }}
-                        placeholder="Votre nom complet"
-                        disabled={isLoading}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-[#ee6018] focus:ring-2 focus:ring-[#ee6018]/15 disabled:cursor-wait disabled:opacity-60 dark:border-white/[0.08] dark:bg-[#111216] dark:text-white dark:placeholder:text-zinc-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === 'notifications' ? (
-              <div id="settings-panel-notifications" role="tabpanel" aria-labelledby="settings-tab-notifications" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="space-y-6 p-5 md:p-7">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Préférences de notification</h2>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Choisissez comment Qualio doit vous prévenir lorsqu’un scan détecte une régression.</p>
-                  </div>
-
-                  <div className="max-w-xl rounded-xl border border-gray-200/80 bg-gray-50/60 p-2 dark:border-white/[0.06] dark:bg-white/[0.015]">
-                    <CheckboxGroup
-                      options={NOTIFICATION_OPTIONS}
-                      value={notificationPreferences}
-                      onChange={(value) => {
-                        setNotificationPreferences(value)
-                        setSaveState('idle')
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {activeTab === 'security' ? (
-              <div id="settings-panel-security" role="tabpanel" aria-labelledby="settings-tab-security" className="animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="space-y-8 p-5 md:p-7">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Sécurité du compte</h2>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Protégez votre accès et gardez le contrôle de vos sessions actives.</p>
-                  </div>
-
-                  <div className="max-w-xl space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">Modifier le mot de passe</h3>
-                      <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-zinc-500">Utilisez au moins 8 caractères. La session actuelle restera ouverte.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label htmlFor="settings-new-password" className="mb-2 block text-xs font-medium text-gray-700 dark:text-zinc-300">Nouveau mot de passe</label>
-                        <div className="relative">
-                          <input
-                            id="settings-new-password"
-                            type={isPasswordVisible ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(event) => {
-                              setNewPassword(event.target.value)
-                              setPasswordState('idle')
-                              setPasswordError('')
-                            }}
-                            autoComplete="new-password"
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 pr-11 text-sm text-gray-900 outline-none transition focus:border-[#ee6018] focus:ring-2 focus:ring-[#ee6018]/15 dark:border-white/[0.08] dark:bg-[#111216] dark:text-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setIsPasswordVisible((visible) => !visible)}
-                            aria-label={isPasswordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-gray-400 transition hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#ee6018]/50 dark:text-zinc-500 dark:hover:text-white"
-                          >
-                            {isPasswordVisible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label htmlFor="settings-confirm-password" className="mb-2 block text-xs font-medium text-gray-700 dark:text-zinc-300">Confirmer le mot de passe</label>
-                        <input
-                          id="settings-confirm-password"
-                          type={isPasswordVisible ? 'text' : 'password'}
-                          value={confirmPassword}
-                          onChange={(event) => {
-                            setConfirmPassword(event.target.value)
-                            setPasswordState('idle')
-                            setPasswordError('')
-                          }}
-                          autoComplete="new-password"
-                          className="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-[#ee6018] focus:ring-2 focus:ring-[#ee6018]/15 dark:border-white/[0.08] dark:bg-[#111216] dark:text-white"
-                        />
-                      </div>
-                    </div>
-
-                    {passwordError ? <p className="flex items-center gap-2 text-xs text-rose-600 dark:text-rose-400"><ExclamationCircleIcon className="h-4 w-4 shrink-0" />{passwordError}</p> : null}
-                    {passwordState === 'saved' ? <p className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400"><CheckCircleIcon className="h-4 w-4 shrink-0" />Mot de passe modifié.</p> : null}
-
-                    <button
-                      type="button"
-                      onClick={handleChangePassword}
-                      disabled={passwordState === 'saving' || !newPassword || !confirmPassword}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#ee6018] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 dark:focus-visible:ring-offset-[#181B21]"
-                    >
-                      {passwordState === 'saving' ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white" /> : null}
-                      {passwordState === 'saving' ? 'Modification…' : 'Modifier le mot de passe'}
-                    </button>
-                  </div>
-
-                  <div className="max-w-xl border-t border-gray-100 pt-6 dark:border-white/[0.06]">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Sessions actives</h3>
-                    <p className="mt-1 max-w-lg text-xs leading-5 text-gray-500 dark:text-zinc-500">Déconnectez les autres appareils sans interrompre votre session actuelle.</p>
-                    <button
-                      type="button"
-                      onClick={handleSignOutOtherSessions}
-                      disabled={sessionState === 'saving'}
-                      className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.1] dark:bg-[#111216] dark:text-zinc-200 dark:hover:border-white/20 dark:hover:bg-white/[0.04]"
-                    >
-                      {sessionState === 'saving' ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700 dark:border-zinc-600 dark:border-t-white" /> : null}
-                      {sessionState === 'saving' ? 'Déconnexion…' : 'Déconnecter les autres sessions'}
-                    </button>
-                    {sessionError ? <p className="mt-3 flex items-center gap-2 text-xs text-rose-600 dark:text-rose-400"><ExclamationCircleIcon className="h-4 w-4 shrink-0" />{sessionError}</p> : null}
-                    {sessionState === 'saved' ? <p className="mt-3 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400"><CheckCircleIcon className="h-4 w-4 shrink-0" />Les autres sessions ont été déconnectées.</p> : null}
-                  </div>
-
-                  <div className="max-w-xl rounded-lg border border-dashed border-gray-200 px-4 py-3 dark:border-white/[0.08]">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-400 dark:text-zinc-500">Disponible prochainement</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">Authentification à deux facteurs et passkeys.</p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-
-            {activeTab === 'profile' || activeTab === 'notifications' ? (
-              <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 dark:border-white/[0.06] dark:bg-[#111216]/60 md:flex-row md:items-center md:justify-between md:px-7">
-                <div className="flex min-h-8 items-center gap-2 text-xs">
-                  {saveState === 'saved' ? <CheckCircleIcon className="h-4 w-4 text-emerald-500" /> : null}
-                  {saveState === 'error' ? <ExclamationCircleIcon className="h-4 w-4 text-rose-500" /> : null}
-                  <span className={saveState === 'error' ? 'text-rose-600 dark:text-rose-400' : saveState === 'saved' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-zinc-500'}>
-                    {saveState === 'saved' ? 'Modifications enregistrées' : saveState === 'error' ? saveError : isDirty ? 'Modifications non enregistrées' : 'Tout est à jour'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isLoading || isSaving || !isDirty}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#ee6018] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#d95514] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ee6018]/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 dark:focus-visible:ring-offset-[#111216]"
-                >
-                  {isSaving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/25 border-t-white" /> : <CheckCircleIcon className="h-4 w-4" />}
-                  {isSaving ? 'Enregistrement…' : 'Enregistrer les modifications'}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </section>
-      </div>
+  return <SettingsShell>
+    <div className="mb-6"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#c95720]">Réglages</p><h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-gray-950 dark:text-white">Votre espace, simplement.</h1><p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">Profil, notifications, abonnement et sécurité.</p></div>
+    {error ? <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200"><span>{error}</span><button type="button" onClick={() => void load()} className="min-h-11 rounded-lg px-3 font-semibold underline">Réessayer</button></div> : null}
+    {success ? <p role="status" aria-live="polite" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"><CheckCircleIcon className="mr-2 inline h-4 w-4" />{success}</p> : null}
+    {trialDays !== null ? <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-[#ee6018]/25 bg-[#ee6018]/[0.08] p-4 text-sm text-gray-800 dark:text-orange-100 sm:flex-row sm:items-center sm:justify-between"><span>Essai Pro : il vous reste <strong>{trialDays} jour{trialDays > 1 ? 's' : ''}</strong>.</span><button type="button" onClick={() => setActiveTab('billing')} className="min-h-11 rounded-xl bg-[#ee6018] px-4 py-2 text-sm font-bold text-white">Passer en Pro</button></div> : null}
+    <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+      <nav aria-label="Sections des réglages" className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible">{TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={`flex min-h-11 shrink-0 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition lg:w-full ${activeTab === id ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-white/[0.06]'}`}><Icon className="h-4 w-4" />{label}</button>)}</nav>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.08] dark:bg-[#16181e] md:p-7">
+        {activeTab === 'profile' ? <Panel title="Profil" description="Ces informations servent à personnaliser votre espace."><label className="block max-w-xl text-sm font-semibold">Nom affiché<input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none focus:border-[#ee6018] dark:border-white/10 dark:bg-white/[0.04] dark:text-white" placeholder="Votre nom" /></label><label className="mt-5 block max-w-xl text-sm font-semibold">Email<input value={email} readOnly className="mt-2 min-h-11 w-full rounded-xl border border-gray-200 bg-gray-100 px-4 text-base text-gray-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-zinc-500" /></label><SaveButton busy={busy} onClick={saveProfile}>Enregistrer le profil</SaveButton></Panel> : null}
+        {activeTab === 'notifications' ? <Panel title="Notifications" description="Vous gardez le contrôle sur le résumé de vos avis."><label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 dark:border-white/10"><input type="checkbox" checked={weeklyDigest} onChange={(event) => setWeeklyDigest(event.target.checked)} className="mt-1 h-5 w-5 accent-[#ee6018]" /><span><strong className="block text-sm">Recevoir le résumé hebdomadaire</strong><span className="mt-1 block text-sm font-normal leading-6 text-gray-500 dark:text-zinc-400">Un email court le lundi avec les évolutions de vos avis et une recommandation à décider. Désinscription possible à tout moment.</span></span></label>{notificationMeta?.consent_source ? <p className="mt-3 text-xs text-gray-500 dark:text-zinc-500">Dernier consentement enregistré depuis {notificationMeta.consent_source === 'signup' ? 'l’inscription' : 'les réglages'}.</p> : null}<SaveButton busy={busy} onClick={saveNotifications}>Enregistrer les notifications</SaveButton></Panel> : null}
+        {activeTab === 'billing' ? <Panel title="Abonnement" description="Les limites sont appliquées côté serveur et vos données restent conservées."><BillingCard billing={billing} busy={busy} onPortal={openPortal} onUpgrade={() => router.push('/pricing')} /></Panel> : null}
+        {activeTab === 'security' ? <Panel title="Sécurité" description="Modifiez votre mot de passe ou déconnectez les autres appareils."><div className="max-w-xl"><label className="block text-sm font-semibold">Nouveau mot de passe<div className="relative mt-2"><input type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} autoComplete="new-password" className="min-h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 pr-12 text-base outline-none focus:border-[#ee6018] dark:border-white/10 dark:bg-white/[0.04] dark:text-white" /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} className="absolute right-1 top-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500">{showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}</button></div></label><label className="mt-4 block text-sm font-semibold">Confirmer le mot de passe<input type={showPassword ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" className="mt-2 min-h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-base outline-none focus:border-[#ee6018] dark:border-white/10 dark:bg-white/[0.04] dark:text-white" /></label><SaveButton busy={busy} onClick={changePassword}>Modifier le mot de passe</SaveButton></div></Panel> : null}
+        <div className="mt-8 border-t border-gray-100 pt-7 dark:border-white/[0.06]"><h2 className="text-sm font-semibold text-red-700 dark:text-red-300">Zone de danger</h2><p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Les suppressions sont irréversibles et demandent une confirmation explicite.</p><div className="mt-4 flex flex-col gap-3 sm:flex-row"><button type="button" onClick={() => void deleteProject()} disabled={!activeSite || busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-45 dark:border-red-500/20 dark:text-red-300"><TrashIcon className="h-4 w-4" />Supprimer le projet actif</button><button type="button" onClick={() => void deleteAccount()} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-45 dark:border-red-500/20 dark:text-red-300"><TrashIcon className="h-4 w-4" />Supprimer mon compte</button></div></div>
+      </section>
     </div>
-  )
+  </SettingsShell>
+}
+
+function SettingsShell({ children }: { children: React.ReactNode }) { return <main className="min-h-full bg-[#fbfbfb] px-4 py-6 text-gray-950 dark:bg-[#0b0c0e] dark:text-white sm:px-6 lg:px-8">{children}</main> }
+function Panel({ title, description, children }: { title: string; description: string; children: React.ReactNode }) { return <div><h2 className="text-xl font-semibold">{title}</h2><p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{description}</p><div className="mt-7">{children}</div></div> }
+function SaveButton({ busy, onClick, children }: { busy: boolean; onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={() => void onClick()} disabled={busy} className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#ee6018] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50">{busy ? 'Enregistrement…' : children}</button> }
+function BillingCard({ billing, busy, onPortal, onUpgrade }: { billing: BillingState | null; busy: boolean; onPortal: () => void; onUpgrade: () => void }) {
+  if (!billing) return <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500 dark:bg-white/[0.04] dark:text-zinc-400">Les informations d’abonnement sont indisponibles. Réessayez.</p>
+  const end = billing.source === 'trial' ? billing.trialEndsAt : billing.currentPeriodEnd
+  const isPro = billing.plan === 'pro'
+  return <div className="max-w-xl rounded-2xl border border-gray-200 p-5 dark:border-white/10"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-lg font-semibold">{billing.label}</p><p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{isPro ? `${billing.usage.monthlySyntheses} / ${billing.limits.monthlySyntheses} synthèses utilisées ce mois-ci` : 'Vos avis et vos données restent conservés.'}</p></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${isPro ? 'bg-orange-50 text-[#c95720] dark:bg-orange-500/10 dark:text-orange-200' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-zinc-300'}`}>{billing.status === 'trialing' ? 'Essai en cours' : isPro ? 'Actif' : 'Gratuit'}</span></div>{end ? <p className="mt-5 text-sm text-gray-600 dark:text-zinc-300">{billing.source === 'trial' ? 'Fin de l’essai' : 'Prochaine échéance'} : <strong>{dateLabel(end)}</strong></p> : null}<div className="mt-5 flex flex-wrap gap-3">{isPro && billing.source !== 'manual' ? <button type="button" onClick={onPortal} disabled={busy} className="min-h-11 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold dark:border-white/10">Gérer la facturation</button> : null}{billing.source === 'manual' ? <p className="text-sm text-gray-500 dark:text-zinc-400">Accès offert, pas d’abonnement à gérer.</p> : null}{!isPro ? <button type="button" onClick={onUpgrade} className="min-h-11 rounded-xl bg-[#ee6018] px-4 py-2 text-sm font-bold text-white">Passer en Pro</button> : null}</div></div>
 }

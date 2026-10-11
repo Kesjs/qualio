@@ -41,7 +41,7 @@ const FAQ = [
   },
   {
     q: 'Combien coûte le plan gratuit ?',
-    a: 'Rien. Le plan gratuit inclut un projet et une synthèse d’essai, puis une par mois, pour tester Qualio sur vos vrais avis avant de passer à un plan payant.',
+    a: 'Rien. Le plan gratuit inclut un projet, une synthèse par mois, vos avis conservés, l’import CSV et le widget.',
   },
 ]
 
@@ -50,21 +50,17 @@ const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : 
 const PLANS = [
   {
     id: 'free' as const,
-    audience: 'Pour découvrir Qualio sur vos avis',
-    synth: '1 synthèse d’essai, puis 1 par mois',
+    audience: 'Pour commencer avec vos avis',
+    synth: `${BILLING_PLANS.free.monthlySyntheses} synthèse par mois`,
+    features: BILLING_PLANS.free.features,
     featured: false,
-  },
-  {
-    id: 'essential' as const,
-    audience: 'Pour suivre vos avis chaque semaine',
-    synth: `${BILLING_PLANS.essential.monthlySyntheses} synthèses par mois`,
-    featured: true,
   },
   {
     id: 'pro' as const,
-    audience: 'Pour gérer plusieurs clients',
-    synth: `${BILLING_PLANS.pro.monthlySyntheses} synthèses par mois et par projet`,
-    featured: false,
+    audience: 'Pour suivre vos avis chaque semaine',
+    synth: 'Synthèse automatique chaque semaine',
+    features: BILLING_PLANS.pro.features,
+    featured: true,
   },
 ].map((p) => ({
   ...p,
@@ -72,13 +68,6 @@ const PLANS = [
   price: String(BILLING_PLANS[p.id].priceEur),
   projects: plural(BILLING_PLANS[p.id].projects, 'projet', 'projets'),
 }))
-
-const PLAN_FEATURES = [
-  'Import CSV de vos avis passés',
-  'Widget de collecte pour votre site',
-  'Thèmes avec exemples sourcés',
-  'Recommandations validées par votre équipe',
-]
 
 /* ───────────────────────── Primitives ───────────────────────── */
 
@@ -866,7 +855,7 @@ function StepCard({
 }
 
 const AUDIENCES = [
-  { tag: 'Équipes produit', title: 'Les retours arrivent de partout. Lisez-les au même endroit.', body: 'Email, formulaire, support : Qualio réunit tout dans un espace, classé par thème, pour que la réunion produit parte de faits et non d’impressions.', chips: ['Email', 'Formulaire', 'Support'] },
+  { tag: 'Équipes produit', title: 'Les retours deviennent des décisions.', body: 'Import CSV, widget ou ajout manuel : Qualio réunit vos avis dans un espace classé par thème, pour que la réunion produit parte de faits.', chips: ['Import CSV', 'Widget', 'Ajout manuel'] },
   { tag: 'Agences et freelances', title: 'Un projet par client, un rapport par période.', body: 'Chaque client a son espace avec ses sources, ses avis et ses synthèses. Vous gardez une vue claire de ce qui remonte, projet par projet.', chips: ['Un espace par client', 'Sources', 'Synthèses'] },
   { tag: 'Boutiques en ligne', title: 'Voyez la friction avant qu’elle ne coûte des ventes.', body: 'Livraison, paiement, retours : repérez les sujets qui reviennent dans les avis et traitez d’abord ceux qui touchent le plus de clients.', chips: ['Livraison', 'Paiement', 'Retours'] },
 ]
@@ -1035,7 +1024,7 @@ export function LightLanding() {
             <Reveal className="mx-auto max-w-3xl text-center">
               <h2 className={H2}>Commencez gratuitement. Payez quand vos avis deviennent un rythme.</h2>
             </Reveal>
-            <div className="mt-14 grid gap-4 md:grid-cols-3">
+            <div className="mt-14 grid gap-4 md:grid-cols-2">
               {PLANS.map((p, i) => (
                 <Reveal key={p.name} delay={i * 0.05} className="flex">
                   <div
@@ -1057,7 +1046,7 @@ export function LightLanding() {
                       <p>{p.synth}</p>
                     </div>
                     <ul className="mt-4 space-y-3 text-sm">
-                      {PLAN_FEATURES.map((f) => (
+                      {p.features.map((f) => (
                         <li key={f} className="flex gap-2.5">
                           <Check size={16} className="mt-0.5 shrink-0" style={{ color: p.featured ? ACCENT : INK }} />
                           <span style={{ color: MUTED }}>{f}</span>
@@ -1077,7 +1066,7 @@ export function LightLanding() {
               ))}
             </div>
             <p className="mt-8 text-center text-xs" style={{ color: MUTED }}>
-              Prix en euros, par mois. Les synthèses sont comptées par projet.
+              Vos données sont conservées si vous repassez en Gratuit.
             </p>
           </div>
         </section>
@@ -1127,9 +1116,8 @@ export function LightLanding() {
             <p className="mt-3 text-sm" style={{ color: MUTED }}>Une vue fiable des avis qui comptent.</p>
           </div>
           <nav className="flex flex-wrap gap-6 text-sm" style={{ color: MUTED }} aria-label="Pied de page">
-            <Link href="/product" className="hover:text-[#ee6018]">Produit</Link>
             <Link href="/pricing" className="hover:text-[#ee6018]">Tarifs</Link>
-            <Link href="/resources" className="hover:text-[#ee6018]">Ressources</Link>
+            <Link href="/contact" className="hover:text-[#ee6018]">Contact</Link>
             <Link href="/login" className="hover:text-[#ee6018]">Se connecter</Link>
           </nav>
           <span className="text-xs" style={{ color: MUTED }}>© 2026 Qualio</span>

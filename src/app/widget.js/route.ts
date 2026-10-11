@@ -14,7 +14,12 @@ export function GET(request: NextRequest) {
 
     const host = document.createElement('div');
     host.setAttribute('data-qualio-widget', '');
-    host.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:2147483646;width:0;height:0;';
+    const requestedPosition = current && current.getAttribute('data-position') === 'left' ? 'left' : 'right';
+    const requestedAccent = current && /^#[0-9a-f]{6}$/i.test(current.getAttribute('data-accent') || '') ? current.getAttribute('data-accent') : '#ee6018';
+    const requestedLabel = current && current.getAttribute('data-label') ? current.getAttribute('data-label') : '';
+    host.style.cssText = 'position:fixed;bottom:20px;z-index:2147483646;width:0;height:0;';
+    host.style.setProperty(requestedPosition, '20px');
+    host.style.setProperty('--qualio-accent', requestedAccent);
     const shadow = host.attachShadow({ mode: 'open' });
     const apiUrl = ${intakeUrl};
 
@@ -22,8 +27,8 @@ export function GET(request: NextRequest) {
       <style>
         :host { all: initial; }
         .qualio-button, .qualio-panel, .qualio-panel * { box-sizing: border-box; }
-        .qualio-button { position: absolute; right: 0; bottom: 0; border: 0; border-radius: 999px; background: #ee6018; color: #fff; padding: 13px 17px; font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; box-shadow: 0 12px 30px #ee601844; cursor: pointer; }
-        .qualio-button:hover { background: #d95514; }
+        .qualio-button { position: absolute; right: 0; bottom: 0; border: 0; border-radius: 999px; background: var(--qualio-accent, #ee6018); color: #fff; padding: 13px 17px; font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; box-shadow: 0 12px 30px #11182733; cursor: pointer; }
+        .qualio-button:hover { filter: brightness(.92); }
         .qualio-button:focus-visible, .qualio-panel button:focus-visible, .qualio-panel textarea:focus-visible, .qualio-panel input:focus-visible { outline: 3px solid #f7b08a; outline-offset: 2px; }
         .qualio-panel { position: absolute; right: 0; bottom: 58px; width: min(360px, calc(100vw - 32px)); border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; padding: 18px; box-shadow: 0 20px 60px #11182722; color: #111827; font: 14px/1.45 system-ui, sans-serif; }
         .qualio-panel[hidden] { display: none; }
@@ -52,14 +57,16 @@ export function GET(request: NextRequest) {
         .qualio-success p { margin: 0; color: #6b7280; font-size: 13px; }
         @keyframes qualio-success-in { from { transform: scale(.65); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @media (max-width: 480px) { .qualio-button { right: 0; bottom: 0; } .qualio-panel { right: 0; bottom: 58px; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
       </style>
       <button class="qualio-button" type="button" aria-expanded="false" aria-controls="qualio-feedback-panel"></button>
-      <section class="qualio-panel" id="qualio-feedback-panel" role="dialog" aria-modal="false" aria-labelledby="qualio-feedback-title" hidden>
+      <section class="qualio-panel" id="qualio-feedback-panel" role="dialog" aria-modal="true" aria-labelledby="qualio-feedback-title" hidden>
         <div class="qualio-panel-header"><div><h2 id="qualio-feedback-title"></h2><p class="qualio-intro"></p></div><button class="qualio-close" type="button"></button></div>
         <form>
-          <label><span class="qualio-content-label"></span><textarea name="content" rows="4" required maxlength="10000"></textarea></label>
+          <label><span class="qualio-content-label"></span><textarea name="content" rows="4" required maxlength="2000"></textarea></label>
           <label><span class="qualio-name-label"></span><input name="authorName" maxlength="160" autocomplete="name"></label>
           <label><span class="qualio-email-label"></span><input name="authorEmail" type="email" maxlength="320" autocomplete="email"></label>
+          <label aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden"><span>Website</span><input name="honeypot" tabindex="-1" autocomplete="off"></label>
           <button class="qualio-submit" type="submit"><span class="qualio-submit-label"></span><span class="qualio-submit-dots" hidden aria-hidden="true"><i></i><i></i><i></i></span></button>
           <div class="qualio-status" role="status" aria-live="polite"></div>
         </form>
@@ -77,6 +84,10 @@ export function GET(request: NextRequest) {
     const status = shadow.querySelector('.qualio-status');
     const success = shadow.querySelector('.qualio-success');
     if (!button || !panel || !close || !form || !submit || !submitLabel || !submitDots || !status || !success) return;
+    if (requestedPosition === 'left') {
+      button.style.right = 'auto'; button.style.left = '0';
+      panel.style.right = 'auto'; panel.style.left = '0';
+    }
 
     const translations = {
       fr: { button: 'Laisser un avis', title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', close: 'Fermer', content: 'Votre avis', contentPlaceholder: 'Écrivez votre avis…', name: 'Votre nom (facultatif)', email: 'Votre email (facultatif)', submit: 'Envoyer', sending: 'Envoi', success: 'Merci pour votre avis', successCopy: 'Votre message a bien été envoyé.' },
@@ -94,7 +105,7 @@ export function GET(request: NextRequest) {
     };
     const applyLanguage = () => {
       const copy = translations[getLanguage()];
-      button.textContent = copy.button;
+      button.textContent = requestedLabel || copy.button;
       button.setAttribute('aria-label', copy.button);
       shadow.querySelector('#qualio-feedback-title').textContent = copy.title;
       shadow.querySelector('.qualio-intro').textContent = copy.intro;
@@ -113,6 +124,7 @@ export function GET(request: NextRequest) {
     const languageObserver = new MutationObserver(() => applyLanguage());
     languageObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 
+    let openedAt = 0;
     const setOpen = (open) => {
       if (open && !success.hidden) {
         success.hidden = true;
@@ -123,13 +135,29 @@ export function GET(request: NextRequest) {
       }
       panel.hidden = !open;
       button.setAttribute('aria-expanded', String(open));
+      if (open) openedAt = Date.now();
       if (open) shadow.querySelector('textarea')?.focus();
     };
     button.addEventListener('click', () => setOpen(panel.hidden));
     close.addEventListener('click', () => setOpen(false));
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !panel.hidden) setOpen(false); });
+    document.addEventListener('keydown', (event) => {
+      if (panel.hidden) return;
+      if (event.key === 'Escape') { setOpen(false); return; }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(shadow.querySelectorAll('button, textarea, input')).filter((element) => !element.hasAttribute('disabled') && !element.closest('[hidden]'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && shadow.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && shadow.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (Date.now() - openedAt < 1800) {
+        status.classList.add('error');
+        status.textContent = getLanguage() === 'en' ? 'Please take a moment to write your feedback.' : 'Prenez un instant pour écrire votre avis.';
+        return;
+      }
       const data = new FormData(form);
       submit.disabled = true;
       status.classList.remove('error');
@@ -138,7 +166,7 @@ export function GET(request: NextRequest) {
       submitDots.hidden = false;
       status.textContent = '';
       try {
-        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail') }) });
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail'), honeypot: data.get('honeypot') }) });
         if (!response.ok) throw new Error();
         form.reset();
         form.hidden = true;

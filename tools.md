@@ -74,7 +74,7 @@ Impeccable adapte son travail selon la nature de la page :
 
 
 
-Operate (Dashboard, formulaires, tables, bugs) : Priorité à la rapidité de lecture, à la densité d'information et à la suppression des distractions.
+Operate (Dashboard, avis, tables, recommandations) : Priorité à la rapidité de lecture, à la densité d'information et à la suppression des distractions.
 
 Persuade (Landing page, pricing) : Priorité à la conversion, aux contrastes forts, aux grands titres et à l'impact visuel.
 
@@ -94,7 +94,7 @@ Pour polir une page avant livraison :
 
 
 
-"Applique un polish sur la page src/app/dashboard/bugs/page.tsx."
+"Applique un polish sur la page src/app/dashboard/recommendations."
 
 
 
@@ -126,7 +126,7 @@ Pour lancer une revue globale :
 
 
 
-"Lance un critique sur le flux de création de site."
+"Lance un critique sur le flux d’import CSV."
 
 
 
@@ -141,4 +141,3 @@ Vous donnez la commande et la cible.
 Le système analyse, effectue les modifications complètes en une passe cohérente (desktop + mobile).
 
 Une seule vérification finale valide le résultat.
-

@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { CheckIcon, ChevronRightIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 type FeedbackItem = {
@@ -33,8 +34,6 @@ const sourceLabels: Record<string, string> = {
   csv: 'Import CSV',
 }
 
-const themeOptions = ['Navigation', 'Fiabilité', 'Performance', 'Conversion', 'Prix']
-
 async function fetchFeedback(siteId?: string) {
   if (!siteId) return [] as FeedbackItem[]
   const response = await fetch(`/api/feedback?siteId=${encodeURIComponent(siteId)}`)
@@ -43,6 +42,7 @@ async function fetchFeedback(siteId?: string) {
 }
 
 export function FeedbackInbox({ siteId }: { siteId?: string }) {
+  const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [sourceFilter, setSourceFilter] = useState('all')
@@ -56,6 +56,7 @@ export function FeedbackInbox({ siteId }: { siteId?: string }) {
   })
 
   const sources = useMemo(() => Array.from(new Set(feedback.map((item) => item.source))), [feedback])
+  const themeOptions = useMemo(() => Array.from(new Set(feedback.map((item) => item.theme).filter((theme): theme is string => Boolean(theme)))), [feedback])
   const filtered = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('fr-FR')
     return feedback.filter((item) => {
@@ -67,6 +68,11 @@ export function FeedbackInbox({ siteId }: { siteId?: string }) {
   }, [feedback, search, sourceFilter, statusFilter])
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0]
+
+  useEffect(() => {
+    const feedbackId = searchParams.get('feedbackId')
+    if (feedbackId) setSelectedId(feedbackId)
+  }, [searchParams])
 
   async function updateSelected(updates: { status?: FeedbackItem['status']; theme?: string | null }) {
     if (!selected) return
@@ -118,8 +124,8 @@ export function FeedbackInbox({ siteId }: { siteId?: string }) {
         </div>
       </div>
 
-      {isLoading && <p className="px-5 py-10 text-sm text-gray-500">Chargement des avis…</p>}
-      {isError && <p className="px-5 py-10 text-sm text-rose-600">Impossible de charger les avis. Actualisez la page et réessayez.</p>}
+      {isLoading && <div className="grid gap-3 p-5 sm:grid-cols-2"><div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-white/[0.06]" /><div className="h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-white/[0.06]" /></div>}
+      {isError && <div role="alert" className="px-5 py-10 text-sm text-rose-600">Impossible de charger les avis. Vérifiez votre connexion puis réessayez.<br /><button type="button" onClick={() => void refetch()} className="mt-4 min-h-11 rounded-lg border border-rose-300 px-3 font-semibold">Réessayer</button></div>}
       {!isLoading && !isError && <div className="grid xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,.75fr)]">
         <div className="min-h-[420px] divide-y divide-gray-100 dark:divide-white/[0.06]">
           {filtered.length === 0 ? <div className="px-5 py-12"><p className="text-sm font-semibold text-gray-900 dark:text-white">Aucun avis dans cette vue.</p><p className="mt-1 max-w-md text-sm leading-6 text-gray-500 dark:text-zinc-400">Essayez un autre filtre ou attendez un nouvel avis depuis votre widget.</p></div> : filtered.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className={`flex w-full items-start gap-3 px-5 py-4 text-left transition ${selected?.id === item.id ? 'bg-orange-50/60 dark:bg-[#ee6018]/[0.08]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.025]'}`}><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.status === 'open' ? 'bg-[#ee6018]' : item.status === 'reviewed' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-zinc-600'}`} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 dark:text-zinc-500"><span>{sourceLabels[item.source] ?? item.source}</span><span>·</span><span>{formatDate(item.created_at)}</span></span><span className="mt-1 block line-clamp-2 text-sm font-semibold leading-5 text-gray-900 dark:text-zinc-100">{item.content}</span><span className="mt-1 block text-xs text-gray-500 dark:text-zinc-500">{item.theme ?? 'À classer'} · {statusLabels[item.status]}</span></span><ChevronRightIcon className="mt-1 h-4 w-4 shrink-0 text-gray-300 dark:text-zinc-600" /></button>)}

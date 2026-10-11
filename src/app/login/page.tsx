@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { AuthLayout, AuthInput, AuthButton, AuthDivider } from '@/components/auth/AuthLayout'
-import { ChatEmptyState, type SuggestedPrompt } from '@/components/ui/chat-empty-state'
 import { OtpInput } from '@/components/auth/OtpInput'
 import { useOtpAuth } from '@/hooks/useOtpAuth'
 import { useLanguage } from '@/context/LanguageContext'
@@ -19,9 +17,9 @@ const C = {
   ash: '#222222', stone: '#b8b3b0', carbon: '#0d0d0d',
 }
 
-type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'welcome' | 'reset-password'
+type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'reset-password'
 
-const AUTH_MODES: AuthMode[] = ['password', 'register', 'forgot', 'otp', 'otp-verify', 'verify-email', 'welcome', 'reset-password']
+const AUTH_MODES: AuthMode[] = ['password', 'register', 'forgot', 'otp', 'otp-verify', 'verify-email', 'reset-password']
 
 // Bouton Google SSO
 function GoogleButton({ onClick, loading, label }: { onClick: () => void; loading: boolean, label: string }) {
@@ -86,9 +84,10 @@ export default function LoginPage() {
 
   const redirectPath = (() => {
     const requestedPath = searchParams.get('redirectTo')
-    return requestedPath && requestedPath.startsWith('/') && !requestedPath.startsWith('//')
-      ? requestedPath
-      : '/dashboard'
+    if (!requestedPath || !requestedPath.startsWith('/') || requestedPath.startsWith('//')) return '/dashboard'
+    const legacyPrefixes = ['/dashboard/sites', '/dashboard/scans', '/dashboard/bugs', '/scan']
+    const isLegacyPath = legacyPrefixes.some((prefix) => requestedPath === prefix || requestedPath.startsWith(`${prefix}/`))
+    return isLegacyPath ? '/dashboard' : requestedPath
   })()
 
   async function redirectAfterAuth() {
@@ -123,14 +122,12 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [welcomeChoice, setWelcomeChoice] = useState<string | null>(null)
-  const [welcomeOutcome, setWelcomeOutcome] = useState<string | null>(null)
+  const [weeklyDigestConsent, setWeeklyDigestConsent] = useState(false)
   const [otpEmail, setOtpEmail] = useState('')
   const [otpError, setOtpError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [githubLoading, setGithubLoading] = useState(false)
-  const [signupHasSession, setSignupHasSession] = useState(false)
 
   // --- Password sign-in ---
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -162,7 +159,11 @@ export default function LoginPage() {
         return
       }
       const supabase = getSupabaseBrowserClient()
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { weekly_digest_consent: weeklyDigestConsent } },
+      })
       if (error) throw error
       if (data.user?.identities?.length === 0) {
         toast.error(t.errors.accountExists)
@@ -170,8 +171,10 @@ export default function LoginPage() {
         return
       }
       toast.success(t.success.accountCreated)
-      setSignupHasSession(Boolean(data.session))
-      setMode('welcome')
+      if (data.session) {
+        await fetch('/api/auth/sync-preferences', { method: 'POST' }).catch((syncError) => console.error('[signup] preference sync failed:', syncError))
+        window.location.replace('/onboarding')
+      } else setMode('verify-email')
     } catch (err: any) {
       toast.error(err?.message || t.errors.registerFailed)
     } finally {
@@ -283,51 +286,11 @@ export default function LoginPage() {
     }
   }
 
-  async function handleWelcomeContinue() {
-    if (!signupHasSession) {
-      setMode('verify-email')
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      window.location.replace('/onboarding')
-    } catch (err: any) {
-      toast.error(err?.message || t.errors.signinFailed)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   let modeKey: keyof typeof t = mode as keyof typeof t;
   if (mode === 'otp-verify') modeKey = 'otpVerify';
   if (mode === 'verify-email') modeKey = 'verifyEmail';
-  if (mode === 'welcome') modeKey = 'welcome';
   if (mode === 'reset-password') modeKey = 'resetPassword';
   const currentModeCopy = t[modeKey] as { title: string; description: string };
-
-  const welcomePrompts: SuggestedPrompt[] = [
-    { id: 'public-site', label: t.welcome.prompts.publicSite },
-    { id: 'staging', label: t.welcome.prompts.staging },
-    { id: 'regressions', label: t.welcome.prompts.regressions },
-  ]
-
-  const welcomeOutcomePrompts: SuggestedPrompt[] = [
-    { id: 'visible-issues', label: t.welcome.outcomes.visibleIssues },
-    { id: 'forms-ctas', label: t.welcome.outcomes.formsCtas },
-    { id: 'mobile', label: t.welcome.outcomes.mobile },
-    { id: 'diagnosis', label: t.welcome.outcomes.diagnosis },
-  ]
-
-  function handleWelcomePrompt(prompt: SuggestedPrompt) {
-    setWelcomeChoice(prompt.id)
-    window.sessionStorage.setItem('qualio_signup_intent', prompt.id)
-  }
-
-  function handleWelcomeOutcome(prompt: SuggestedPrompt) {
-    setWelcomeOutcome(prompt.id)
-    window.sessionStorage.setItem('qualio_signup_outcome', prompt.id)
-  }
 
   return (
     <AuthLayout title={currentModeCopy.title} description={currentModeCopy.description} showBack>
@@ -407,6 +370,15 @@ export default function LoginPage() {
                     </span>
                   }
                 />
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, color: C.granite, fontFamily: "'Manrope',sans-serif", fontSize: 12, lineHeight: 1.45, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={weeklyDigestConsent}
+                    onChange={(event) => setWeeklyDigestConsent(event.target.checked)}
+                    style={{ marginTop: 2, accentColor: C.orange }}
+                  />
+                  <span>{t.labels.weeklyDigestConsent}</span>
+                </label>
                 <AuthButton loading={isLoading} type="submit">{t.labels.createAccount}</AuthButton>
                 <p style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: C.granite, textAlign: 'center', letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1.5 }}>
                   {t.labels.termsPre} <a href="/terms" style={{ color: C.stone, textDecoration: 'underline' }}>{t.labels.terms}</a> {t.labels.and} <a href="/privacy" style={{ color: C.stone, textDecoration: 'underline' }}>{t.labels.privacy}</a>
@@ -423,31 +395,6 @@ export default function LoginPage() {
                 </p>
                 <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>
                   {t.labels.backToSignIn}
-                </AuthButton>
-              </div>
-            )}
-
-            {mode === 'welcome' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <ChatEmptyState
-                  title={t.welcome.question}
-                  subtitle={t.welcome.subtitle}
-                  prompts={welcomePrompts}
-                  onSelectPrompt={handleWelcomePrompt}
-                />
-                <ChatEmptyState
-                  title={t.welcome.outcomeQuestion}
-                  subtitle={t.welcome.outcomeSubtitle}
-                  prompts={welcomeOutcomePrompts}
-                  onSelectPrompt={handleWelcomeOutcome}
-                />
-                {(welcomeChoice || welcomeOutcome) && (
-                  <p style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#a0ca92', margin: 0, textAlign: 'center' }}>
-                    {t.welcome.selected}
-                  </p>
-                )}
-                <AuthButton variant="ghost" type="button" loading={isLoading} onClick={handleWelcomeContinue}>
-                  {signupHasSession ? t.welcome.continueDashboard : t.welcome.continue}
                 </AuthButton>
               </div>
             )}
@@ -541,7 +488,7 @@ export default function LoginPage() {
         </AnimatePresence>
 
         {/* SSO ── Google (pas sur otp-verify ni verify-email) */}
-        {mode !== 'otp-verify' && mode !== 'verify-email' && mode !== 'welcome' && mode !== 'reset-password' && (
+        {mode !== 'otp-verify' && mode !== 'verify-email' && mode !== 'reset-password' && (
           <>
             <AuthDivider />
             <GoogleButton onClick={handleGoogle} loading={googleLoading} label={t.labels.continueWithGoogle} />

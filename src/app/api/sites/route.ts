@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
-import { BILLING_PLANS, normalizePlan } from '@/lib/billing/plans'
+import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
 
 function normalizeProjectUrl(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null
@@ -47,12 +47,10 @@ export async function POST(req: NextRequest) {
 
   const { data: subscription } = await (supabase as any)
     .from('billing_subscriptions')
-    .select('plan, status')
+    .select('plan, status, source, trial_ends_at, current_period_end')
     .eq('user_id', user.id)
     .maybeSingle()
-  const activePlan = subscription?.status === 'active' || subscription?.status === 'trialing'
-    ? normalizePlan(subscription.plan)
-    : 'free'
+  const activePlan = resolvePlan(subscription)
   const { count: projectCount } = await supabase
     .from('sites')
     .select('id', { count: 'exact', head: true })
@@ -80,7 +78,7 @@ export async function POST(req: NextRequest) {
   const admin = getSupabaseAdminClient() as any
   const { data: site, error } = await admin
     .from('sites')
-    .insert({ user_id: user.id, url: projectUrl, name: name || projectUrl })
+    .insert({ user_id: user.id, url: projectUrl, name: name || null })
     .select('id, user_id, url, name, created_at, updated_at')
     .single()
 
