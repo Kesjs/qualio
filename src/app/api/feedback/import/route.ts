@@ -87,9 +87,13 @@ export async function POST(request: NextRequest) {
   const { data: inserted, error } = await (supabase as any).from('feedback_items').insert(rowsToImport).select('id, site_id, content')
   if (error) return NextResponse.json({ error: 'Les avis n’ont pas pu être importés. Aucun fichier supplémentaire n’a été créé.' }, { status: 500 })
   if (inserted?.length) after(async () => {
-    await Promise.all(inserted.slice(0, 100).map(async (item: { id: string; site_id: string; content: string }) => {
-      try { await classifyAndSaveFeedback(getSupabaseAdminClient(), item.id, item.site_id, item.content) } catch (classificationError) { console.error('[Feedback import] async classification failed', classificationError) }
-    }))
+    const batchSize = 100
+    for (let offset = 0; offset < inserted.length; offset += batchSize) {
+      const batch = inserted.slice(offset, offset + batchSize)
+      await Promise.all(batch.map(async (item: { id: string; site_id: string; content: string }) => {
+        try { await classifyAndSaveFeedback(getSupabaseAdminClient(), item.id, item.site_id, item.content) } catch (classificationError) { console.error('[Feedback import] async classification failed', classificationError) }
+      }))
+    }
   })
   return NextResponse.json({ imported: rowsToImport.length, skipped: rows.length - 1 - rowsToImport.length, reasons })
 }
