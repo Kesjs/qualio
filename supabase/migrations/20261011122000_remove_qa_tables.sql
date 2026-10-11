@@ -9,12 +9,15 @@
 DROP TABLE IF EXISTS public.journey_steps;
 DROP TABLE IF EXISTS public.screenshots;
 DROP TABLE IF EXISTS public.evidence;
+
+-- Pull requests reference issues, so they must be removed before issues.
+DROP TABLE IF EXISTS public.github_pull_requests;
+
 DROP TABLE IF EXISTS public.issues;
 DROP TABLE IF EXISTS public.checks;
 DROP TABLE IF EXISTS public.pages;
 
 -- Integrations and deployment records.
-DROP TABLE IF EXISTS public.github_pull_requests;
 DROP TABLE IF EXISTS public.github_installations;
 DROP TABLE IF EXISTS public.deployment_events;
 DROP TABLE IF EXISTS public.site_secrets;
@@ -27,4 +30,3 @@ DROP TABLE IF EXISTS public.scans CASCADE;
 -- bytes). SQL does not delete Storage objects safely. Decide and execute that
 -- removal separately with a reviewed Storage operation before deleting the
 -- bucket; no bucket deletion is performed by this migration.
-

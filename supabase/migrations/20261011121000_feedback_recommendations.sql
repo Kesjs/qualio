@@ -31,6 +31,9 @@ ALTER TABLE public.feedback_recommendations
   CHECK (priority IS NULL OR priority IN ('high', 'medium', 'low'));
 
 ALTER TABLE public.feedback_recommendations
+  DROP CONSTRAINT IF EXISTS feedback_recommendations_confidence_check;
+
+ALTER TABLE public.feedback_recommendations
   ADD CONSTRAINT feedback_recommendations_confidence_check
   CHECK (confidence IS NULL OR confidence IN ('high', 'medium', 'low'));
 

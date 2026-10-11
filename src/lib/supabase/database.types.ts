@@ -7,545 +7,1025 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      profiles: {
+      billing_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
           id: string
           plan: string
-          scans_count: number
-          max_scans: number
-          staging_header: string | null
-          created_at: string
+          source: string
+          status: string
+          stripe_customer_id: string
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          id: string
-          plan?: string
-          scans_count?: number
-          max_scans?: number
-          staging_header?: string | null
+          cancel_at_period_end?: boolean
           created_at?: string
-        }
-        Update: {
+          current_period_end?: string | null
           id?: string
           plan?: string
-          scans_count?: number
-          max_scans?: number
-          staging_header?: string | null
+          source?: string
+          status?: string
+          stripe_customer_id: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan?: string
+          source?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
-      checks: {
+      braviko_admins: {
         Row: {
-          category: string
-          created_at: string | null
-          duration_ms: number | null
-          id: string
-          key: string
-          message: string | null
-          page_id: string | null
-          scan_id: string
-          severity: string | null
-          status: string
-          title: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string | null
-          duration_ms?: number | null
-          id?: string
-          key: string
-          message?: string | null
-          page_id?: string | null
-          scan_id: string
-          severity?: string | null
-          status: string
-          title?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string | null
-          duration_ms?: number | null
-          id?: string
-          key?: string
-          message?: string | null
-          page_id?: string | null
-          scan_id?: string
-          severity?: string | null
-          status?: string
-          title?: string | null
-        }
-        Relationships: [
-          { foreignKeyName: "checks_page_id_fkey"; columns: ["page_id"]; isOneToOne: false; referencedRelation: "pages"; referencedColumns: ["id"] },
-          { foreignKeyName: "checks_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-        ]
-      }
-      evidence: {
-        Row: {
-          created_at: string | null
-          id: string
-          issue_id: string | null
-          payload: Json | null
-          scan_id: string
-          type: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          issue_id?: string | null
-          payload?: Json | null
-          scan_id: string
-          type: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          issue_id?: string | null
-          payload?: Json | null
-          scan_id?: string
-          type?: string
-        }
-        Relationships: [
-          { foreignKeyName: "evidence_issue_id_fkey"; columns: ["issue_id"]; isOneToOne: false; referencedRelation: "issues"; referencedColumns: ["id"] },
-          { foreignKeyName: "evidence_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-        ]
-      }
-      issues: {
-        Row: {
-          category: string
-          confidence: string | null
-          created_at: string | null
-          description: string | null
-          fix_context: Json
-          id: string
-          page_id: string | null
-          scan_id: string
-          severity: string
-          status: string | null
-          suggestion: string | null
-          title: string
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          ai_model?: string | null
-        }
-        Insert: {
-          category: string
-          confidence?: string | null
-          created_at?: string | null
-          description?: string | null
-          fix_context?: Json
-          id?: string
-          page_id?: string | null
-          scan_id: string
-          severity: string
-          status?: string | null
-          suggestion?: string | null
-          title: string
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          ai_model?: string | null
-        }
-        Update: {
-          category?: string
-          confidence?: string | null
-          created_at?: string | null
-          description?: string | null
-          fix_context?: Json
-          id?: string
-          page_id?: string | null
-          scan_id?: string
-          severity?: string
-          status?: string | null
-          suggestion?: string | null
-          title?: string
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          ai_model?: string | null
-        }
-        Relationships: [
-          { foreignKeyName: "issues_page_id_fkey"; columns: ["page_id"]; isOneToOne: false; referencedRelation: "pages"; referencedColumns: ["id"] },
-          { foreignKeyName: "issues_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-        ]
-      }
-      pages: {
-        Row: {
-          created_at: string | null
-          depth: number | null
-          final_url: string | null
-          id: string
-          response_time_ms: number | null
-          scan_id: string
-          status_code: number | null
-          title: string | null
-          url: string
-        }
-        Insert: {
-          created_at?: string | null
-          depth?: number | null
-          final_url?: string | null
-          id?: string
-          response_time_ms?: number | null
-          scan_id: string
-          status_code?: number | null
-          title?: string | null
-          url: string
-        }
-        Update: {
-          created_at?: string | null
-          depth?: number | null
-          final_url?: string | null
-          id?: string
-          response_time_ms?: number | null
-          scan_id?: string
-          status_code?: number | null
-          title?: string | null
-          url?: string
-        }
-        Relationships: [
-          { foreignKeyName: "pages_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-        ]
-      }
-      scans: {
-        Row: {
-          checks_failed: number | null
-          checks_passed: number | null
-          checks_total: number | null
-          checks_warning: number | null
-          completed_at: string | null
-          consent_confirmed_at: string | null
-          created_at: string | null
-          critical_count: number | null
-          current_step: string | null
-          error: string | null
-          id: string
-          major_count: number | null
-          pages_discovered: number | null
-          previous_scan_id: string | null
-          site_id: string
-          started_at: string | null
-          status: string
-          summary: string | null
+          active: boolean
+          created_at: string
+          display_name: string | null
           user_id: string
-          ai_calls_count?: number | null
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          scan_modules: Json
-          selected_forms: Json | null
-          attempt_count: number
-          max_attempts: number
-          queued_at: string | null
-          worker_started_at: string | null
         }
         Insert: {
-          checks_failed?: number | null
-          checks_passed?: number | null
-          checks_total?: number | null
-          checks_warning?: number | null
-          completed_at?: string | null
-          consent_confirmed_at?: string | null
-          created_at?: string | null
-          critical_count?: number | null
-          current_step?: string | null
-          error?: string | null
-          id?: string
-          major_count?: number | null
-          pages_discovered?: number | null
-          previous_scan_id?: string | null
-          site_id: string
-          started_at?: string | null
-          status?: string
-          summary?: string | null
+          active?: boolean
+          created_at?: string
+          display_name?: string | null
           user_id: string
-          ai_calls_count?: number | null
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          scan_modules?: Json
-          selected_forms?: Json | null
-          attempt_count?: number
-          max_attempts?: number
-          queued_at?: string | null
-          worker_started_at?: string | null
         }
         Update: {
-          checks_failed?: number | null
-          checks_passed?: number | null
-          checks_total?: number | null
-          checks_warning?: number | null
-          completed_at?: string | null
-          consent_confirmed_at?: string | null
-          created_at?: string | null
-          critical_count?: number | null
-          current_step?: string | null
-          error?: string | null
-          id?: string
-          major_count?: number | null
-          pages_discovered?: number | null
-          previous_scan_id?: string | null
-          site_id?: string
-          started_at?: string | null
-          status?: string
-          summary?: string | null
+          active?: boolean
+          created_at?: string
+          display_name?: string | null
           user_id?: string
-          ai_calls_count?: number | null
-          ai_tokens_input?: number | null
-          ai_tokens_output?: number | null
-          ai_cost_usd?: number | null
-          ai_duration_ms?: number | null
-          scan_modules?: Json
-          selected_forms?: Json | null
-          attempt_count?: number
-          max_attempts?: number
-          queued_at?: string | null
-          worker_started_at?: string | null
         }
-        Relationships: [
-          { foreignKeyName: "scans_previous_scan_id_fkey"; columns: ["previous_scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-          { foreignKeyName: "scans_site_id_fkey"; columns: ["site_id"]; isOneToOne: false; referencedRelation: "sites"; referencedColumns: ["id"] },
-        ]
+        Relationships: []
       }
-      screenshots: {
+      braviko_categories: {
         Row: {
-          created_at: string | null
+          active: boolean
+          created_at: string
+          description: string | null
           id: string
-          issue_id: string | null
-          page_id: string | null
-          scan_id: string
-          storage_path: string
-          viewport: string
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          active?: boolean
+          created_at?: string
+          description?: string | null
           id?: string
-          issue_id?: string | null
-          page_id?: string | null
-          scan_id: string
-          storage_path: string
-          viewport: string
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          active?: boolean
+          created_at?: string
+          description?: string | null
           id?: string
-          issue_id?: string | null
-          page_id?: string | null
-          scan_id?: string
-          storage_path?: string
-          viewport?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: [
-          { foreignKeyName: "screenshots_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
+          {
+            foreignKeyName: "braviko_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_categories"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      journey_steps: {
+      braviko_customer_profiles: {
         Row: {
-          id: string
-          scan_id: string
-          page_id: string | null
-          issue_id: string | null
-          journey_name: string
-          step_order: number
-          step_name: string
-          action_type: string
-          action_target: string | null
-          action_details: Json | null
-          status: string
-          result_payload: Json | null
-          error_message: string | null
-          screenshot_id: string | null
-          duration_ms: number | null
-          created_at: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          scan_id: string
-          page_id?: string | null
-          issue_id?: string | null
-          journey_name: string
-          step_order: number
-          step_name: string
-          action_type: string
-          action_target?: string | null
-          action_details?: Json | null
-          status: string
-          result_payload?: Json | null
-          error_message?: string | null
-          screenshot_id?: string | null
-          duration_ms?: number | null
-          created_at?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      braviko_newsletter_subscribers: {
+        Row: {
+          consent_at: string
+          created_at: string
+          email: string
+          id: string
+          locale: string
+          source: string
+        }
+        Insert: {
+          consent_at?: string
+          created_at?: string
+          email: string
           id?: string
-          scan_id?: string
-          page_id?: string | null
-          issue_id?: string | null
-          journey_name?: string
-          step_order?: number
-          step_name?: string
-          action_type?: string
-          action_target?: string | null
-          action_details?: Json | null
+          locale: string
+          source?: string
+        }
+        Update: {
+          consent_at?: string
+          created_at?: string
+          email?: string
+          id?: string
+          locale?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      braviko_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          unit_price: number
+          variant_id: string | null
+          variant_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total: number
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          unit_price: number
+          variant_id?: string | null
+          variant_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          unit_price?: number
+          variant_id?: string | null
+          variant_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "braviko_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      braviko_orders: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          currency: string
+          customer_email: string
+          delivery_amount: number
+          first_name: string
+          id: string
+          last_name: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_status: string
+          phone: string
+          postal_code: string
+          reference: string
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          currency?: string
+          customer_email: string
+          delivery_amount?: number
+          first_name: string
+          id?: string
+          last_name: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          phone: string
+          postal_code: string
+          reference: string
           status?: string
-          result_payload?: Json | null
-          error_message?: string | null
-          screenshot_id?: string | null
-          duration_ms?: number | null
-          created_at?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal: number
+          total: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          delivery_amount?: number
+          first_name?: string
+          id?: string
+          last_name?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          phone?: string
+          postal_code?: string
+          reference?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      braviko_product_images: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          is_primary: boolean
+          product_id: string
+          sort_order: number
+          storage_path: string
+          watermarked_at: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          product_id: string
+          sort_order?: number
+          storage_path: string
+          watermarked_at?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          product_id?: string
+          sort_order?: number
+          storage_path?: string
+          watermarked_at?: string | null
         }
         Relationships: [
-          { foreignKeyName: "journey_steps_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-          { foreignKeyName: "journey_steps_page_id_fkey"; columns: ["page_id"]; isOneToOne: false; referencedRelation: "pages"; referencedColumns: ["id"] },
-          { foreignKeyName: "journey_steps_issue_id_fkey"; columns: ["issue_id"]; isOneToOne: false; referencedRelation: "issues"; referencedColumns: ["id"] },
-          { foreignKeyName: "journey_steps_screenshot_id_fkey"; columns: ["screenshot_id"]; isOneToOne: false; referencedRelation: "screenshots"; referencedColumns: ["id"] },
+          {
+            foreignKeyName: "braviko_product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_products"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      braviko_product_translations: {
+        Row: {
+          conditioning: string | null
+          created_at: string
+          delivery_info: string | null
+          description: string | null
+          id: string
+          locale: string
+          name: string
+          product_id: string
+          short_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          conditioning?: string | null
+          created_at?: string
+          delivery_info?: string | null
+          description?: string | null
+          id?: string
+          locale: string
+          name: string
+          product_id: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conditioning?: string | null
+          created_at?: string
+          delivery_info?: string | null
+          description?: string | null
+          id?: string
+          locale?: string
+          name?: string
+          product_id?: string
+          short_description?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "braviko_product_translations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      braviko_product_variants: {
+        Row: {
+          active: boolean
+          compare_at_price: number | null
+          created_at: string
+          id: string
+          label: string
+          price: number
+          product_id: string
+          sku: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          label: string
+          price: number
+          product_id: string
+          sku: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          label?: string
+          price?: number
+          product_id?: string
+          sku?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "braviko_product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      braviko_products: {
+        Row: {
+          category_id: string
+          created_at: string
+          featured: boolean
+          id: string
+          slug: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          featured?: boolean
+          id?: string
+          slug: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          featured?: boolean
+          id?: string
+          slug?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "braviko_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "braviko_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_sources: {
+        Row: {
+          accent_color: string
+          active: boolean
+          button_label: string
+          created_at: string
+          id: string
+          position: string
+          public_key: string
+          site_id: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string
+          active?: boolean
+          button_label?: string
+          created_at?: string
+          id?: string
+          position?: string
+          public_key: string
+          site_id: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string
+          active?: boolean
+          button_label?: string
+          created_at?: string
+          id?: string
+          position?: string
+          public_key?: string
+          site_id?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_sources_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_log: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          event_key: string
+          event_type: string
+          id: string
+          last_error: string | null
+          opened_at: string | null
+          provider_id: string | null
+          recipient: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          event_key: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          opened_at?: string | null
+          provider_id?: string | null
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          event_key?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          opened_at?: string | null
+          provider_id?: string | null
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feedback_ai_usage: {
+        Row: {
+          classification_count: number
+          created_at: string
+          month_key: string
+          site_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          classification_count?: number
+          created_at?: string
+          month_key: string
+          site_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          classification_count?: number
+          created_at?: string
+          month_key?: string
+          site_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_ai_usage_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_intake_events: {
+        Row: {
+          content_hash: string
+          created_at: string
+          id: string
+          ip_address: string
+          public_key: string
+          site_id: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          id?: string
+          ip_address: string
+          public_key: string
+          site_id: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          id?: string
+          ip_address?: string
+          public_key?: string
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_intake_events_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_items: {
+        Row: {
+          author_email: string | null
+          author_name: string | null
+          confidence: number | null
+          content: string
+          created_at: string
+          external_id: string | null
+          id: string
+          metadata: Json
+          reviewed_at: string | null
+          sentiment: string | null
+          site_id: string
+          source: string
+          source_url: string | null
+          status: string
+          theme: string | null
+          user_id: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_name?: string | null
+          confidence?: number | null
+          content: string
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          reviewed_at?: string | null
+          sentiment?: string | null
+          site_id: string
+          source?: string
+          source_url?: string | null
+          status?: string
+          theme?: string | null
+          user_id: string
+        }
+        Update: {
+          author_email?: string | null
+          author_name?: string | null
+          confidence?: number | null
+          content?: string
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          reviewed_at?: string | null
+          sentiment?: string | null
+          site_id?: string
+          source?: string
+          source_url?: string | null
+          status?: string
+          theme?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_items_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_recommendations: {
+        Row: {
+          action: string | null
+          baseline_count: number | null
+          confidence: string | null
+          created_at: string
+          decided_at: string | null
+          description: string | null
+          done_at: string | null
+          feedback_ids: string[]
+          fingerprint: string | null
+          id: string
+          priority: string | null
+          rationale: string | null
+          resolved_at: string | null
+          site_id: string
+          status: string
+          synthesis_id: string | null
+          theme: string | null
+          title: string
+          uncertainty: string | null
+          user_id: string
+        }
+        Insert: {
+          action?: string | null
+          baseline_count?: number | null
+          confidence?: string | null
+          created_at?: string
+          decided_at?: string | null
+          description?: string | null
+          done_at?: string | null
+          feedback_ids?: string[]
+          fingerprint?: string | null
+          id?: string
+          priority?: string | null
+          rationale?: string | null
+          resolved_at?: string | null
+          site_id: string
+          status?: string
+          synthesis_id?: string | null
+          theme?: string | null
+          title: string
+          uncertainty?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string | null
+          baseline_count?: number | null
+          confidence?: string | null
+          created_at?: string
+          decided_at?: string | null
+          description?: string | null
+          done_at?: string | null
+          feedback_ids?: string[]
+          fingerprint?: string | null
+          id?: string
+          priority?: string | null
+          rationale?: string | null
+          resolved_at?: string | null
+          site_id?: string
+          status?: string
+          synthesis_id?: string | null
+          theme?: string | null
+          title?: string
+          uncertainty?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_recommendations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_recommendations_synthesis_id_fkey"
+            columns: ["synthesis_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_syntheses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_syntheses: {
+        Row: {
+          cost_usd: number | null
+          created_at: string
+          feedback_ids: string[]
+          id: string
+          model: string | null
+          recommendations: Json
+          site_id: string
+          summary: string
+          themes: Json
+          title: string
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string
+          week_key: string | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string
+          feedback_ids?: string[]
+          id?: string
+          model?: string | null
+          recommendations?: Json
+          site_id: string
+          summary: string
+          themes?: Json
+          title: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id: string
+          week_key?: string | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string
+          feedback_ids?: string[]
+          id?: string
+          model?: string | null
+          recommendations?: Json
+          site_id?: string
+          summary?: string
+          themes?: Json
+          title?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string
+          week_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_syntheses_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          consent_source: string | null
+          consented_at: string | null
+          created_at: string
+          unsubscribed_at: string | null
+          updated_at: string
+          user_id: string
+          weekly_digest: boolean
+        }
+        Insert: {
+          consent_source?: string | null
+          consented_at?: string | null
+          created_at?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_digest?: boolean
+        }
+        Update: {
+          consent_source?: string | null
+          consented_at?: string | null
+          created_at?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_digest?: boolean
+        }
+        Relationships: []
+      }
+      product_events: {
+        Row: {
+          created_at: string
+          event_key: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_key?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          max_scans: number
+          plan: string
+          scans_count: number
+          staging_header: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          max_scans?: number
+          plan?: string
+          scans_count?: number
+          staging_header?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_scans?: number
+          plan?: string
+          scans_count?: number
+          staging_header?: string | null
+        }
+        Relationships: []
       }
       signup_attempts: {
         Row: {
+          created_at: string | null
           id: string
           ip_address: string
-          created_at: string | null
         }
         Insert: {
+          created_at?: string | null
           id?: string
           ip_address: string
-          created_at?: string | null
         }
         Update: {
+          created_at?: string | null
           id?: string
           ip_address?: string
-          created_at?: string | null
         }
         Relationships: []
       }
       sites: {
         Row: {
           created_at: string | null
-          deployment_scan_mode: string
-          deployment_webhook_created_at: string | null
-          deployment_webhook_token_hash: string | null
-          environment: string
           id: string
-          journey_definitions: Json
-          last_deployment_commit_sha: string | null
-          last_deployment_event_at: string | null
-          last_deployment_url: string | null
-          last_scan_id: string | null
           name: string | null
-          repository_provider: string
-          stack_type: string
           updated_at: string | null
-          url: string
+          url: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
-          deployment_scan_mode?: string
-          deployment_webhook_created_at?: string | null
-          deployment_webhook_token_hash?: string | null
-          environment?: string
           id?: string
-          journey_definitions?: Json
-          last_deployment_commit_sha?: string | null
-          last_deployment_event_at?: string | null
-          last_deployment_url?: string | null
-          last_scan_id?: string | null
           name?: string | null
-          repository_provider?: string
-          stack_type?: string
           updated_at?: string | null
-          url: string
+          url?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
-          deployment_scan_mode?: string
-          deployment_webhook_created_at?: string | null
-          deployment_webhook_token_hash?: string | null
-          environment?: string
           id?: string
-          journey_definitions?: Json
-          last_deployment_commit_sha?: string | null
-          last_deployment_event_at?: string | null
-          last_deployment_url?: string | null
-          last_scan_id?: string | null
           name?: string | null
-          repository_provider?: string
-          stack_type?: string
           updated_at?: string | null
-          url?: string
+          url?: string | null
           user_id?: string
         }
-        Relationships: [
-          { foreignKeyName: "sites_last_scan_id_fkey"; columns: ["last_scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] },
-        ]
+        Relationships: []
       }
-      deployment_events: {
+      stripe_webhook_events: {
         Row: {
-          id: string
-          site_id: string
-          user_id: string
-          external_event_id: string
-          source: string
-          status: string
-          environment: string | null
-          commit_sha: string | null
-          deployment_url: string | null
-          scan_id: string | null
-          payload: Json | null
           created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          stripe_event_id: string
         }
         Insert: {
-          id?: string
-          site_id: string
-          user_id: string
-          external_event_id: string
-          source?: string
-          status?: string
-          environment?: string | null
-          commit_sha?: string | null
-          deployment_url?: string | null
-          scan_id?: string | null
-          payload?: Json | null
           created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          stripe_event_id: string
         }
         Update: {
-          id?: string
-          site_id?: string
-          user_id?: string
-          external_event_id?: string
-          source?: string
-          status?: string
-          environment?: string | null
-          commit_sha?: string | null
-          deployment_url?: string | null
-          scan_id?: string | null
-          payload?: Json | null
           created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          stripe_event_id?: string
         }
-        Relationships: [
-          { foreignKeyName: "deployment_events_site_id_fkey"; columns: ["site_id"]; isOneToOne: false; referencedRelation: "sites"; referencedColumns: ["id"] },
-          { foreignKeyName: "deployment_events_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
-          { foreignKeyName: "deployment_events_scan_id_fkey"; columns: ["scan_id"]; isOneToOne: false; referencedRelation: "scans"; referencedColumns: ["id"] }
-        ]
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_braviko_order: {
+        Args: { p_customer: Json; p_items: Json; p_reference: string }
+        Returns: {
+          order_id: string
+          order_total: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -557,6 +1037,7 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
@@ -637,3 +1118,43 @@ export type TablesUpdate<
       ? U
       : never
     : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
