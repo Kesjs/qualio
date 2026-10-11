@@ -17,7 +17,6 @@ export default function DashboardLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   return (
     <div className="flex h-[100dvh] min-h-[100dvh] w-full bg-white text-gray-900 font-sans overflow-hidden antialiased dark:bg-[#0B0C0E] dark:text-zinc-100 transition-colors">
@@ -25,7 +24,6 @@ export default function DashboardLayout({
       <div className="hidden md:flex h-full shrink-0 bg-white dark:bg-[#0B0C0E]">
         <Sidebar
           isCollapsed={isCollapsed}
-          onSearchClick={() => setIsCollapsed(false)}
         />
       </div>
 

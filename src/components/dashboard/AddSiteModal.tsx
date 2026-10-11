@@ -8,13 +8,12 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { useCreateSite } from '@/lib/hooks/useSites'
-import type { SiteWithLastScan } from '@/lib/hooks/useSites'
-import { normalizeUserUrl } from '@/lib/qa/utils'
+import type { Site } from '@/lib/hooks/useSites'
 
 interface AddSiteModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (site: SiteWithLastScan) => void
+  onSuccess?: (site: Site) => void
 }
 
 const ADD_SITE_DRAFT_KEY = 'qualio:add-site-draft'
@@ -62,34 +61,26 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
     e.preventDefault()
     setError(null)
 
-    // Strict URL validation
-    const trimmedUrl = normalizeUserUrl(url)
-    if (!trimmedUrl) {
-      setError("L'URL du site est requise.")
+    const trimmedName = name.trim()
+    const trimmedUrl = url.trim()
+    if (!trimmedName && !trimmedUrl) {
+      setError('Ajoutez un nom de projet ou une URL publique.')
       return
     }
-
-    try {
-      const parsed = new URL(trimmedUrl)
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        setError("L'URL doit commencer par http:// ou https://")
+    if (trimmedUrl) {
+      try {
+        const parsed = new URL(trimmedUrl.startsWith('http') ? trimmedUrl : `https://${trimmedUrl}`)
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid')
+      } catch {
+        setError("Veuillez saisir une URL valide (ex. https://monsite.com).")
         return
       }
-      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-        setError("Les adresses locales localhost ne sont pas accessibles par Playwright.")
-        return
-      }
-    } catch {
-      setError("Veuillez saisir une URL valide (ex: https://monsite.com).")
-      return
     }
 
     createSite.mutate(
       {
-        url: trimmedUrl,
-        name: name.trim() || undefined,
-        stackType: 'unknown',
-        repositoryProvider: 'none',
+        url: trimmedUrl || undefined,
+        name: trimmedName || undefined,
       },
       {
         onSuccess: (newSite) => {
@@ -123,10 +114,10 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
         <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-white/[0.06]">
           <div>
             <Dialog.Title className="text-base font-bold text-gray-900 dark:text-white font-sans">
-              Ajouter un nouveau site
+              Ajouter un projet
             </Dialog.Title>
             <Dialog.Description className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-              Enregistrez un environnement web à surveiller.
+              Donnez-lui un nom. Une URL pourra être ajoutée plus tard.
             </Dialog.Description>
           </div>
           <Dialog.Close
@@ -156,14 +147,14 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
           {/* Project Name */}
           <div>
             <label htmlFor="add-site-name" className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
-              Nom du projet <span className="text-gray-400 dark:text-zinc-500 font-normal">(Optionnel)</span>
+              Nom du projet <span className="text-[#ee6018]">*</span>
             </label>
             <input
               id="add-site-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="ex: Acme Marketing, Boutique Front"
+              placeholder="ex. Boutique Acme"
               className="w-full px-3.5 py-2 text-sm bg-gray-50/80 border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ee6018]/20 focus:border-[#ee6018] focus:bg-white dark:bg-[#111216] dark:border-white/[0.08] dark:text-white dark:placeholder:text-zinc-500 dark:focus:bg-[#111216] transition-all font-sans"
             />
           </div>
@@ -171,7 +162,7 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
           {/* Base URL */}
           <div>
             <label htmlFor="add-site-url" className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
-              URL de base <span className="text-[#ee6018]">*</span>
+              URL du site <span className="text-gray-400 dark:text-zinc-500 font-normal">(facultative)</span>
             </label>
             <div className="relative">
               <GlobeAltIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-zinc-500" />
@@ -184,17 +175,16 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://acme.com"
-                required
                 className="w-full pl-9 pr-3.5 py-2 text-sm bg-gray-50/80 border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ee6018]/20 focus:border-[#ee6018] focus:bg-white dark:bg-[#111216] dark:border-white/[0.08] dark:text-white dark:placeholder:text-zinc-500 dark:focus:bg-[#111216] transition-all font-mono text-xs"
               />
             </div>
             <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
-              Doit être accessible publiquement par les robots Playwright.
+              Facultative : le projet peut simplement centraliser vos avis.
             </p>
           </div>
 
           <div className="rounded-lg border border-gray-200/80 bg-gray-50/70 px-3 py-2.5 text-[11px] leading-relaxed text-gray-500 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-zinc-400">
-            Qualio vérifie votre site depuis l’extérieur. Aucun accès à votre dépôt ni à votre code source n’est nécessaire.
+            Vous pourrez ensuite importer un CSV, installer le widget ou ajouter un avis manuellement.
           </div>
 
           {/* Footer Actions */}
@@ -217,7 +207,7 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
                   <span>Ajout en cours...</span>
                 </>
               ) : (
-                <span>Ajouter le site</span>
+              <span>Ajouter le projet</span>
               )}
             </button>
           </div>
