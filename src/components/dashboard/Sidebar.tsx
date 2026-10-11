@@ -30,10 +30,10 @@ const navSections = [
   {
     title: 'Navigation',
     items: [
-      { label: 'Vue d’ensemble', href: '/dashboard', icon: HomeIcon },
+      { label: 'Accueil', href: '/dashboard', icon: HomeIcon },
       { label: 'Avis', href: '/dashboard/feedback', icon: DocumentTextIcon },
-      { label: 'Synthèses', href: '/dashboard/analysis', icon: SparklesIcon },
-      { label: 'Recommandations', href: '/dashboard/recommendations', icon: ArrowTopRightOnSquareIcon },
+      { label: 'Thèmes', href: '/dashboard/analysis', icon: SparklesIcon },
+      { label: 'Actions', href: '/dashboard/recommendations', icon: ArrowTopRightOnSquareIcon },
       { label: 'Collecte', href: '/dashboard/collection', icon: ArrowDownTrayIcon },
     ],
   },
@@ -172,7 +172,7 @@ export function Sidebar({ isCollapsed = false, onSearchClick }: SidebarProps) {
                         setSelectedSiteId(site.id)
                         window.localStorage.setItem('qualio:selected-site', site.id)
                         setIsSiteMenuOpen(false)
-                        router.push(`/dashboard/sites/${site.id}`)
+                        window.dispatchEvent(new CustomEvent('qualio:project-changed', { detail: { siteId: site.id } }))
                       }}
                       className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors ${selectedSite?.id === site.id ? 'bg-gray-100 dark:bg-white/[0.07]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.05]'}`}
                     >

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
-
-const PLAN_LIMITS: Record<string, number> = { free: 1, gratuit: 1, essential: 4, essentiel: 4, pro: 12 }
+import { BILLING_PLANS, normalizePlan } from '@/lib/billing/plans'
 
 async function getUserContext() {
   const supabase = await getSupabaseServerClient()
@@ -45,8 +44,8 @@ export async function POST(request: NextRequest) {
   if (!feedback || feedback.length < 3) return NextResponse.json({ error: 'Ajoutez au moins 3 avis avant de générer une synthèse.', minimum: 3, current: feedback?.length ?? 0 }, { status: 422 })
 
   const hasPaidAccess = billing?.status === 'active' || billing?.status === 'trialing'
-  const plan = hasPaidAccess ? String(billing?.plan ?? 'free').toLocaleLowerCase('fr-FR') : 'free'
-  const monthlyLimit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free
+  const plan = hasPaidAccess ? normalizePlan(billing?.plan) : 'free'
+  const monthlyLimit = BILLING_PLANS[plan].monthlySyntheses
   const [{ count: totalCount }, { count: monthlyCount }] = await Promise.all([
     (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId),
     (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId).gte('created_at', monthStart()),

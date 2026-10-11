@@ -23,11 +23,11 @@ interface HeaderProps {
 }
 
 function getBreadcrumb(pathname: string) {
-  if (pathname === '/dashboard') return { title: 'Vue d’ensemble', parent: null }
+  if (pathname === '/dashboard') return { title: 'Accueil', parent: null }
   if (pathname === '/dashboard/feedback') return { title: 'Avis', parent: null }
-  if (pathname === '/dashboard/analysis') return { title: 'Synthèses', parent: null }
-  if (pathname === '/dashboard/recommendations') return { title: 'Recommandations', parent: null }
-  if (pathname === '/dashboard/collection') return { title: 'Sources', parent: null }
+  if (pathname === '/dashboard/analysis') return { title: 'Thèmes', parent: null }
+  if (pathname === '/dashboard/recommendations') return { title: 'Actions', parent: null }
+  if (pathname === '/dashboard/collection') return { title: 'Collecte', parent: null }
   if (pathname === '/dashboard/settings') return { title: 'Paramètres', parent: null }
   return { title: 'Dashboard', parent: null }
 }

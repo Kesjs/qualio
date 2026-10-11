@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
 import { normalizeUserUrl, validateUrl } from '@/lib/qa/utils'
+import { BILLING_PLANS, normalizePlan } from '@/lib/billing/plans'
 
 // GET /api/sites — list user's sites with latest scan
 export async function GET() {
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const [{ data: subscription }, { count: projectCount }] = await Promise.all([
+    (supabase as any).from('billing_subscriptions').select('plan, status').eq('user_id', user.id).maybeSingle(),
+    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+  ])
+  const activeSubscription = subscription?.status === 'active' || subscription?.status === 'trialing'
+  const plan = activeSubscription ? normalizePlan(subscription?.plan) : 'free'
+  const projectLimit = BILLING_PLANS[plan].projects
+  if ((projectCount ?? 0) >= projectLimit) return NextResponse.json({ error: `Votre plan ${BILLING_PLANS[plan].label} autorise ${projectLimit} projet${projectLimit > 1 ? 's' : ''}. Passez à un plan supérieur pour en ajouter.`, plan, projectLimit, projectCount: projectCount ?? 0 }, { status: 403 })
 
   const { data: sites, error } = await supabase
     .from('sites')
