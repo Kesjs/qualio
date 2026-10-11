@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 // Routes protégées — redirige vers /login si non authentifié
-const PROTECTED_PREFIXES = ['/dashboard', '/workspace', '/settings', '/scan']
+const PROTECTED_PREFIXES = ['/dashboard', '/onboarding']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -48,6 +48,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|widget\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

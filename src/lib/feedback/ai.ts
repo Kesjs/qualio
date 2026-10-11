@@ -122,12 +122,12 @@ function cleanResult(value: unknown, validIds: Set<string>): FeedbackSynthesis |
 
 export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]): Promise<FeedbackSynthesis | null> {
   if (feedback.length === 0) return null
-  const provider = (process.env.QA_AI_PROVIDER || 'openai').toLocaleLowerCase()
+  const provider = (process.env.FEEDBACK_AI_PROVIDER || 'openai').toLocaleLowerCase()
   let parsed: unknown = null
   let meta: FeedbackSynthesis['_meta'] | undefined
   if (provider === 'gemini') {
     if (!process.env.GEMINI_API_KEY) return null
-    const model = process.env.GEMINI_QA_MODEL || 'gemini-3.8-flash'
+    const model = process.env.GEMINI_FEEDBACK_MODEL || 'gemini-2.5-flash'
     const response = await new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }).models.generateContent({
       model,
       contents: [{ role: 'user', parts: [{ text: JSON.stringify({ avis: feedback }) }] }],
@@ -139,7 +139,7 @@ export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]
     meta = { tokens_input: inputTokens, tokens_output: outputTokens, cost_usd: typeof inputTokens === 'number' && typeof outputTokens === 'number' ? inputTokens * 0.075 / 1_000_000 + outputTokens * 0.30 / 1_000_000 : undefined, model }
   } else {
     if (!process.env.OPENAI_API_KEY) return null
-    const model = process.env.OPENAI_QA_MODEL || 'gpt-5.6-luna'
+    const model = process.env.OPENAI_FEEDBACK_MODEL || 'gpt-5.6-luna'
     const response = await new OpenAI({ apiKey: process.env.OPENAI_API_KEY }).chat.completions.create({
       model,
       temperature: 0.15,

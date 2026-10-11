@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Qualio — Your Website QA Workspace",
+  title: "Qualio — Transformer les avis en décisions",
   description:
-    "Stop reading raw logs. Qualio runs real Playwright crawls, captures evidence, and uses AI to transform browser errors into actionable diagnostics with impact severity.",
-  keywords: ["QA", "website testing", "Playwright", "AI diagnosis", "web monitoring"],
+    "Qualio rassemble vos avis clients, les structure par thèmes et vous aide à décider quoi améliorer.",
+  keywords: ["avis clients", "feedback", "synthèse", "recommandations"],
   openGraph: {
-    title: "Qualio — Your Website QA Workspace",
-    description: "Real browser interactions. AI-powered diagnosis. Continuous QA for your website.",
+    title: "Qualio — Transformer les avis en décisions",
+    description: "Collectez vos avis, comprenez les thèmes qui reviennent et décidez des prochaines actions.",
     type: "website",
   },
 };
