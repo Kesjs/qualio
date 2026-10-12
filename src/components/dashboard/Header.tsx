@@ -13,11 +13,10 @@ interface HeaderProps {
 }
 
 function getBreadcrumb(pathname: string) {
-  if (pathname === '/dashboard') return 'Vue d’ensemble'
+  if (pathname === '/dashboard') return 'Accueil'
+  if (pathname === '/dashboard/themes') return 'Thèmes'
+  if (pathname === '/dashboard/actions') return 'Actions'
   if (pathname === '/dashboard/feedback') return 'Avis'
-  if (pathname === '/dashboard/analysis') return 'Thèmes'
-  if (pathname === '/dashboard/syntheses') return 'Synthèses'
-  if (pathname === '/dashboard/recommendations') return 'Recommandations'
   if (pathname === '/dashboard/collection') return 'Collecte'
   if (pathname === '/dashboard/settings') return 'Réglages'
   return 'Qualio'

@@ -1,5 +1,5 @@
-import { FeedbackSectionPage } from '@/components/dashboard/FeedbackSectionPage'
+import { ActionsPage } from '@/components/dashboard/pages/ActionsPage'
 
-export default function ActionsPage() {
-  return <FeedbackSectionPage section="recommendations" />
+export default function Page() {
+  return <ActionsPage />
 }

@@ -15,6 +15,7 @@ type FeedbackPayload = {
 
 type FeedbackUpdatePayload = {
   id?: string
+  ids?: string[]
   status?: 'open' | 'reviewed' | 'archived'
   theme?: string | null
 }
@@ -105,8 +106,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
+  const ids = Array.isArray(body.ids) ? body.ids.filter((value): value is string => typeof value === 'string').slice(0, 200) : []
   const id = cleanText(body.id, 64)
-  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 })
+  if (!id && !ids.length) return NextResponse.json({ error: 'id is required' }, { status: 400 })
 
   const updates: Record<string, unknown> = {}
   if (body.status !== undefined) {
@@ -115,6 +117,13 @@ export async function PATCH(request: NextRequest) {
   }
   if (body.theme !== undefined) updates.theme = cleanText(body.theme, 80) || null
   if (!Object.keys(updates).length) return NextResponse.json({ error: 'No changes provided' }, { status: 400 })
+
+  if (ids.length) {
+    // Mise à jour groupée (archiver / restaurer / reclasser plusieurs avis).
+    const { data: updated, error: bulkError } = await (supabase as any).from('feedback_items').update(updates).in('id', ids).eq('user_id', user.id).select('id')
+    if (bulkError) return NextResponse.json({ error: bulkError.message }, { status: 500 })
+    return NextResponse.json({ updated: updated?.length ?? 0 })
+  }
 
   const { data, error } = await (supabase as any)
     .from('feedback_items')

@@ -6,15 +6,15 @@ import { usePathname } from 'next/navigation'
 import {
   ArrowDownTrayIcon,
   ArrowRightOnRectangleIcon,
-  ArrowTopRightOnSquareIcon,
+  BoltIcon,
+  ChatBubbleLeftRightIcon,
   ChevronDownIcon,
   ChevronUpDownIcon,
   Cog6ToothIcon,
-  DocumentTextIcon,
   GlobeAltIcon,
+  HashtagIcon,
   HomeIcon,
   PlusIcon,
-  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { useSites, type Site } from '@/lib/hooks/useSites'
@@ -25,11 +25,10 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { label: 'Vue d’ensemble', href: '/dashboard', icon: HomeIcon },
-  { label: 'Avis', href: '/dashboard/feedback', icon: DocumentTextIcon },
-  { label: 'Thèmes', href: '/dashboard/analysis', icon: SparklesIcon },
-  { label: 'Synthèses', href: '/dashboard/syntheses', icon: DocumentTextIcon },
-  { label: 'Recommandations', href: '/dashboard/recommendations', icon: ArrowTopRightOnSquareIcon },
+  { label: 'Accueil', href: '/dashboard', icon: HomeIcon },
+  { label: 'Thèmes', href: '/dashboard/themes', icon: HashtagIcon },
+  { label: 'Actions', href: '/dashboard/actions', icon: BoltIcon },
+  { label: 'Avis', href: '/dashboard/feedback', icon: ChatBubbleLeftRightIcon },
   { label: 'Collecte', href: '/dashboard/collection', icon: ArrowDownTrayIcon },
   { label: 'Réglages', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ]

@@ -1,10 +1,15 @@
-import { notFound } from 'next/navigation'
-import { FeedbackSectionPage } from '@/components/dashboard/FeedbackSectionPage'
+import { notFound, redirect } from 'next/navigation'
 
-const sections = ['feedback', 'analysis', 'syntheses', 'recommendations', 'collection'] as const
+// Anciennes adresses du dashboard : redirigées vers les nouvelles pages.
+const legacy: Record<string, string> = {
+  analysis: '/dashboard/themes',
+  syntheses: '/dashboard/actions?tab=history',
+  recommendations: '/dashboard/actions',
+}
 
-export default async function DashboardSectionRoute({ params }: { params: Promise<{ section: string }> }) {
+export default async function LegacyDashboardRoute({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params
-  if (!sections.includes(section as (typeof sections)[number])) notFound()
-  return <FeedbackSectionPage section={section as (typeof sections)[number]} />
+  const target = legacy[section]
+  if (!target) notFound()
+  redirect(target)
 }

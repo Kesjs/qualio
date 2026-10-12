@@ -1,5 +1,5 @@
-import { FeedbackDashboardOverview } from '@/components/dashboard/FeedbackDashboardOverview'
+import { HomePage } from '@/components/dashboard/pages/HomePage'
 
 export default function DashboardPage() {
-  return <FeedbackDashboardOverview />
+  return <HomePage />
 }
