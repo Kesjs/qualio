@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRightIcon, SparklesIcon } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePeriod } from '@/lib/hooks/useDashboardPrefs'
 import { useDashboardMutations, useInvalidateAll, useOverview } from '@/lib/hooks/useDashboard'
 import { sourceLabels, timeAgo, type ActionItem, type OverviewReady } from '@/lib/feedback/types'
@@ -11,29 +11,15 @@ import { card, Delta, EmptyState, ErrorState, PageHeader, PeriodSelect, primaryB
 type Ready = OverviewReady
 type OnboardingMethod = 'widget' | 'import'
 
-const ONBOARDING_METHOD_KEY = 'qualio:last-onboarding-method'
-
 export function HomePage() {
   const [days, setDays] = usePeriod()
-  const [onboardingMethod, setOnboardingMethod] = useState<OnboardingMethod | null>(null)
   const { data, isLoading, isError, refetch } = useOverview()
-
-  useEffect(() => {
-    if (!data || data.state === 'no_project') {
-      setOnboardingMethod(null)
-      return
-    }
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(ONBOARDING_METHOD_KEY) ?? 'null') as { siteId?: string; method?: OnboardingMethod } | null
-      setOnboardingMethod(saved?.siteId === data.project.id && (saved.method === 'widget' || saved.method === 'import') ? saved.method : null)
-    } catch {
-      setOnboardingMethod(null)
-    }
-  }, [data])
 
   if (isLoading) return <HomeSkeleton />
   if (isError || !data) return <ErrorState message="Impossible de charger la vue d’ensemble. Vérifiez votre connexion puis réessayez." onRetry={() => refetch()} />
   if (data.state === 'no_project') return <EmptyState title="Créez votre premier projet" body="Un projet regroupe les avis d’un produit ou d’un site. Ajoutez-en un pour commencer à recevoir et analyser vos retours." href="/onboarding" label="Créer mon espace" />
+
+  const onboardingMethod: OnboardingMethod | null = data.project.onboarding_method ?? (data.hasSource ? 'widget' : data.recent.some((item) => item.source === 'csv') ? 'import' : null)
 
   return (
     <div className="space-y-8 pb-16">
@@ -122,7 +108,10 @@ function GettingStarted({ data, method }: { data: Ready; method: OnboardingMetho
             <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Votre widget est configuré. Dès qu’un avis arrive, Qualio pourra commencer son analyse.</p>
             <p className="mt-3 text-xs font-semibold text-gray-400 dark:text-zinc-500">0/3 avis reçus avant la première synthèse</p>
           </div>
-          <Link href="/dashboard/collection" className={`${secondaryButton} shrink-0`}>Vérifier l’installation<ArrowRightIcon className="h-4 w-4" /></Link>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <Link href="/dashboard/collection" className={secondaryButton}>Vérifier l’installation<ArrowRightIcon className="h-4 w-4" /></Link>
+            <Link href="/dashboard/collection#manual" className="text-xs font-semibold text-[#c95720] hover:text-[#ee6018]">Ajouter un avis</Link>
+          </div>
         </div>
       </section>
     )
@@ -137,7 +126,10 @@ function GettingStarted({ data, method }: { data: Ready; method: OnboardingMetho
             <h2 className="text-base font-semibold text-gray-950 dark:text-white">Votre import CSV est en attente</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Importez votre historique d’avis pour préparer votre première synthèse.</p>
           </div>
-          <Link href="/dashboard/collection" className={`${primaryButton} shrink-0`}>Importer mon CSV<ArrowRightIcon className="h-4 w-4" /></Link>
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <Link href="/dashboard/collection" className={primaryButton}>Importer mon CSV<ArrowRightIcon className="h-4 w-4" /></Link>
+            <Link href="/dashboard/collection#manual" className="text-xs font-semibold text-[#c95720] hover:text-[#ee6018]">Ajouter un avis</Link>
+          </div>
         </div>
       </section>
     )

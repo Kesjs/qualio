@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   // Même ordre que la liste des projets (le plus récemment modifié d'abord) : le repli est cohérent avec le sélecteur.
   const pickProject = (id: string | null) => {
-    let query = db.from('sites').select('id, name, url').eq('user_id', userId)
+    let query = db.from('sites').select('id, name, url, onboarding_method').eq('user_id', userId)
     query = id ? query.eq('id', id).limit(1) : query.order('updated_at', { ascending: false }).limit(1)
     return query
   }

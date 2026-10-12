@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
+import { useInvalidateAll } from '@/lib/hooks/useDashboard'
 import { PageHeader } from '@/components/dashboard/ui'
 
 export function CollectionPage() {
@@ -80,10 +81,11 @@ function CollectionPanel() {
 
 function ManualCollectionPanel() {
   const { activeSite } = useActiveSite()
-  return <div className="space-y-5"><CsvImportPanel siteId={activeSite?.id} /><ManualCollectionFields /></div>
+  return <div id="manual" className="space-y-5"><CsvImportPanel siteId={activeSite?.id} /><ManualCollectionFields /></div>
 }
 
 function CsvImportPanel({ siteId }: { siteId?: string }) {
+  const { invalidate } = useInvalidateAll()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string[][]>([])
   const [progress, setProgress] = useState(0)
@@ -107,6 +109,7 @@ function CsvImportPanel({ siteId }: { siteId?: string }) {
       const result = await response.json().catch(() => ({}))
       if (!response.ok) return setStatus(result.error ?? 'Le fichier n’a pas pu être importé.')
       setStatus(`${result.imported ?? 0} avis importés, ${result.skipped ?? 0} ignoré(s).${result.reasons?.length ? ' Ouvrez le détail pour voir pourquoi.' : ''}`)
+      await invalidate()
     } catch { setStatus('Import impossible pour le moment. Réessayez.') } finally { setBusy(false) }
   }
   return <section className="rounded-xl border border-gray-200/80 bg-white p-5 dark:border-white/[0.08] dark:bg-[#181B21]"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ee6018]">Import CSV</p><h2 className="mt-2 text-xl font-semibold text-gray-950 dark:text-white">Retrouver votre historique</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400"><code>content</code> est obligatoire. <code>author_name</code>, <code>created_at</code> et <code>source</code> sont facultatives. UTF-8, virgule ou point-virgule, 5 Mo et 5 000 lignes maximum.</p></div><button type="button" onClick={downloadSample} className="min-h-11 shrink-0 rounded-lg border border-gray-200 px-3 text-xs font-bold dark:border-white/10">Télécharger l’exemple</button></div><label className="mt-5 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 text-center text-sm text-gray-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300"><span>{file ? file.name : 'Déposez un CSV ou touchez pour le choisir'}</span><input type="file" accept=".csv,text/csv" onChange={(event) => selectFile(event.target.files?.[0] ?? null)} className="sr-only" /></label>{preview.length ? <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10"><table className="min-w-full text-left text-xs"><tbody>{preview.map((row, rowIndex) => <tr key={rowIndex} className="border-b border-gray-100 last:border-0 dark:border-white/[0.06]">{row.slice(0, 5).map((cell, cellIndex) => <td key={cellIndex} className="max-w-56 px-3 py-2 text-gray-700 dark:text-zinc-300">{cell}</td>)}</tr>)}</tbody></table></div> : null}{progress > 0 && <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]"><div className="h-full bg-[#ee6018] transition-all" style={{ width: `${progress}%` }} /></div>}<div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" onClick={() => void importFile()} disabled={busy || !file} className="min-h-11 rounded-lg bg-[#ee6018] px-4 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Import en cours…' : 'Importer les avis'}</button>{status ? <p role="status" aria-live="polite" className="text-xs text-gray-600 dark:text-zinc-300">{status}</p> : null}</div></section>
@@ -114,12 +117,13 @@ function CsvImportPanel({ siteId }: { siteId?: string }) {
 
 function ManualCollectionFields() {
   const { isLoading, activeSite } = useActiveSite()
+  const { invalidate } = useInvalidateAll()
   const [feedback, setFeedback] = useState('')
   const [authorName, setAuthorName] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const site = activeSite
 
-  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setStatus(null); if (!site?.id || !feedback.trim()) return setStatus('Sélectionnez un projet et saisissez un retour.'); const response = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: site.id, content: feedback, authorName }) }); const result = await response.json().catch(() => ({})); if (!response.ok) return setStatus(result.error ?? 'Impossible d’enregistrer ce retour.'); setFeedback(''); setAuthorName(''); setStatus('Retour enregistré. Il apparaît maintenant dans Accueil et Retours.') }
+  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setStatus(null); if (!site?.id || !feedback.trim()) return setStatus('Sélectionnez un projet et saisissez un retour.'); const response = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: site.id, content: feedback, authorName }) }); const result = await response.json().catch(() => ({})); if (!response.ok) return setStatus(result.error ?? 'Impossible d’enregistrer ce retour.'); setFeedback(''); setAuthorName(''); await invalidate(); setStatus('Retour enregistré. Il apparaît maintenant dans Accueil et Avis.') }
 
   if (isLoading) return <div className="rounded-xl border border-gray-200/80 bg-white p-6 text-sm text-gray-500 dark:border-white/[0.08] dark:bg-[#181B21]">Chargement du projet…</div>
   if (!site) return <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 dark:border-white/10 dark:bg-white/[0.03]"><h2 className="text-base font-semibold text-gray-900 dark:text-white">Aucun projet disponible</h2><p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">Créez d’abord un projet pour enregistrer des retours.</p><Link href="/onboarding" className="mt-4 inline-flex rounded-lg bg-gray-950 px-4 py-2.5 text-xs font-bold text-white dark:bg-white dark:text-gray-950">Créer un espace</Link></div>

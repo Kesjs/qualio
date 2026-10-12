@@ -48,7 +48,7 @@ export type SynthesisSummary = { id: string; title: string; summary: string; cre
 export type OverviewReady = {
   state: 'empty' | 'warming' | 'ready_to_synthesize' | 'ready'
   days: number
-  project: { id: string; name: string | null; url: string | null }
+  project: { id: string; name: string | null; url: string | null; onboarding_method: 'widget' | 'import' | null }
   hasSource: boolean
   exampleCount: number
   counts: {

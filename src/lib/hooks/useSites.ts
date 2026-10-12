@@ -8,6 +8,7 @@ export interface Site {
   user_id: string
   url: string | null
   name: string | null
+  onboarding_method: 'widget' | 'import' | null
   created_at: string | null
   updated_at: string | null
 }

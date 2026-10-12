@@ -22,7 +22,7 @@ export async function GET() {
 
   const { data: sites, error } = await supabase
     .from('sites')
-    .select('id, user_id, url, name, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, created_at, updated_at')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   const { data: site, error } = await admin
     .from('sites')
     .insert({ user_id: user.id, url: projectUrl, name: name || null })
-    .select('id, user_id, url, name, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, created_at, updated_at')
     .single()
 
   if (error) return NextResponse.json({ error: 'Impossible de créer le projet.' }, { status: 500 })
