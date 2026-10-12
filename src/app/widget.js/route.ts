@@ -17,9 +17,19 @@ export function GET(request: NextRequest) {
     const requestedPosition = current && current.getAttribute('data-position') === 'left' ? 'left' : 'right';
     const requestedAccent = current && /^#[0-9a-f]{6}$/i.test(current.getAttribute('data-accent') || '') ? current.getAttribute('data-accent') : '#ee6018';
     const requestedLabel = current && current.getAttribute('data-label') ? current.getAttribute('data-label') : '';
-    host.style.cssText = 'position:fixed;bottom:20px;z-index:2147483646;width:0;height:0;';
-    host.style.setProperty(requestedPosition, '20px');
+    host.style.cssText = 'position:fixed;inset:0;z-index:2147483646;width:100%;height:100%;pointer-events:none;';
     host.style.setProperty('--qualio-accent', requestedAccent);
+    const syncViewport = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+      const keyboardInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      host.style.setProperty('--qualio-viewport-height', String(viewport.height) + 'px');
+      host.style.setProperty('--qualio-keyboard-inset', String(keyboardInset) + 'px');
+    };
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('scroll', syncViewport);
     const shadow = host.attachShadow({ mode: 'open' });
     const apiUrl = ${intakeUrl};
 
@@ -27,10 +37,11 @@ export function GET(request: NextRequest) {
       <style>
         :host { all: initial; }
         .qualio-button, .qualio-panel, .qualio-panel * { box-sizing: border-box; }
-        .qualio-button { position: absolute; right: 0; bottom: 0; border: 0; border-radius: 999px; background: var(--qualio-accent, #ee6018); color: #fff; padding: 13px 17px; font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; box-shadow: 0 12px 30px #11182733; cursor: pointer; }
+        .qualio-button, .qualio-panel { pointer-events: auto; }
+        .qualio-button { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--qualio-keyboard-inset, 0px)); border: 0; border-radius: 999px; background: var(--qualio-accent, #ee6018); color: #fff; padding: 13px 17px; font: 600 13px/1.2 system-ui, sans-serif; white-space: nowrap; box-shadow: 0 12px 30px #11182733; cursor: pointer; }
         .qualio-button:hover { filter: brightness(.92); }
         .qualio-button:focus-visible, .qualio-panel button:focus-visible, .qualio-panel textarea:focus-visible, .qualio-panel input:focus-visible { outline: 3px solid #f7b08a; outline-offset: 2px; }
-        .qualio-panel { position: absolute; right: 0; bottom: 58px; width: min(360px, calc(100vw - 32px)); border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; padding: 18px; box-shadow: 0 20px 60px #11182722; color: #111827; font: 14px/1.45 system-ui, sans-serif; }
+        .qualio-panel { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: calc(58px + max(20px, env(safe-area-inset-bottom)) + var(--qualio-keyboard-inset, 0px)); width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 96px); max-height: calc(var(--qualio-viewport-height, 100dvh) - 96px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scroll-padding-block: 16px; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; padding: 18px; box-shadow: 0 20px 60px #11182722; color: #111827; font: 14px/1.45 system-ui, sans-serif; }
         .qualio-panel[hidden] { display: none; }
         .qualio-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
         .qualio-panel h2 { margin: 0 0 6px; font-size: 17px; line-height: 1.25; }
@@ -56,7 +67,7 @@ export function GET(request: NextRequest) {
         .qualio-success strong { color: #111827; font-size: 15px; }
         .qualio-success p { margin: 0; color: #6b7280; font-size: 13px; }
         @keyframes qualio-success-in { from { transform: scale(.65); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @media (max-width: 480px) { .qualio-button { right: 0; bottom: 0; } .qualio-panel { right: 0; bottom: 58px; } }
+        @media (max-width: 480px) { .qualio-button { right: max(16px, env(safe-area-inset-right)); bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--qualio-keyboard-inset, 0px)); } .qualio-panel { right: max(16px, env(safe-area-inset-right)); bottom: calc(58px + max(20px, env(safe-area-inset-bottom)) + var(--qualio-keyboard-inset, 0px)); max-height: calc(100svh - 96px); max-height: calc(var(--qualio-viewport-height, 100dvh) - 96px); } }
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
       </style>
       <button class="qualio-button" type="button" aria-expanded="false" aria-controls="qualio-feedback-panel"></button>
@@ -85,8 +96,8 @@ export function GET(request: NextRequest) {
     const success = shadow.querySelector('.qualio-success');
     if (!button || !panel || !close || !form || !submit || !submitLabel || !submitDots || !status || !success) return;
     if (requestedPosition === 'left') {
-      button.style.right = 'auto'; button.style.left = '0';
-      panel.style.right = 'auto'; panel.style.left = '0';
+      button.style.right = 'auto'; button.style.left = 'max(16px, env(safe-area-inset-left))';
+      panel.style.right = 'auto'; panel.style.left = 'max(16px, env(safe-area-inset-left))';
     }
 
     const translations = {
