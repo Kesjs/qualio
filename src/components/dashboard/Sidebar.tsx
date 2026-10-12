@@ -137,6 +137,26 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
 
 function SiteFavicon({ site, size = 'md' }: { site?: Site; size?: 'sm' | 'md' }) {
   const url = site?.url
-  const favicon = url ? `${url.replace(/\/$/, '')}/favicon.ico` : null
-  return <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-white/[0.08] dark:bg-white/[0.04] ${size === 'sm' ? 'h-6 w-6' : 'h-7 w-7'}`}>{favicon && <img src={favicon} alt="" className="h-4 w-4 object-contain grayscale opacity-80" onError={(event) => { event.currentTarget.style.display = 'none' }} />}<GlobeAltIcon className="h-4 w-4 text-gray-400" /></span>
+  const hostname = (() => {
+    if (!url) return null
+    try {
+      return new URL(url.startsWith('http') ? url : `https://${url}`).hostname
+    } catch {
+      return null
+    }
+  })()
+  const directFavicon = hostname ? `https://${hostname}/favicon.ico` : null
+  const fallbackFavicon = hostname ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64` : null
+  const [favicon, setFavicon] = useState(directFavicon)
+
+  useEffect(() => {
+    setFavicon(directFavicon)
+  }, [directFavicon])
+
+  return <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white dark:border-white/[0.08] dark:bg-[#1B1E26] ${size === 'sm' ? 'h-6 w-6' : 'h-7 w-7'}`}>
+    {favicon ? <img src={favicon} alt="" className="h-4 w-4 object-contain" onError={() => {
+      if (favicon !== fallbackFavicon && fallbackFavicon) setFavicon(fallbackFavicon)
+      else setFavicon(null)
+    }} /> : <GlobeAltIcon className="h-4 w-4 text-gray-400" />}
+  </span>
 }
