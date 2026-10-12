@@ -27,7 +27,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
   const [draftLoaded, setDraftLoaded] = useState(false)
-  const { data: sites } = useQuery({ queryKey: ['sites'], queryFn: async () => { const response = await fetch('/api/sites'); if (!response.ok) throw new Error(); return response.json() as Promise<Site[]> } })
+  const { data: sites, isLoading: sitesLoading } = useQuery({ queryKey: ['sites'], queryFn: async () => { const response = await fetch('/api/sites'); if (!response.ok) throw new Error(); return response.json() as Promise<Site[]> } })
 
   useEffect(() => {
     try {
@@ -130,6 +130,7 @@ Consignes :
   }
   function finishOnboarding() { window.localStorage.removeItem(ONBOARDING_DRAFT_KEY); router.push('/dashboard') }
   function goBack() { setStatus(null); if (choice) { setChoice(null); return } router.push('/dashboard') }
+  if (!draftLoaded || sitesLoading) return <main className="flex min-h-screen items-center justify-center bg-[#fbfbfb] px-5 text-gray-950 dark:bg-[#0b0c0e] dark:text-white"><div className="text-center"><div className="mx-auto h-2 w-32 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="h-full w-1/2 animate-pulse rounded-full bg-[#ee6018]" /></div><p className="mt-4 text-sm text-gray-500 dark:text-zinc-400">Restauration de votre configuration…</p></div></main>
   const activeSite = site ?? sites?.[0]
   const step = !activeSite ? 1 : !choice ? 2 : 3
 
