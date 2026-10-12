@@ -5,6 +5,8 @@ import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { recordProductEvent } from '@/lib/analytics/product-events'
 
+export const maxDuration = 60
+
 type FeedbackRow = { id: string; content: string; author_name: string | null; theme: string | null; sentiment: string | null; created_at: string }
 
 async function getUserContext() {

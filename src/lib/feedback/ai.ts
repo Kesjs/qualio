@@ -82,6 +82,33 @@ Règles strictes :
 6. Ne donne aucune statistique dans rationale : le code la calculera à partir des IDs.
 7. Retourne uniquement le JSON demandé.`
 
+const GEMINI_FALLBACK_MODEL = 'gemini-3.1-flash-lite'
+
+function getProviderStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null
+  const record = error as Record<string, unknown>
+  if (typeof record.status === 'number') return record.status
+  if (typeof record.code === 'number') return record.code
+  const message = typeof record.message === 'string' ? record.message : ''
+  const jsonStart = message.indexOf('{')
+  if (jsonStart >= 0) {
+    try {
+      const payload = JSON.parse(message.slice(jsonStart)) as { error?: { code?: unknown } }
+      if (typeof payload.error?.code === 'number') return payload.error.code
+    } catch {
+      // The SDK may include a non-JSON message. The status is optional here.
+    }
+  }
+  const status = message.match(/\b([45]\d{2})\b/)?.[1]
+  return status ? Number(status) : null
+}
+
+function shouldRetryGemini(error: unknown) {
+  if (error instanceof SyntaxError) return true
+  const status = getProviderStatus(error)
+  return status === 404 || status === 408 || status === 429 || (status !== null && status >= 500)
+}
+
 export function cleanSynthesisResult(value: unknown, validIds: Set<string>): FeedbackSynthesis | null {
   if (!value || typeof value !== 'object') return null
   const item = value as Record<string, unknown>
@@ -123,6 +150,38 @@ function buildUserPayload(feedback: FeedbackForSynthesis[]) {
   })
 }
 
+async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configuredModel: string) {
+  const models = Array.from(new Set([configuredModel, GEMINI_FALLBACK_MODEL]))
+  const validIds = new Set(feedback.map((item) => item.id))
+  let lastError: unknown = null
+
+  for (const [index, model] of models.entries()) {
+    try {
+      const response = await new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! }).models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: buildUserPayload(feedback) }] }],
+        config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.15, responseMimeType: 'application/json', responseSchema: synthesisSchema },
+      })
+      const parsed = response.text ? JSON.parse(response.text) : null
+      const result = cleanSynthesisResult(parsed, validIds)
+      if (result) {
+        const inputTokens = response.usageMetadata?.promptTokenCount
+        const outputTokens = response.usageMetadata?.candidatesTokenCount
+        result._meta = { tokens_input: inputTokens, tokens_output: outputTokens, cost_usd: typeof inputTokens === 'number' && typeof outputTokens === 'number' ? inputTokens * 0.075 / 1_000_000 + outputTokens * 0.30 / 1_000_000 : undefined, model }
+        return result
+      }
+      if (index === models.length - 1) return null
+    } catch (error) {
+      lastError = error
+      if (index === models.length - 1 || !shouldRetryGemini(error)) throw error
+      console.warn(`[Feedback synthesis] Gemini model unavailable, retrying with ${models[index + 1]}`, { model, status: getProviderStatus(error) })
+    }
+  }
+
+  if (lastError) throw lastError
+  return null
+}
+
 export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]): Promise<FeedbackSynthesis | null> {
   if (feedback.length < 3) return null
   const provider = (process.env.FEEDBACK_AI_PROVIDER || 'openai').toLocaleLowerCase()
@@ -131,15 +190,7 @@ export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]
   if (provider === 'gemini') {
     if (!process.env.GEMINI_API_KEY) return null
     const model = process.env.GEMINI_FEEDBACK_MODEL || 'gemini-2.5-flash'
-    const response = await new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }).models.generateContent({
-      model,
-      contents: [{ role: 'user', parts: [{ text: buildUserPayload(feedback) }] }],
-      config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.15, responseMimeType: 'application/json', responseSchema: synthesisSchema },
-    })
-    parsed = response.text ? JSON.parse(response.text) : null
-    const inputTokens = response.usageMetadata?.promptTokenCount
-    const outputTokens = response.usageMetadata?.candidatesTokenCount
-    meta = { tokens_input: inputTokens, tokens_output: outputTokens, cost_usd: typeof inputTokens === 'number' && typeof outputTokens === 'number' ? inputTokens * 0.075 / 1_000_000 + outputTokens * 0.30 / 1_000_000 : undefined, model }
+    return generateGeminiSynthesis(feedback, model)
   } else {
     if (!process.env.OPENAI_API_KEY) return null
     const model = process.env.OPENAI_FEEDBACK_MODEL || 'gpt-5.6-luna'
