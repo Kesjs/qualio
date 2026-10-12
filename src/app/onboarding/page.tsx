@@ -128,9 +128,14 @@ Consignes :
       setPromptCopyStatus('error')
     }
   }
-  function finishOnboarding() { window.localStorage.removeItem(ONBOARDING_DRAFT_KEY); router.push('/dashboard') }
+  function finishOnboarding() {
+    const target = site ?? sites?.[0]
+    if (target && choice) window.localStorage.setItem('qualio:last-onboarding-method', JSON.stringify({ siteId: target.id, method: choice }))
+    window.localStorage.removeItem(ONBOARDING_DRAFT_KEY)
+    router.push('/dashboard')
+  }
   function goBack() { setStatus(null); if (choice) { setChoice(null); return } router.push('/dashboard') }
-  if (!draftLoaded || sitesLoading) return <main className="flex min-h-screen items-center justify-center bg-[#fbfbfb] px-5 text-gray-950 dark:bg-[#0b0c0e] dark:text-white"><div className="text-center"><div className="mx-auto h-2 w-32 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10"><div className="h-full w-1/2 animate-pulse rounded-full bg-[#ee6018]" /></div><p className="mt-4 text-sm text-gray-500 dark:text-zinc-400">Restauration de votre configuration…</p></div></main>
+  if (!draftLoaded || sitesLoading) return <main className="flex min-h-screen items-center justify-center bg-[#fbfbfb] dark:bg-[#0b0c0e]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#ee6018] dark:border-white/10 dark:border-t-[#ee6018]" aria-label="Chargement" role="status" /></main>
   const activeSite = site ?? sites?.[0]
   const step = !activeSite ? 1 : !choice ? 2 : 3
 

@@ -1,18 +1,35 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRightIcon, CheckCircleIcon, SparklesIcon } from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { ArrowRightIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { useEffect, useState } from 'react'
 import { usePeriod } from '@/lib/hooks/useDashboardPrefs'
 import { useDashboardMutations, useInvalidateAll, useOverview } from '@/lib/hooks/useDashboard'
 import { sourceLabels, timeAgo, type ActionItem, type OverviewReady } from '@/lib/feedback/types'
 import { card, Delta, EmptyState, ErrorState, PageHeader, PeriodSelect, primaryButton, PriorityBadge, secondaryButton, SentimentBadge, Skeleton, Sparkline } from '@/components/dashboard/ui'
 
 type Ready = OverviewReady
+type OnboardingMethod = 'widget' | 'import'
+
+const ONBOARDING_METHOD_KEY = 'qualio:last-onboarding-method'
 
 export function HomePage() {
   const [days, setDays] = usePeriod()
+  const [onboardingMethod, setOnboardingMethod] = useState<OnboardingMethod | null>(null)
   const { data, isLoading, isError, refetch } = useOverview()
+
+  useEffect(() => {
+    if (!data || data.state === 'no_project') {
+      setOnboardingMethod(null)
+      return
+    }
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(ONBOARDING_METHOD_KEY) ?? 'null') as { siteId?: string; method?: OnboardingMethod } | null
+      setOnboardingMethod(saved?.siteId === data.project.id && (saved.method === 'widget' || saved.method === 'import') ? saved.method : null)
+    } catch {
+      setOnboardingMethod(null)
+    }
+  }, [data])
 
   if (isLoading) return <HomeSkeleton />
   if (isError || !data) return <ErrorState message="Impossible de charger la vue d’ensemble. Vérifiez votre connexion puis réessayez." onRetry={() => refetch()} />
@@ -20,9 +37,9 @@ export function HomePage() {
 
   return (
     <div className="space-y-8 pb-16">
-      <Hero data={data} days={days} onDays={setDays} />
+      <Hero data={data} days={days} onDays={setDays} method={onboardingMethod} />
       {data.exampleCount > 0 && <ExampleBanner siteId={data.project.id} />}
-      {data.state === 'empty' && <GettingStarted hasSource={data.hasSource} />}
+      {data.state === 'empty' && <GettingStarted data={data} method={onboardingMethod} />}
       {data.state !== 'empty' && (
         <>
           <Kpis data={data} days={days} />
@@ -38,7 +55,7 @@ export function HomePage() {
   )
 }
 
-function Hero({ data, days, onDays }: { data: Ready; days: 7 | 30 | 90; onDays: (days: 7 | 30 | 90) => void }) {
+function Hero({ data, days, onDays, method }: { data: Ready; days: 7 | 30 | 90; onDays: (days: 7 | 30 | 90) => void; method: OnboardingMethod | null }) {
   const { mutate: generate, isPending, error } = useDashboardMutations().generateSynthesis
   const { counts } = data
   const trending = data.topThemes.filter((theme) => theme.delta > 0).sort((a, b) => b.delta - a.delta)[0]
@@ -49,8 +66,16 @@ function Hero({ data, days, onDays }: { data: Ready; days: 7 | 30 | 90; onDays: 
   let action: React.ReactNode = null
 
   if (data.state === 'empty') {
-    title = 'Recevez vos premiers avis'
-    description = 'Connectez une source : Qualio classe chaque avis dès son arrivée, puis vous propose une synthèse et des actions.'
+    if (method === 'widget' && data.hasSource) {
+      title = 'Votre widget est configuré'
+      description = 'Qualio attend vos premiers avis pour commencer l’analyse et préparer votre synthèse.'
+    } else if (method === 'import') {
+      title = 'Votre import CSV est en attente'
+      description = 'Importez votre historique d’avis pour préparer votre première synthèse.'
+    } else {
+      title = 'Recevez vos premiers avis'
+      description = 'Choisissez une source : Qualio classe chaque avis dès son arrivée, puis vous propose une synthèse et des actions.'
+    }
   } else if (data.state === 'warming') {
     title = `Encore ${counts.missingForSynthesis} avis avant votre première synthèse`
     description = 'La synthèse devient disponible dès que trois avis sont enregistrés.'
@@ -86,26 +111,50 @@ function Hero({ data, days, onDays }: { data: Ready; days: 7 | 30 | 90; onDays: 
   )
 }
 
-function GettingStarted({ hasSource }: { hasSource: boolean }) {
-  const steps = [
-    { title: 'Installer le widget', body: 'Collez une ligne de code sur votre site : les avis arrivent seuls.', done: hasSource },
-    { title: 'Importer un CSV', body: 'Reprenez votre historique d’avis pour avoir des tendances dès le départ.', done: false },
-    { title: 'Ajouter un avis à la main', body: 'Copiez un retour reçu par email ou sur les réseaux.', done: false },
+function GettingStarted({ data, method }: { data: Ready; method: OnboardingMethod | null }) {
+  if (method === 'widget' && data.hasSource) {
+    return (
+      <section className={`${card} p-5`}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c95720]">À suivre</p>
+        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-950 dark:text-white">En attente de vos premiers avis</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Votre widget est configuré. Dès qu’un avis arrive, Qualio pourra commencer son analyse.</p>
+            <p className="mt-3 text-xs font-semibold text-gray-400 dark:text-zinc-500">0/3 avis reçus avant la première synthèse</p>
+          </div>
+          <Link href="/dashboard/collection" className={`${secondaryButton} shrink-0`}>Vérifier l’installation<ArrowRightIcon className="h-4 w-4" /></Link>
+        </div>
+      </section>
+    )
+  }
+
+  if (method === 'import') {
+    return (
+      <section className={`${card} p-5`}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#c95720]">À suivre</p>
+        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-950 dark:text-white">Votre import CSV est en attente</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">Importez votre historique d’avis pour préparer votre première synthèse.</p>
+          </div>
+          <Link href="/dashboard/collection" className={`${primaryButton} shrink-0`}>Importer mon CSV<ArrowRightIcon className="h-4 w-4" /></Link>
+        </div>
+      </section>
+    )
+  }
+
+  const options = [
+    { title: 'Installer le widget', body: 'Recevoir les prochains avis automatiquement.' },
+    { title: 'Importer un CSV', body: 'Retrouver votre historique d’avis.' },
+    { title: 'Ajouter un avis', body: 'Commencer rapidement avec un retour reçu ailleurs.' },
   ]
   return (
-    <section className={`${card} divide-y divide-gray-100 dark:divide-white/[0.06]`}>
-      {steps.map((step, index) => (
-        <Link key={step.title} href="/dashboard/collection" className="flex items-center gap-4 px-5 py-4 transition hover:bg-gray-50 dark:hover:bg-white/[0.025]">
-          <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${step.done ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400'}`}>
-            {step.done ? <CheckCircleIcon className="h-5 w-5" /> : index + 1}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-gray-900 dark:text-white">{step.title}</span>
-            <span className="mt-0.5 block text-xs text-gray-500 dark:text-zinc-400">{step.body}</span>
-          </span>
-          <ArrowRightIcon className="h-4 w-4 shrink-0 text-gray-300 dark:text-zinc-600" />
-        </Link>
-      ))}
+    <section className={`${card} p-5`}>
+      <h2 className="text-base font-semibold text-gray-950 dark:text-white">Ajoutez vos premiers avis</h2>
+      <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-zinc-400">Choisissez une source pour commencer. Vous pourrez en ajouter d’autres ensuite.</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {options.map((option) => <Link key={option.title} href="/dashboard/collection" className="rounded-lg border border-gray-200 bg-white p-4 transition hover:border-[#ee6018] dark:border-white/[0.1] dark:bg-[#181B21]"><strong className="block text-sm text-gray-900 dark:text-white">{option.title}</strong><span className="mt-1 block text-xs leading-5 text-gray-500 dark:text-zinc-400">{option.body}</span></Link>)}
+      </div>
     </section>
   )
 }
