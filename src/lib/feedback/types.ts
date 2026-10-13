@@ -40,6 +40,8 @@ export type ActionItem = {
   theme: string | null
   feedback_ids: string[]
   created_at: string
+  decided_at?: string | null
+  evidence?: Array<Pick<FeedbackItem, 'id' | 'content' | 'source' | 'created_at'>>
   effect?: { label: string; baselineCount: number; currentCount: number } | null
 }
 

@@ -22,7 +22,21 @@ export async function GET(request: NextRequest) {
   const days = Number(params.get('days') ?? 0)
   const page = Math.max(0, Math.min(1000, Number(params.get('page') ?? 0) || 0))
   // ids : avis cités par une recommandation (3 à 20 identifiants UUID, séparés par des virgules).
-  const ids = (params.get('ids') ?? '').split(',').map((id) => id.trim()).filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 20)
+  let ids = (params.get('ids') ?? '').split(',').map((id) => id.trim()).filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 20)
+  const recommendationId = params.get('recommendation')?.trim()
+  if (recommendationId) {
+    const { data: recommendation, error } = await (supabase as any)
+      .from('feedback_recommendations')
+      .select('feedback_ids')
+      .eq('id', recommendationId)
+      .eq('site_id', siteId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (error) return NextResponse.json({ error: 'Impossible de charger les avis sources.' }, { status: 500 })
+    if (!recommendation) return NextResponse.json({ error: 'Recommandation introuvable.' }, { status: 404 })
+    ids = recommendation.feedback_ids ?? []
+    if (!ids.length) return NextResponse.json({ items: [], total: 0, page, pageSize: PAGE_SIZE })
+  }
 
   let query = (supabase as any)
     .from('feedback_items')
@@ -35,7 +49,7 @@ export async function GET(request: NextRequest) {
   // "Nouveau" regroupe les statuts open et reviewed ; "Archivé" = archived.
   if (ids.length) query = query.in('id', ids)
   else if (status === 'archived') query = query.eq('status', 'archived')
-  else query = query.neq('status', 'archived')
+  else if (status !== 'all') query = query.neq('status', 'archived')
   if (theme === '__none__') query = query.is('theme', null)
   else if (theme) query = query.eq('theme', theme)
   if (sentiment && SENTIMENTS.includes(sentiment)) query = query.eq('sentiment', sentiment)
