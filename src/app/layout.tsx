@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
+
+/* Polices servies par next/font : sans cela, « Manrope » n'était jamais téléchargée. */
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable: "--font-jetbrains-mono" });
 
 export const metadata: Metadata = {
   title: "Qualio — Transformer les avis en décisions",
@@ -22,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="fr"
+      className={`${manrope.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body

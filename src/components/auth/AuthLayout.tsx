@@ -7,19 +7,55 @@ import { ArrowLeft } from 'lucide-react'
 
 const C = {
   canvas: '#f8faf9', surface: '#ffffff', line: '#dfe6e2',
-  ink: '#17201d', orange: '#ee6018', muted: '#68736f', subtle: '#98a29d',
+  ink: '#17201d', orange: '#ee6018', orangeInk: '#c2410c', muted: '#68736f', subtle: '#98a29d',
+}
+
+const INTRO_KEY = 'qualio-auth-intro'
+
+/** Carte d'exemple (mêmes données que /exemple) : montre la recommandation sourcée, pas seulement la promesse. */
+function ExampleCard({ animate }: { animate: boolean }) {
+  return (
+    <motion.div
+      className="auth-example"
+      aria-hidden="true"
+      initial={animate ? { opacity: 0, y: 24 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: animate ? 3.2 : 0, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="auth-example-head">
+        <span>Recommandation n°1</span>
+        <span className="auth-example-tag">Exemple</span>
+      </div>
+      <p className="auth-example-title">Rendre la facturation visible dans le menu</p>
+      <p className="auth-example-sub">14 avis sur 40 mentionnent la difficulté à retrouver leurs factures.</p>
+      <ul className="auth-example-quotes">
+        <li><span>« Je n’arrive jamais à retrouver ma facture »</span><time>12/10</time></li>
+        <li><span>« Où sont les factures ? »</span><time>09/10</time></li>
+        <li><span>« Facturation introuvable »</span><time>03/10</time></li>
+      </ul>
+      <div className="auth-example-actions">
+        <span className="is-primary">Accepter</span>
+        <span>Plus tard</span>
+        <span>Écarter</span>
+      </div>
+    </motion.div>
+  )
 }
 
 function ProductVisual() {
   const shouldReduceMotion = useReducedMotion()
-  const [typedText, setTypedText] = useState('')
   const typingText = 'Des décisions claires.'
+  // Animation jouée une seule fois par session ; ensuite l'état final s'affiche directement.
+  const [skip, setSkip] = useState(true)
+  const [typedText, setTypedText] = useState(typingText)
 
   useEffect(() => {
-    if (shouldReduceMotion) {
-      setTypedText(typingText)
-      return
-    }
+    let seen = false
+    try { seen = sessionStorage.getItem(INTRO_KEY) === '1' } catch { /* stockage indisponible */ }
+    if (shouldReduceMotion || seen) return
+    try { sessionStorage.setItem(INTRO_KEY, '1') } catch { /* ignoré */ }
+    setSkip(false)
+    setTypedText('')
 
     let index = 0
     let interval: ReturnType<typeof setInterval> | undefined
@@ -37,22 +73,26 @@ function ProductVisual() {
     }
   }, [shouldReduceMotion])
 
+  const done = skip || typedText.length === typingText.length
+
   return (
-    <div className={`auth-typography-panel${shouldReduceMotion ? ' is-reduced' : ''}`} aria-label="Vos avis. Des décisions claires.">
-      <img className="auth-typography-backdrop" src="/qualio-auth-typography-clean.png" alt="" aria-hidden="true" />
-      <div className="auth-typography-copy" aria-live="polite">
+    <div className="auth-typography-panel" role="group" aria-label="Aperçu de Qualio">
+      <div className="auth-typography-copy">
+        <span className="sr-only">Vos avis. Des décisions claires.</span>
         <motion.span
+          aria-hidden="true"
           className="auth-typography-line auth-typography-line-muted"
-          initial={shouldReduceMotion ? false : { opacity: 0, y: -180 }}
+          initial={skip ? false : { opacity: 0, y: -120 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
           Vos avis.
         </motion.span>
-        <span className="auth-typography-line auth-typography-line-main">
-          {typedText}<span className={`auth-typography-cursor${typedText.length === typingText.length || shouldReduceMotion ? ' is-done' : ''}`} aria-hidden="true" />
+        <span aria-hidden="true" className="auth-typography-line auth-typography-line-main">
+          {typedText}<span className={`auth-typography-cursor${done ? ' is-done' : ''}`} />
         </span>
       </div>
+      <ExampleCard animate={!skip} />
     </div>
   )
 }
@@ -145,7 +185,7 @@ function TopLeftBrandNav({ showBack }: { showBack?: boolean }) {
                   whiteSpace: 'nowrap', display: 'block'
                 }}
               >
-                Back to site
+                Retour au site
               </motion.span>
             ) : (
               <motion.span
@@ -222,9 +262,9 @@ export function AuthLayout({ children, title, description, showBack = false }: A
         <p style={{
           position: 'absolute', bottom: 24,
           fontFamily: "'JetBrains Mono',monospace", fontSize: 10,
-          color: C.subtle, letterSpacing: '0.06em', textTransform: 'uppercase',
+          color: C.muted, letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
-          © 2026 Qualio · <a href="/privacy" style={{ color: C.subtle, textDecoration: 'none' }}>Privacy</a> · <a href="/terms" style={{ color: C.subtle, textDecoration: 'none' }}>Terms</a>
+          © 2026 Qualio · <a href="/confidentialite" style={{ color: C.muted, textDecoration: 'none' }}>Confidentialité</a> · <a href="/conditions" style={{ color: C.muted, textDecoration: 'none' }}>Conditions</a>
         </p>
       </div>
 
@@ -266,7 +306,7 @@ export function AuthInput({ label, error, rightEl, ...props }: InputProps) {
             width: '100%',
             background: C.surface,
             border: `1px solid ${error ? '#ef4444' : C.line}`,
-            borderRadius: 3,
+            borderRadius: 8,
             padding: rightEl ? '9px 40px 9px 12px' : '9px 12px',
             fontFamily: "'Manrope',sans-serif",
             fontSize: 14,
@@ -316,9 +356,9 @@ export function AuthButton({ loading, variant = 'primary', children, ...props }:
       style={{
         width: '100%',
         padding: '10px 16px',
-        borderRadius: 3,
+        borderRadius: 8,
         border: isPrimary ? 'none' : `1px solid ${C.line}`,
-        background: isPrimary ? C.orange : 'transparent',
+        background: isPrimary ? C.orangeInk : 'transparent',
         color: isPrimary ? '#ffffff' : C.ink,
         fontFamily: "'Manrope',sans-serif",
         fontSize: 14,
@@ -353,7 +393,7 @@ export function AuthButton({ loading, variant = 'primary', children, ...props }:
 }
 
 // Divider "OR"
-export function AuthDivider({ label = 'OR' }: { label?: string }) {
+export function AuthDivider({ label = 'OU' }: { label?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
       <div style={{ flex: 1, height: 1, background: C.line }} />

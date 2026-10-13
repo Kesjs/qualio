@@ -8,8 +8,13 @@ import { recordProductEvent } from '@/lib/analytics/product-events'
 async function syncSubscription(subscription: Stripe.Subscription) {
   const admin = getSupabaseAdminClient()
   const priceId = subscription.items.data[0]?.price?.id ?? null
-  const planFromPrice = getPlanFromPriceId(priceId)
   const metadata = subscription.metadata ?? {}
+  let planFromPrice = getPlanFromPriceId(priceId)
+  if (planFromPrice === 'free' && metadata.plan === 'pro') {
+    // Prix inconnu (variable d'environnement absente ou changée) : on se fie au plan posé à la création du paiement.
+    console.warn(`[Stripe webhook] Prix ${priceId ?? 'inconnu'} absent de STRIPE_PRICE_PRO / STRIPE_PRICE_PRO_ANNUAL, plan lu dans les métadonnées.`)
+    planFromPrice = 'pro'
+  }
   let userId = metadata.user_id || null
   if (!userId) {
     const { data: existing } = await (admin as any).from('billing_subscriptions').select('user_id').eq('stripe_customer_id', String(subscription.customer)).maybeSingle()
@@ -26,7 +31,6 @@ async function syncSubscription(subscription: Stripe.Subscription) {
     plan,
     status,
     source: 'stripe',
-    trial_ends_at: null,
     current_period_end: subscription.items.data[0]?.current_period_end ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString() : null,
     cancel_at_period_end: subscription.cancel_at_period_end,
     updated_at: new Date().toISOString(),

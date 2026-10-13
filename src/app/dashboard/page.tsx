@@ -1,5 +1,5 @@
-import { HomePage } from '@/components/dashboard/pages/HomePage'
+import { WeeklyPage } from '@/components/dashboard/weekly/WeeklyPage'
 
 export default function DashboardPage() {
-  return <HomePage />
+  return <WeeklyPage />
 }

@@ -22,17 +22,6 @@ function htmlEmail(origin: string, token: string, recommendation: { title: strin
 
 function escapeHtml(value: string) { return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char] ?? char) }
 
-async function sendServiceEmail(admin: any, resend: Resend, origin: string, userId: string, realRecipient: string | undefined, eventKey: string, subject: string, text: string) {
-  const recipient = process.env.NODE_ENV === 'production' ? realRecipient : process.env.RESEND_TEST_EMAIL
-  if (!recipient) return false
-  const { data: logged } = await admin.from('email_log').insert({ user_id: userId, event_type: 'trial_service', event_key: eventKey, recipient, status: 'pending' }).select('id').single()
-  if (!logged) return false
-  const result = await resend.emails.send({ from: process.env.FEEDBACK_FROM_EMAIL!, to: recipient, subject, html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto"><p style="color:#ee6018;font-weight:700">QUALIO</p><p>${escapeHtml(text)}</p><p><a href="${origin}/pricing">Voir les offres</a></p></div>`, text })
-  if (result.error) { await admin.from('email_log').update({ status: 'failed', attempt_count: 1, last_error: result.error.message }).eq('id', logged.id); return false }
-  await admin.from('email_log').update({ status: 'sent', attempt_count: 1, provider_id: result.data?.id ?? null, sent_at: new Date().toISOString() }).eq('id', logged.id)
-  return true
-}
-
 export async function GET(request: NextRequest) {
   const expected = process.env.CRON_SECRET
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || request.headers.get('x-cron-secret')
@@ -44,19 +33,9 @@ export async function GET(request: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || request.nextUrl.origin
   let generated = 0; let sent = 0
-  const { data: trials } = await admin.from('billing_subscriptions').select('user_id, trial_ends_at').eq('source', 'trial').eq('status', 'trialing').not('trial_ends_at', 'is', null)
-  for (const trial of trials ?? []) {
-    const { data: authUser } = await admin.auth.admin.getUserById(trial.user_id)
-    const recipient = authUser.user?.email
-    const trialEnd = Date.parse(trial.trial_ends_at)
-    const trialStart = trialEnd - 14 * 86400000
-    const day = Math.floor((Date.now() - trialStart) / 86400000)
-    const reminder = day === 10 ? ['trial_day_10', 'Votre essai Pro se termine bientôt', 'Il vous reste quelques jours pour tester les synthèses et les recommandations de Qualio.'] : day === 13 ? ['trial_day_13', 'Votre essai Pro se termine demain', 'Vérifiez ce qui change après l’essai ou passez en Pro pour garder le rythme hebdomadaire.'] : Date.now() >= trialEnd ? ['trial_expired', 'Votre essai Pro est terminé', 'Vos données sont conservées. Votre espace applique maintenant les limites du plan Gratuit.'] : null
-    if (reminder && await sendServiceEmail(admin, resend, origin, trial.user_id, recipient, reminder[0], reminder[1], reminder[2])) sent += 1
-  }
   for (const site of sites ?? []) {
     const [{ data: billing }, { data: preferences }, { data: latest }, { data: existingWeek }, { data: suppressedDigest }] = await Promise.all([
-      admin.from('billing_subscriptions').select('plan, status, source, trial_ends_at, current_period_end').eq('user_id', site.user_id).maybeSingle(),
+      admin.from('billing_subscriptions').select('plan, status, source, current_period_end').eq('user_id', site.user_id).maybeSingle(),
       admin.from('notification_preferences').select('weekly_digest').eq('user_id', site.user_id).maybeSingle(),
       admin.from('feedback_syntheses').select('created_at').eq('site_id', site.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       admin.from('feedback_syntheses').select('id').eq('site_id', site.id).eq('week_key', weekKey).maybeSingle(),

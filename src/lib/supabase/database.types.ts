@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
@@ -26,7 +26,6 @@ export type Database = {
           stripe_customer_id: string
           stripe_price_id: string | null
           stripe_subscription_id: string | null
-          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
@@ -41,7 +40,6 @@ export type Database = {
           stripe_customer_id: string
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
-          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -56,431 +54,10 @@ export type Database = {
           stripe_customer_id?: string
           stripe_price_id?: string | null
           stripe_subscription_id?: string | null
-          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
-      }
-      braviko_admins: {
-        Row: {
-          active: boolean
-          created_at: string
-          display_name: string | null
-          user_id: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          display_name?: string | null
-          user_id: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          display_name?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      braviko_categories: {
-        Row: {
-          active: boolean
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          parent_id: string | null
-          slug: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          parent_id?: string | null
-          slug: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          parent_id?: string | null
-          slug?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_categories_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      braviko_customer_profiles: {
-        Row: {
-          created_at: string
-          email: string
-          first_name: string | null
-          last_name: string | null
-          phone: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          first_name?: string | null
-          last_name?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          first_name?: string | null
-          last_name?: string | null
-          phone?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      braviko_newsletter_subscribers: {
-        Row: {
-          consent_at: string
-          created_at: string
-          email: string
-          id: string
-          locale: string
-          source: string
-        }
-        Insert: {
-          consent_at?: string
-          created_at?: string
-          email: string
-          id?: string
-          locale: string
-          source?: string
-        }
-        Update: {
-          consent_at?: string
-          created_at?: string
-          email?: string
-          id?: string
-          locale?: string
-          source?: string
-        }
-        Relationships: []
-      }
-      braviko_order_items: {
-        Row: {
-          created_at: string
-          id: string
-          line_total: number
-          order_id: string
-          product_id: string | null
-          product_name: string
-          quantity: number
-          unit_price: number
-          variant_id: string | null
-          variant_label: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          line_total: number
-          order_id: string
-          product_id?: string | null
-          product_name: string
-          quantity: number
-          unit_price: number
-          variant_id?: string | null
-          variant_label?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          line_total?: number
-          order_id?: string
-          product_id?: string | null
-          product_name?: string
-          quantity?: number
-          unit_price?: number
-          variant_id?: string | null
-          variant_label?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      braviko_orders: {
-        Row: {
-          address: string
-          city: string
-          created_at: string
-          currency: string
-          customer_email: string
-          delivery_amount: number
-          first_name: string
-          id: string
-          last_name: string
-          paid_at: string | null
-          payment_method: string | null
-          payment_status: string
-          phone: string
-          postal_code: string
-          reference: string
-          status: string
-          stripe_payment_intent_id: string | null
-          stripe_session_id: string | null
-          subtotal: number
-          total: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address: string
-          city: string
-          created_at?: string
-          currency?: string
-          customer_email: string
-          delivery_amount?: number
-          first_name: string
-          id?: string
-          last_name: string
-          paid_at?: string | null
-          payment_method?: string | null
-          payment_status?: string
-          phone: string
-          postal_code: string
-          reference: string
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-          subtotal: number
-          total: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address?: string
-          city?: string
-          created_at?: string
-          currency?: string
-          customer_email?: string
-          delivery_amount?: number
-          first_name?: string
-          id?: string
-          last_name?: string
-          paid_at?: string | null
-          payment_method?: string | null
-          payment_status?: string
-          phone?: string
-          postal_code?: string
-          reference?: string
-          status?: string
-          stripe_payment_intent_id?: string | null
-          stripe_session_id?: string | null
-          subtotal?: number
-          total?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      braviko_product_images: {
-        Row: {
-          alt_text: string | null
-          created_at: string
-          id: string
-          is_primary: boolean
-          product_id: string
-          sort_order: number
-          storage_path: string
-          watermarked_at: string | null
-        }
-        Insert: {
-          alt_text?: string | null
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          product_id: string
-          sort_order?: number
-          storage_path: string
-          watermarked_at?: string | null
-        }
-        Update: {
-          alt_text?: string | null
-          created_at?: string
-          id?: string
-          is_primary?: boolean
-          product_id?: string
-          sort_order?: number
-          storage_path?: string
-          watermarked_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_product_images_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      braviko_product_translations: {
-        Row: {
-          conditioning: string | null
-          created_at: string
-          delivery_info: string | null
-          description: string | null
-          id: string
-          locale: string
-          name: string
-          product_id: string
-          short_description: string | null
-          updated_at: string
-        }
-        Insert: {
-          conditioning?: string | null
-          created_at?: string
-          delivery_info?: string | null
-          description?: string | null
-          id?: string
-          locale: string
-          name: string
-          product_id: string
-          short_description?: string | null
-          updated_at?: string
-        }
-        Update: {
-          conditioning?: string | null
-          created_at?: string
-          delivery_info?: string | null
-          description?: string | null
-          id?: string
-          locale?: string
-          name?: string
-          product_id?: string
-          short_description?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_product_translations_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      braviko_product_variants: {
-        Row: {
-          active: boolean
-          compare_at_price: number | null
-          created_at: string
-          id: string
-          label: string
-          price: number
-          product_id: string
-          sku: string
-          stock: number
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          compare_at_price?: number | null
-          created_at?: string
-          id?: string
-          label: string
-          price: number
-          product_id: string
-          sku: string
-          stock?: number
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          compare_at_price?: number | null
-          created_at?: string
-          id?: string
-          label?: string
-          price?: number
-          product_id?: string
-          sku?: string
-          stock?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_product_variants_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      braviko_products: {
-        Row: {
-          category_id: string
-          created_at: string
-          featured: boolean
-          id: string
-          slug: string
-          sort_order: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          category_id: string
-          created_at?: string
-          featured?: boolean
-          id?: string
-          slug: string
-          sort_order?: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          category_id?: string
-          created_at?: string
-          featured?: boolean
-          id?: string
-          slug?: string
-          sort_order?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "braviko_products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "braviko_categories"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       collection_sources: {
         Row: {
@@ -914,27 +491,27 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
-          max_scans: number
-          plan: string
-          scans_count: number
+          max_scans: number | null
+          plan: string | null
+          scans_count: number | null
           staging_header: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id: string
-          max_scans?: number
-          plan?: string
-          scans_count?: number
+          max_scans?: number | null
+          plan?: string | null
+          scans_count?: number | null
           staging_header?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
-          max_scans?: number
-          plan?: string
-          scans_count?: number
+          max_scans?: number | null
+          plan?: string | null
+          scans_count?: number | null
           staging_header?: string | null
         }
         Relationships: []
@@ -962,7 +539,8 @@ export type Database = {
           created_at: string | null
           id: string
           name: string | null
-          onboarding_method: 'widget' | 'import' | null
+          onboarding_method: string | null
+          sector: string | null
           updated_at: string | null
           url: string | null
           user_id: string
@@ -971,7 +549,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string | null
-          onboarding_method?: 'widget' | 'import' | null
+          onboarding_method?: string | null
+          sector?: string | null
           updated_at?: string | null
           url?: string | null
           user_id: string
@@ -980,7 +559,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string | null
-          onboarding_method?: 'widget' | 'import' | null
+          onboarding_method?: string | null
+          sector?: string | null
           updated_at?: string | null
           url?: string | null
           user_id?: string
@@ -1022,13 +602,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_braviko_order: {
-        Args: { p_customer: Json; p_items: Json; p_reference: string }
-        Returns: {
-          order_id: string
-          order_total: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
