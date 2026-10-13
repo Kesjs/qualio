@@ -12,36 +12,6 @@ const C = {
 
 const INTRO_KEY = 'qualio-auth-intro'
 
-/** Carte d'exemple (mêmes données que /exemple) : montre la recommandation sourcée, pas seulement la promesse. */
-function ExampleCard({ animate }: { animate: boolean }) {
-  return (
-    <motion.div
-      className="auth-example"
-      aria-hidden="true"
-      initial={animate ? { opacity: 0, y: 24 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: animate ? 3.2 : 0, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="auth-example-head">
-        <span>Recommandation n°1</span>
-        <span className="auth-example-tag">Exemple</span>
-      </div>
-      <p className="auth-example-title">Rendre la facturation visible dans le menu</p>
-      <p className="auth-example-sub">14 avis sur 40 mentionnent la difficulté à retrouver leurs factures.</p>
-      <ul className="auth-example-quotes">
-        <li><span>« Je n’arrive jamais à retrouver ma facture »</span><time>12/10</time></li>
-        <li><span>« Où sont les factures ? »</span><time>09/10</time></li>
-        <li><span>« Facturation introuvable »</span><time>03/10</time></li>
-      </ul>
-      <div className="auth-example-actions">
-        <span className="is-primary">Accepter</span>
-        <span>Plus tard</span>
-        <span>Écarter</span>
-      </div>
-    </motion.div>
-  )
-}
-
 function ProductVisual() {
   const shouldReduceMotion = useReducedMotion()
   const typingText = 'Des décisions claires.'
@@ -92,7 +62,6 @@ function ProductVisual() {
           {typedText}<span className={`auth-typography-cursor${done ? ' is-done' : ''}`} />
         </span>
       </div>
-      <ExampleCard animate={!skip} />
     </div>
   )
 }

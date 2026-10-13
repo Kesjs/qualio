@@ -355,17 +355,6 @@ input[type='password']::-ms-clear {
 @keyframes auth-typography-blink { 0%, 45% { opacity: 1; } 46%, 100% { opacity: 0; } }
 @media (max-width: 1180px) { .auth-typography-panel { padding: 32px; } .auth-typography-copy { width: 88%; } }
 @media (prefers-reduced-motion: reduce) { .auth-typography-cursor { animation: none; } }
-.auth-example { position: relative; z-index: 1; width: min(82%, 520px); padding: 20px; border: 1px solid #2a2e34; border-radius: 16px; background: #14171b; color: #f2f0ed; font-family: var(--font-manrope), 'Manrope', sans-serif; box-shadow: 0 24px 60px -30px rgba(0,0,0,.8); }
-.auth-example-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9a9ea6; }
-.auth-example-tag { padding: 3px 8px; border-radius: 6px; background: #20242a; letter-spacing: 0; text-transform: none; }
-.auth-example-title { margin: 14px 0 6px; font-size: 18px; font-weight: 600; letter-spacing: -.02em; line-height: 1.25; }
-.auth-example-sub { margin: 0; font-size: 13px; line-height: 1.5; color: #9a9ea6; }
-.auth-example-quotes { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.auth-example-quotes li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 8px; background: #1b1f24; font-size: 13px; line-height: 1.4; }
-.auth-example-quotes time { flex-shrink: 0; color: #9a9ea6; font-variant-numeric: tabular-nums; }
-.auth-example-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; font-size: 12px; font-weight: 600; }
-.auth-example-actions span { padding: 7px 12px; border: 1px solid #2f343b; border-radius: 8px; color: #d6d4d0; }
-.auth-example-actions .is-primary { border-color: #c2410c; background: #c2410c; color: #fff; }
 
 /* Light feedback-intelligence landing page. The existing dark marketing components
    remain available for later reference; the public home route uses this surface. */
