@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
-import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
+import { BILLING_PLANS } from '@/lib/billing/plans'
+import { getFeedbackCapacity, getUserPlan, isSiteWritable } from '@/lib/billing/limits'
 import { isDuplicateIntakeEvent, MAX_INTAKE_BODY_BYTES, validateIntakeBody } from '@/lib/feedback/intake-validation'
 import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
 
@@ -18,11 +19,6 @@ function getClientIp(request: NextRequest) {
   if (vercelIp) return vercelIp.slice(0, 128)
   if (process.env.VERCEL === '1') return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim().slice(0, 128) || 'unknown'
   return 'unknown'
-}
-
-function monthStart() {
-  const now = new Date()
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 }
 
 export async function POST(request: NextRequest) {
@@ -70,10 +66,11 @@ export async function POST(request: NextRequest) {
   if ((keyCount ?? 0) >= 200) return json({ error: 'La collecte de ce projet a atteint sa limite horaire. Réessayez plus tard.' }, 429, { 'Retry-After': '3600' })
   if (isDuplicateIntakeEvent(duplicate)) return json({ ok: true, duplicate: true }, 202)
 
-  const { data: subscription } = await admin.from('billing_subscriptions').select('plan, status, source, trial_ends_at, current_period_end').eq('user_id', source.user_id).maybeSingle()
-  const plan = resolvePlan(subscription)
-  const { count: monthlyCount } = await admin.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', source.site_id).gte('created_at', monthStart())
-  if ((monthlyCount ?? 0) >= BILLING_PLANS[plan].monthlyFeedback) return json({ error: 'La limite mensuelle d’avis de ce projet est atteinte.' }, 429, { 'Retry-After': '3600' })
+  const plan = await getUserPlan(admin, source.user_id)
+  if (!BILLING_PLANS[plan].widget) return json({ error: 'Le widget est réservé au plan Pro. Les avis déjà reçus restent conservés.' }, 403)
+  if (!(await isSiteWritable(admin, source.user_id, source.site_id, plan))) return json({ error: 'Ce projet est en lecture seule.' }, 403)
+  const capacity = await getFeedbackCapacity(admin, source.site_id, plan)
+  if (capacity.remaining < 1) return json({ error: 'La limite d’avis de ce projet est atteinte.' }, 429, { 'Retry-After': '3600' })
 
   const { data: saved, error } = await admin.from('feedback_items').insert({
     user_id: source.user_id,

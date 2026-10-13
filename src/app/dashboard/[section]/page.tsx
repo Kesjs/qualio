@@ -2,9 +2,9 @@ import { notFound, redirect } from 'next/navigation'
 
 // Anciennes adresses du dashboard : redirigées vers les nouvelles pages.
 const legacy: Record<string, string> = {
-  analysis: '/dashboard/themes',
-  syntheses: '/dashboard/actions?tab=history',
-  recommendations: '/dashboard/actions',
+  analysis: '/dashboard/feedback',
+  syntheses: '/dashboard',
+  recommendations: '/dashboard',
 }
 
 export default async function LegacyDashboardRoute({ params }: { params: Promise<{ section: string }> }) {

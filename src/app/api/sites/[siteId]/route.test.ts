@@ -28,7 +28,7 @@ describe('site detail', () => {
     const response = await GET(new NextRequest('http://localhost/api/sites/site'), { params: Promise.resolve({ siteId: 'site' }) })
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ id: 'site', name: 'Mon projet', url: null })
-    expect(query.select).toHaveBeenCalledWith('id, user_id, url, name, onboarding_method, created_at, updated_at')
+    expect(query.select).toHaveBeenCalledWith('id, user_id, url, name, onboarding_method, sector, created_at, updated_at')
     expect(query.eq).toHaveBeenCalledWith('id', 'site')
     expect(query.eq).toHaveBeenCalledWith('user_id', 'owner')
   })

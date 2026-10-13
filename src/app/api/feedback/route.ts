@@ -1,6 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
+import { getFeedbackCapacity, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 
 type FeedbackPayload = {
   siteId?: string
@@ -8,6 +9,8 @@ type FeedbackPayload = {
   source?: 'manual' | 'widget' | 'csv'
   authorName?: string
   authorEmail?: string
+  /** Date de l'avis : AAAA-MM-JJ (saisie manuelle) ou ISO. Aujourd'hui par défaut. */
+  createdAt?: string
   sourceUrl?: string
   externalId?: string
   metadata?: Record<string, unknown>
@@ -18,6 +21,15 @@ type FeedbackUpdatePayload = {
   ids?: string[]
   status?: 'open' | 'reviewed' | 'archived'
   theme?: string | null
+}
+
+/** Date saisie : AAAA-MM-JJ (midi UTC pour éviter tout décalage) ou ISO, sans date future ni antérieure à 2000. */
+function parseCreatedAt(value: unknown): string | null | 'invalid' {
+  if (typeof value !== 'string' || !value.trim()) return null
+  const raw = value.trim()
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T12:00:00.000Z`) : new Date(raw)
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < 2000 || date.getTime() > Date.now() + 24 * 3600_000) return 'invalid'
+  return date.toISOString()
 }
 
 function cleanText(value: unknown, maxLength: number) {
@@ -68,7 +80,14 @@ export async function POST(request: NextRequest) {
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
 
+  const plan = await getUserPlan(supabase, user.id)
+  if (!(await isSiteWritable(supabase, user.id, siteId, plan))) return NextResponse.json({ error: READ_ONLY_MESSAGE, quota: 'read_only', plan }, { status: 403 })
+  const capacity = await getFeedbackCapacity(supabase, siteId, plan)
+  if (capacity.remaining < 1) return NextResponse.json({ error: `Vous avez atteint ${capacity.limit.toLocaleString('fr-FR')} avis. Passez à Pro pour en ajouter. Vos avis restent visibles.`, quota: 'feedback', plan, limit: capacity.limit, used: capacity.used }, { status: 403 })
+
   const source = ['manual', 'widget', 'csv'].includes(body.source ?? '') ? body.source : 'manual'
+  const createdAt = parseCreatedAt(body.createdAt)
+  if (createdAt === 'invalid') return NextResponse.json({ error: 'La date de l’avis est invalide.' }, { status: 400 })
   const { data, error } = await (supabase as any)
     .from('feedback_items')
     .insert({
@@ -80,6 +99,7 @@ export async function POST(request: NextRequest) {
       author_email: cleanText(body.authorEmail, 320) || null,
       source_url: cleanText(body.sourceUrl, 2000) || null,
       external_id: cleanText(body.externalId, 240) || null,
+      ...(createdAt ? { created_at: createdAt } : {}),
        theme: null,
        sentiment: null,
        confidence: null,
@@ -136,4 +156,18 @@ export async function PATCH(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Feedback not found' }, { status: 404 })
   return NextResponse.json(data)
+}
+
+/** Suppression définitive d'avis (sélection ou un seul). Réservée aux avis du compte connecté. */
+export async function DELETE(request: NextRequest) {
+  const { supabase, user } = await getUserAndClient()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await request.json().catch(() => null) as { ids?: unknown } | null
+  const ids = Array.isArray(body?.ids) ? body.ids.filter((value): value is string => typeof value === 'string').slice(0, 200) : []
+  if (!ids.length) return NextResponse.json({ error: 'Sélectionnez au moins un avis.' }, { status: 400 })
+
+  const { data, error } = await (supabase as any).from('feedback_items').delete().in('id', ids).eq('user_id', user.id).select('id')
+  if (error) return NextResponse.json({ error: 'Impossible de supprimer ces avis.' }, { status: 500 })
+  return NextResponse.json({ deleted: data?.length ?? 0 })
 }

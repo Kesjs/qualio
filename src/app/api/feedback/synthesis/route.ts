@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
-import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
+import { BILLING_PLANS, nextSynthesisAt } from '@/lib/billing/plans'
+import { getLastManualSynthesisAt, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { recordProductEvent } from '@/lib/analytics/product-events'
 
@@ -13,16 +14,6 @@ async function getUserContext() {
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   return { supabase, user }
-}
-
-function monthStart() {
-  const date = new Date()
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)).toISOString()
-}
-
-function nextMonthStart() {
-  const date = new Date()
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1)).toISOString()
 }
 
 function fingerprint(title: string, action: string) {
@@ -85,22 +76,26 @@ export async function POST(request: NextRequest) {
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Projet introuvable.' }, { status: 404 })
 
-  const [{ data: billing }, { data: feedback, error: feedbackError }] = await Promise.all([
-    (supabase as any).from('billing_subscriptions').select('plan, status, source, trial_ends_at, current_period_end').eq('user_id', user.id).maybeSingle(),
+  const [plan, { data: feedback, error: feedbackError }] = await Promise.all([
+    getUserPlan(supabase, user.id),
     (supabase as any).from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('user_id', user.id).eq('site_id', siteId).neq('status', 'archived').order('created_at', { ascending: false }).limit(301),
   ])
   if (feedbackError) return NextResponse.json({ error: 'Impossible de charger les avis.' }, { status: 500 })
   if (!feedback || feedback.length < 3) return NextResponse.json({ error: 'Ajoutez encore des avis pour lancer une synthèse.', minimum: 3, current: feedback?.length ?? 0 }, { status: 422 })
 
-  const plan = resolvePlan(billing)
-  const monthlyLimit = BILLING_PLANS[plan].monthlySyntheses
-  const { count: monthlyCount } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId).gte('created_at', monthStart())
-  const usedThisMonth = monthlyCount ?? 0
-  if (usedThisMonth >= monthlyLimit) return NextResponse.json({ error: 'Votre quota est atteint.', plan, monthlyLimit, usedThisMonth, resetAt: nextMonthStart() }, { status: 429 })
+  // Délai entre deux synthèses manuelles (Gratuit : 14 jours, Pro : 1 jour) par projet.
+  // Seules les synthèses réussies sont enregistrées, donc un échec ne consomme jamais le quota.
+  // Les synthèses hebdomadaires automatiques (week_key renseigné) ne comptent pas.
+  if (!(await isSiteWritable(supabase, user.id, siteId, plan))) return NextResponse.json({ error: READ_ONLY_MESSAGE, quota: 'read_only', plan }, { status: 403 })
+  const lastManualAt = await getLastManualSynthesisAt(supabase, siteId)
+  const nextAvailableAt = nextSynthesisAt(plan, lastManualAt)
+  if (nextAvailableAt) return NextResponse.json({ error: 'Votre prochaine synthèse n’est pas encore disponible.', quota: 'synthesis', plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, lastSynthesisAt: lastManualAt, nextAvailableAt }, { status: 429 })
 
   const { count: recentCount } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId).gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
   if ((recentCount ?? 0) > 0) return NextResponse.json({ error: 'Une synthèse vient déjà d’être générée. Attendez quelques minutes avant de recommencer.' }, { status: 429 })
 
+  const { count: previousSyntheses } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId)
+  const firstSynthesis = (previousSyntheses ?? 0) === 0
   const sampled = feedback.length > 300 ? feedback.slice(0, 300) : feedback
   try {
     const synthesis = await generateFeedbackSynthesis(sampled as FeedbackRow[])
@@ -118,8 +113,8 @@ export async function POST(request: NextRequest) {
       console.error('[Feedback synthesis] recommendation persistence failed', recommendationError)
       return NextResponse.json({ error: 'La synthèse n’a pas été enregistrée complètement. Réessayez.' }, { status: 500 })
     }
-    void recordProductEvent(getSupabaseAdminClient(), user.id, usedThisMonth === 0 ? 'first_synthesis' : 'synthesis_generated', `synthesis:${saved.id}`, { site_id: siteId, plan })
-    return NextResponse.json({ synthesis: saved, usage: { plan, monthlyLimit, usedThisMonth: usedThisMonth + 1, analysed: sampled.length, sampled: feedback.length > 300 } }, { status: 201 })
+    void recordProductEvent(getSupabaseAdminClient(), user.id, firstSynthesis ? 'first_synthesis' : 'synthesis_generated', `synthesis:${saved.id}`, { site_id: siteId, plan })
+    return NextResponse.json({ synthesis: saved, usage: { plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, nextAvailableAt: nextSynthesisAt(plan, saved.created_at), analysed: sampled.length, sampled: feedback.length > 300 } }, { status: 201 })
   } catch (error) {
     console.error('[Feedback synthesis] generation failed', error)
     return NextResponse.json({ error: 'La génération de la synthèse a échoué. Réessayez dans un instant.' }, { status: 502 })

@@ -1,39 +1,53 @@
-/** Source unique des offres, prix et limites vérifiées côté serveur. */
+/** Source unique des offres, prix et limites vérifiées côté serveur (doc, chapitre 2). */
 export const BILLING_PLANS = {
   free: {
     label: 'Gratuit',
     priceEur: 0,
-    projects: 1,
-    monthlySyntheses: 1,
-    monthlyFeedback: 500,
+    annualPriceEur: null,
     priceEnv: null,
-    features: ['1 projet', '1 synthèse par mois', 'Vos avis conservés', 'Import CSV et widget'],
+    annualPriceEnv: null,
+    projects: 1,
+    /** Avis conservés (non archivés) par projet. */
+    feedbackPerProject: 50,
+    /** Délai minimal entre deux synthèses manuelles d'un même projet. */
+    synthesisCooldownHours: 14 * 24,
+    /** Widget de collecte en continu. */
+    widget: false,
+    // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
+    features: ['1 projet', '50 avis', '1 synthèse toutes les 14 jours', 'Import CSV et saisie manuelle', 'Vos avis conservés'],
   },
   pro: {
     label: 'Pro',
     priceEur: 19,
-    projects: 5,
-    monthlySyntheses: 12,
-    monthlyFeedback: 5000,
+    annualPriceEur: 190,
     priceEnv: 'STRIPE_PRICE_PRO',
-    features: ['14 jours d’essai sans carte', 'Synthèse automatique chaque semaine', 'Email du lundi', 'Suivi des recommandations', 'Jusqu’à 5 projets'],
+    annualPriceEnv: 'STRIPE_PRICE_PRO_ANNUAL',
+    projects: 5,
+    feedbackPerProject: 2000,
+    // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
+    synthesisCooldownHours: 24,
+    widget: true,
+    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Widget sur votre site', 'Email du lundi', 'Historique des décisions'],
   },
 } as const
 
-export const PRO_TRIAL_DAYS = 14
 export type PaidPlan = Exclude<keyof typeof BILLING_PLANS, 'free'>
 export type PlanId = keyof typeof BILLING_PLANS
+export type BillingInterval = 'month' | 'year'
 
 export type SubscriptionForPlan = {
   plan?: unknown
   status?: unknown
   source?: unknown
-  trial_ends_at?: string | null
   current_period_end?: string | null
 }
 
 export function isPaidPlan(value: unknown): value is PaidPlan {
   return value === 'pro'
+}
+
+export function isBillingInterval(value: unknown): value is BillingInterval {
+  return value === 'month' || value === 'year'
 }
 
 function isExpired(value: string | null | undefined, now = Date.now()) {
@@ -42,23 +56,43 @@ function isExpired(value: string | null | undefined, now = Date.now()) {
   return Number.isFinite(timestamp) && timestamp < now
 }
 
+/**
+ * Plan réellement appliqué. Il n'y a plus d'essai Pro : sans abonnement, c'est Gratuit.
+ * « trialing » reste toléré uniquement pour un abonnement Stripe (essai créé à la main dans Stripe).
+ */
 export function resolvePlan(subscription: SubscriptionForPlan | null | undefined, now = Date.now()): PlanId {
   if (!subscription) return 'free'
   const status = String(subscription.status ?? '')
   if (!['active', 'trialing'].includes(status)) return 'free'
 
   const source = String(subscription.source ?? 'stripe')
-  if (source === 'trial' && isExpired(subscription.trial_ends_at, now)) return 'free'
   if (source === 'manual' && isExpired(subscription.current_period_end, now)) return 'free'
   return subscription.plan === 'pro' ? 'pro' : 'free'
 }
 
-export function getPriceId(plan: PaidPlan) {
-  const envKey = BILLING_PLANS[plan].priceEnv
+export function getPriceId(plan: PaidPlan, interval: BillingInterval = 'month') {
+  const envKey = interval === 'year' ? BILLING_PLANS[plan].annualPriceEnv : BILLING_PLANS[plan].priceEnv
   return envKey ? process.env[envKey] ?? '' : ''
 }
 
 export function getPlanFromPriceId(priceId: string | null | undefined) {
-  if (priceId && priceId === process.env.STRIPE_PRICE_PRO) return 'pro' as const
+  if (!priceId) return 'free' as const
+  if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return 'pro' as const
   return 'free' as const
+}
+
+export function getIntervalFromPriceId(priceId: string | null | undefined): BillingInterval | null {
+  if (!priceId) return null
+  if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return 'year'
+  if (priceId === process.env.STRIPE_PRICE_PRO) return 'month'
+  return null
+}
+
+/** Date à partir de laquelle une nouvelle synthèse manuelle est possible (null = dès maintenant). */
+export function nextSynthesisAt(plan: PlanId, lastManualSynthesisAt: string | null | undefined, now = Date.now()): string | null {
+  if (!lastManualSynthesisAt) return null
+  const last = Date.parse(lastManualSynthesisAt)
+  if (!Number.isFinite(last)) return null
+  const next = last + BILLING_PLANS[plan].synthesisCooldownHours * 3600_000
+  return next > now ? new Date(next).toISOString() : null
 }

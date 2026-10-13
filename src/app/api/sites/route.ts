@@ -22,7 +22,7 @@ export async function GET() {
 
   const { data: sites, error } = await supabase
     .from('sites')
-    .select('id, user_id, url, name, onboarding_method, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, sector, created_at, updated_at')
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const { data: subscription } = await (supabase as any)
     .from('billing_subscriptions')
-    .select('plan, status, source, trial_ends_at, current_period_end')
+    .select('plan, status, source, current_period_end')
     .eq('user_id', user.id)
     .maybeSingle()
   const activePlan = resolvePlan(subscription)
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
   const { data: site, error } = await admin
     .from('sites')
     .insert({ user_id: user.id, url: projectUrl, name: name || null })
-    .select('id, user_id, url, name, onboarding_method, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, sector, created_at, updated_at')
     .single()
 
   if (error) return NextResponse.json({ error: 'Impossible de créer le projet.' }, { status: 500 })

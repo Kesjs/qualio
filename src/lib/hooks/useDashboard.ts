@@ -106,15 +106,20 @@ export function useDashboardMutations() {
       mutationFn: (input: { ids: string[]; status?: 'open' | 'archived'; theme?: string | null }) => send('/api/feedback', 'PATCH', input),
       onSuccess: refreshAll,
     }),
+    deleteFeedback: useMutation({
+      mutationFn: (ids: string[]) => send('/api/feedback', 'DELETE', { ids }),
+      onSuccess: refreshAll,
+    }),
     renameTheme: useMutation({
       mutationFn: (input: { siteId: string; from: string; to: string }) => send('/api/feedback/themes', 'PATCH', input),
       onSuccess: refreshAll,
     }),
     generateSynthesis: useMutation({
       mutationFn: (siteId: string) => send('/api/feedback/synthesis', 'POST', { siteId }).catch((error: unknown) => {
-        if (error instanceof ApiError && error.status === 429 && typeof error.body.monthlyLimit === 'number') {
-          const reset = typeof error.body.resetAt === 'string' ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeZone: 'Europe/Paris' }).format(new Date(error.body.resetAt)) : 'le début du mois prochain'
-          throw new ApiError(`${error.body.usedThisMonth ?? 0} synthèse(s) utilisée(s) sur ${error.body.monthlyLimit} ce mois-ci. Le quota revient le ${reset}.`, 429, error.body)
+        if (error instanceof ApiError && error.status === 429 && error.body.quota === 'synthesis') {
+          const next = typeof error.body.nextAvailableAt === 'string' ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }).format(new Date(error.body.nextAvailableAt)) : null
+          const suffix = error.body.plan === 'free' ? ' Avec Pro, elle est automatique chaque semaine.' : ''
+          throw new ApiError(`${next ? `Prochaine synthèse possible le ${next}.` : 'Votre prochaine synthèse n’est pas encore disponible.'}${suffix}`, 429, error.body)
         }
         throw error
       }),

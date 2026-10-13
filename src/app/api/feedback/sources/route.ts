@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { BILLING_PLANS } from '@/lib/billing/plans'
+import { getUserPlan } from '@/lib/billing/limits'
+
+const WIDGET_PRO_ONLY = { error: 'Le widget est réservé au plan Pro. Vos avis déjà reçus restent conservés.', quota: 'widget' } as const
 
 export async function GET(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
@@ -23,6 +27,8 @@ export async function POST(request: NextRequest) {
   if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+  const plan = await getUserPlan(supabase, user.id)
+  if (!BILLING_PLANS[plan].widget) return NextResponse.json({ ...WIDGET_PRO_ONLY, plan }, { status: 403 })
 
   const existing = await (supabase as any).from('collection_sources').select('id, site_id, type, public_key, active, accent_color, position, button_label').eq('site_id', siteId).eq('type', 'widget').maybeSingle()
   if (existing.data) return NextResponse.json(existing.data)
@@ -42,6 +48,11 @@ export async function PATCH(request: NextRequest) {
   if (!siteId || !['disable', 'enable', 'regenerate', 'settings'].includes(String(action))) return NextResponse.json({ error: 'Action de source invalide.' }, { status: 400 })
   const { data: source } = await (supabase as any).from('collection_sources').select('id').eq('user_id', user.id).eq('site_id', siteId).eq('type', 'widget').maybeSingle()
   if (!source) return NextResponse.json({ error: 'Source widget introuvable.' }, { status: 404 })
+  // Rétrogradé en Gratuit : on peut toujours désactiver la clé, mais plus la réactiver, la régénérer ni la configurer.
+  if (action !== 'disable') {
+    const plan = await getUserPlan(supabase, user.id)
+    if (!BILLING_PLANS[plan].widget) return NextResponse.json({ ...WIDGET_PRO_ONLY, plan }, { status: 403 })
+  }
   let updates: Record<string, unknown>
   if (action === 'disable') updates = { active: false }
   else if (action === 'enable') updates = { active: true }

@@ -5,7 +5,7 @@ const PAGE_SIZE = 50
 const SOURCES = ['manual', 'widget', 'csv']
 const SENTIMENTS = ['positive', 'neutral', 'negative']
 
-/** GET /api/feedback/list?siteId=&status=open|archived|all&theme=&sentiment=&source=&q=&days=&page= */
+/** GET /api/feedback/list?siteId=&status=open|archived|all&ids=&theme=&sentiment=&source=&q=&days=&page= */
 export async function GET(request: NextRequest) {
   const { supabase, userId } = await getAuthedContext()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
   const q = (params.get('q') ?? '').trim().replace(/[%,()*\\]/g, ' ').slice(0, 100)
   const days = Number(params.get('days') ?? 0)
   const page = Math.max(0, Math.min(1000, Number(params.get('page') ?? 0) || 0))
+  // ids : avis cités par une recommandation (3 à 20 identifiants UUID, séparés par des virgules).
+  const ids = (params.get('ids') ?? '').split(',').map((id) => id.trim()).filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 20)
 
   let query = (supabase as any)
     .from('feedback_items')
@@ -31,7 +33,8 @@ export async function GET(request: NextRequest) {
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
 
   // "Nouveau" regroupe les statuts open et reviewed ; "Archivé" = archived.
-  if (status === 'archived') query = query.eq('status', 'archived')
+  if (ids.length) query = query.in('id', ids)
+  else if (status === 'archived') query = query.eq('status', 'archived')
   else query = query.neq('status', 'archived')
   if (theme === '__none__') query = query.is('theme', null)
   else if (theme) query = query.eq('theme', theme)
