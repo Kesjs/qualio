@@ -59,6 +59,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
   const [draftLoaded, setDraftLoaded] = useState(false)
+  const [serverProgressLoaded, setServerProgressLoaded] = useState(false)
   const { data: sites, isLoading: sitesLoading } = useQuery({ queryKey: ['sites'], queryFn: async () => { const response = await fetch('/api/sites'); if (!response.ok) throw new Error(); return response.json() as Promise<Site[]> } })
 
   useEffect(() => {
@@ -85,6 +86,13 @@ export default function OnboardingPage() {
     const draft: OnboardingDraft = { projectName, projectUrl, choice, widgetKey, importedCount, previewRows, csvFileName }
     window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft))
   }, [choice, csvFileName, draftLoaded, importedCount, previewRows, projectName, projectUrl, widgetKey])
+
+  useEffect(() => {
+    if (!draftLoaded || sitesLoading || serverProgressLoaded) return
+    const savedChoice = sites?.[0]?.onboarding_method
+    if (!choice && savedChoice) setChoice(savedChoice)
+    setServerProgressLoaded(true)
+  }, [choice, draftLoaded, serverProgressLoaded, sites, sitesLoading])
 
   async function createProject(event: React.FormEvent) {
     event.preventDefault(); setStatus(null); if (!projectName.trim() && !projectUrl.trim()) return setStatus('Ajoutez un nom de projet ou une URL.'); setBusy(true)
@@ -189,7 +197,7 @@ Consignes :
     router.push('/dashboard')
   }
   function goBack() { setStatus(null); if (choice) { setChoice(null); return } router.push('/dashboard') }
-  if (!draftLoaded || sitesLoading) return <main className="flex min-h-screen items-center justify-center bg-[#fbfbfb] dark:bg-[#0b0c0e]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#ee6018] dark:border-white/10 dark:border-t-[#ee6018]" aria-label="Chargement" role="status" /></main>
+  if (!draftLoaded || sitesLoading || !serverProgressLoaded) return <main className="flex min-h-screen items-center justify-center bg-[#fbfbfb] dark:bg-[#0b0c0e]"><div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#ee6018] dark:border-white/10 dark:border-t-[#ee6018]" aria-label="Chargement" role="status" /></main>
   const activeSite = site ?? sites?.[0]
   const step = !activeSite ? 1 : !choice ? 2 : 3
 
