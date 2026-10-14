@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
-import { BILLING_PLANS, nextSynthesisAt } from '@/lib/billing/plans'
-import { getLastManualSynthesisAt, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
+import { BILLING_PLANS } from '@/lib/billing/plans'
+import { getSynthesisAvailability, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { recordProductEvent } from '@/lib/analytics/product-events'
 
@@ -83,12 +83,13 @@ export async function POST(request: NextRequest) {
   if (feedbackError) return NextResponse.json({ error: 'Impossible de charger les avis.' }, { status: 500 })
   if (!feedback || feedback.length < 3) return NextResponse.json({ error: 'Ajoutez encore des avis pour lancer une synthèse.', minimum: 3, current: feedback?.length ?? 0 }, { status: 422 })
 
-  // Délai entre deux synthèses manuelles (Gratuit : 14 jours, Pro : 1 jour) par projet.
+  // Quota de synthèses manuelles par projet (Free : 2/30 jours, Agence : 2/7 jours).
   // Seules les synthèses réussies sont enregistrées, donc un échec ne consomme jamais le quota.
   // Les synthèses hebdomadaires automatiques (week_key renseigné) ne comptent pas.
   if (!(await isSiteWritable(supabase, user.id, siteId, plan))) return NextResponse.json({ error: READ_ONLY_MESSAGE, quota: 'read_only', plan }, { status: 403 })
-  const lastManualAt = await getLastManualSynthesisAt(supabase, siteId)
-  const nextAvailableAt = nextSynthesisAt(plan, lastManualAt)
+  const availability = await getSynthesisAvailability(supabase, siteId, plan)
+  const lastManualAt = availability.lastAt
+  const nextAvailableAt = availability.nextAvailableAt
   if (nextAvailableAt) return NextResponse.json({ error: 'Votre prochaine synthèse n’est pas encore disponible.', quota: 'synthesis', plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, lastSynthesisAt: lastManualAt, nextAvailableAt }, { status: 429 })
 
   const { count: recentCount } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId).gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
@@ -114,7 +115,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'La synthèse n’a pas été enregistrée complètement. Réessayez.' }, { status: 500 })
     }
     void recordProductEvent(getSupabaseAdminClient(), user.id, firstSynthesis ? 'first_synthesis' : 'synthesis_generated', `synthesis:${saved.id}`, { site_id: siteId, plan })
-    return NextResponse.json({ synthesis: saved, usage: { plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, nextAvailableAt: nextSynthesisAt(plan, saved.created_at), analysed: sampled.length, sampled: feedback.length > 300 } }, { status: 201 })
+    const updatedAvailability = await getSynthesisAvailability(supabase, siteId, plan)
+    return NextResponse.json({ synthesis: saved, usage: { plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, used: updatedAvailability.used, limit: updatedAvailability.limit, windowDays: updatedAvailability.windowDays, nextAvailableAt: updatedAvailability.nextAvailableAt, analysed: sampled.length, sampled: feedback.length > 300 } }, { status: 201 })
   } catch (error) {
     console.error('[Feedback synthesis] generation failed', error)
     return NextResponse.json({ error: 'La génération de la synthèse a échoué. Réessayez dans un instant.' }, { status: 502 })

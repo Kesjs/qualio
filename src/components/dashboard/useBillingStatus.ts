@@ -12,7 +12,7 @@ export interface BillingStatus {
   interval: 'month' | 'year' | null
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
-  limits: { projects: number; feedbackPerProject: number; synthesisCooldownHours: number; widget: boolean }
+  limits: { projects: number; feedbackPerProject: number; synthesisCooldownHours: number; synthesisQuota: { count: number; windowDays: number } | null; widget: boolean }
   usage: { projects: number }
   /** Projets modifiables pour le plan (doc 2.3) : les autres sont en lecture seule. */
   writableSiteIds: string[]

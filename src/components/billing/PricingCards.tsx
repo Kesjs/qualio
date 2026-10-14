@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import type { PaidPlan } from '@/lib/billing/plans'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP, SIGNUP } from '@/components/landing/tokens'
@@ -83,6 +83,18 @@ export function PricingCards() {
   const pro = BILLING_PLANS.pro
   const agency = BILLING_PLANS.agency
   const annual = interval === 'year'
+  const [comparisonOpen, setComparisonOpen] = useState(false)
+  const comparisonRows = [
+    ['Projets actifs', '1', '5', '15'],
+    ['Avis par projet', '50', '2 000', '10 000'],
+    ['Synthèses manuelles', '2 par mois', '1 par jour', '2 par semaine'],
+    ['Synthèse automatique', '—', 'Chaque semaine', 'Chaque semaine'],
+    ['Widget de collecte', '—', 'Oui', 'Oui, sur 15 sites'],
+    ['Email du lundi', '—', 'Oui', 'Oui'],
+    ['Historique des décisions', '—', 'Oui', 'Oui'],
+    ['Rapport client partageable', '—', '—', 'Oui'],
+    ['Export des synthèses et avis', '—', '—', 'Oui'],
+  ] as const
 
   return (
     <div>
@@ -192,6 +204,44 @@ export function PricingCards() {
       </div>
 
       <p className="mt-8 text-center text-xs" style={{ color: MUTED }}>Vos données sont conservées si vous repassez en Gratuit.</p>
+      <div className="mx-auto mt-8 max-w-5xl border-t pt-8" style={{ borderColor: LINE }}>
+        <button
+          type="button"
+          aria-expanded={comparisonOpen}
+          aria-controls="plan-comparison"
+          onClick={() => setComparisonOpen((value) => !value)}
+          className={`mx-auto flex min-h-11 items-center gap-2 border px-4 py-2.5 text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`}
+          style={{ borderColor: LINE, color: INK }}
+        >
+          {comparisonOpen ? 'Masquer le comparatif' : 'Comparer les offres'}
+          <ChevronDown size={17} aria-hidden="true" className="transition-transform" style={{ transform: comparisonOpen ? 'rotate(180deg)' : undefined }} />
+        </button>
+        {comparisonOpen && (
+          <div id="plan-comparison" className="mt-6 overflow-x-auto border bg-white" style={{ borderColor: LINE }}>
+            <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+              <caption className="sr-only">Comparatif des offres Gratuit, Pro et Agence</caption>
+              <thead>
+                <tr style={{ background: '#f7f7f7' }}>
+                  <th scope="col" className="w-[34%] px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Fonctionnalité</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold">Gratuit</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold" style={{ color: ACCENT_INK }}>Pro</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold">Agence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map(([label, freeValue, proValue, agencyValue]) => (
+                  <tr key={label} className="border-t align-top" style={{ borderColor: LINE }}>
+                    <th scope="row" className="px-4 py-3.5 font-medium" style={{ color: INK }}>{label}</th>
+                    <td className="px-4 py-3.5" style={{ color: MUTED }}>{freeValue}</td>
+                    <td className="px-4 py-3.5 font-medium" style={{ color: INK }}>{proValue}</td>
+                    <td className="px-4 py-3.5" style={{ color: MUTED }}>{agencyValue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

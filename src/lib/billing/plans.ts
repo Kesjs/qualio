@@ -9,12 +9,13 @@ export const BILLING_PLANS = {
     projects: 1,
     /** Avis conservés (non archivés) par projet. */
     feedbackPerProject: 50,
-    /** Délai minimal entre deux synthèses manuelles d'un même projet. */
-    synthesisCooldownHours: 14 * 24,
+    /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
+    synthesisQuota: { count: 2, windowDays: 30 },
+    synthesisCooldownHours: 0,
     /** Widget de collecte en continu. */
     widget: false,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis', '1 synthèse toutes les 14 jours', 'Import CSV et saisie manuelle', 'Vos avis conservés'],
+    features: ['1 projet', '50 avis', '2 synthèses par mois', 'Import CSV et saisie manuelle', 'Vos avis conservés'],
   },
   pro: {
     label: 'Pro',
@@ -24,6 +25,7 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_PRO_ANNUAL',
     projects: 5,
     feedbackPerProject: 2000,
+    synthesisQuota: null,
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
@@ -37,13 +39,15 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_AGENCY_ANNUAL',
     projects: 15,
     feedbackPerProject: 10000,
+    /** Deux synthèses manuelles par semaine et par projet. */
+    synthesisQuota: { count: 2, windowDays: 7 },
     synthesisCooldownHours: 0,
     widget: true,
     features: [
       '15 projets clients',
       '10 000 avis par projet',
       'Synthèse automatique chaque semaine',
-      'Synthèses manuelles à la demande',
+      '2 synthèses manuelles par semaine',
       'Widget sur 15 sites',
       'Rapport client partageable',
       'Export des synthèses et avis',

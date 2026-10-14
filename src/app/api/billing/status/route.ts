@@ -33,13 +33,13 @@ export async function GET(request: NextRequest) {
   const effectiveStatus = plan === 'free' && effectiveData?.status !== 'free' ? 'free' : effectiveData?.status ?? 'free'
 
   // Usage d'un projet (compteur « 32 / 50 avis », prochaine synthèse possible) quand siteId est fourni.
-  let site: { feedback: number; feedbackLimit: number; lastSynthesisAt: string | null; nextSynthesisAt: string | null } | null = null
+  let site: { feedback: number; feedbackLimit: number; lastSynthesisAt: string | null; nextSynthesisAt: string | null; synthesisUsed: number; synthesisLimit: number | null; synthesisWindowDays: number | null } | null = null
   const siteId = request.nextUrl.searchParams.get('siteId')
   if (siteId) {
     const { data: owned } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
     if (owned) {
       const [capacity, availability] = await Promise.all([getFeedbackCapacity(supabase, siteId, plan), getSynthesisAvailability(supabase, siteId, plan)])
-      site = { feedback: capacity.used, feedbackLimit: capacity.limit, lastSynthesisAt: availability.lastAt, nextSynthesisAt: availability.nextAvailableAt }
+      site = { feedback: capacity.used, feedbackLimit: capacity.limit, lastSynthesisAt: availability.lastAt, nextSynthesisAt: availability.nextAvailableAt, synthesisUsed: availability.used, synthesisLimit: availability.limit, synthesisWindowDays: availability.windowDays }
     }
   }
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     interval: data?.source === 'stripe' ? getIntervalFromPriceId(data.stripe_price_id) : null,
     currentPeriodEnd: data?.current_period_end ?? null,
     cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
-    limits: { projects: limits.projects, feedbackPerProject: limits.feedbackPerProject, synthesisCooldownHours: limits.synthesisCooldownHours, widget: limits.widget },
+    limits: { projects: limits.projects, feedbackPerProject: limits.feedbackPerProject, synthesisCooldownHours: limits.synthesisCooldownHours, synthesisQuota: limits.synthesisQuota ?? null, widget: limits.widget },
     usage: { projects: projectCount },
     writableSiteIds,
     site,

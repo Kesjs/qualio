@@ -71,7 +71,7 @@ export function LightLanding() {
       <ProblemSection />
 
       {/* 4. Comment ça marche : aperçu (version complète sur /produit) */}
-      <Section tone="soft">
+      <Section id="produit" tone="soft">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <h2 className={H2}>De vos avis à la prochaine action, en quatre étapes.</h2>
@@ -95,7 +95,7 @@ export function LightLanding() {
       </Section>
 
       {/* 5. Ce que vous voyez chaque semaine : aperçu (version complète sur /exemple) */}
-      <Section>
+      <Section id="exemple">
         <Reveal className="mx-auto max-w-3xl text-center">
           <h2 className={H2}>Ce que vous voyez chaque semaine.</h2>
           <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>

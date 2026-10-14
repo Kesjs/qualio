@@ -11,9 +11,9 @@ import { ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, SIGNUP } from './tokens'
 
 /** Les trois destinations de la barre (section 4.8) : comprendre, voir, acheter. */
 const NAV_LINKS = [
-  { href: '/produit', label: 'Produit' },
-  { href: '/exemple', label: 'Exemple' },
-  { href: '/pricing', label: 'Tarifs' },
+  { href: '/produit', anchor: '#produit', label: 'Produit' },
+  { href: '/exemple', anchor: '#exemple', label: 'Exemple' },
+  { href: '/pricing', anchor: '#tarifs', label: 'Tarifs' },
 ] as const
 
 function Navbar() {
@@ -52,12 +52,13 @@ function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-1 text-[14px] md:flex">
-          {NAV_LINKS.map(({ href, label }) => {
+          {NAV_LINKS.map(({ href, anchor, label }) => {
             const active = isActive(href)
+            const destination = pathname === '/' ? anchor : href
             return (
               <Link
                 key={href}
-                href={href}
+                href={destination}
                 aria-current={active ? 'page' : undefined}
                 className={`px-3.5 py-2 transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS} ${active ? 'bg-[#f4f4f5] font-semibold' : ''}`}
                 style={{ color: active ? INK : MUTED }}
@@ -88,7 +89,7 @@ function Navbar() {
 
       {open && (
         <div id="mobile-menu" className="border-t bg-white px-5 py-3 md:hidden" style={{ borderColor: LINE }}>
-          {[...NAV_LINKS, ...(isAuthenticated ? [{ href: '/dashboard', label: 'Mon espace' }] : [{ href: '/login', label: 'Se connecter' }])].map(({ href, label }) => (
+          {[...NAV_LINKS.map(({ href, anchor, label }) => ({ href: pathname === '/' ? anchor : href, label })), ...(isAuthenticated ? [{ href: '/dashboard', label: 'Mon espace' }] : [{ href: '/login', label: 'Se connecter' }])].map(({ href, label }) => (
             <Link
               key={href}
               href={href}

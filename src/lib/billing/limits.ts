@@ -22,8 +22,20 @@ export async function getLastManualSynthesisAt(client: any, siteId: string): Pro
 }
 
 export async function getSynthesisAvailability(client: any, siteId: string, plan: PlanId) {
+  const quota = BILLING_PLANS[plan].synthesisQuota
+  if (quota) {
+    const windowStart = new Date(Date.now() - quota.windowDays * 24 * 3600_000).toISOString()
+    const { data } = await client.from('feedback_syntheses').select('created_at').eq('site_id', siteId).is('week_key', null).gte('created_at', windowStart).order('created_at', { ascending: true })
+    const manualSyntheses = (data ?? []) as Array<{ created_at: string }>
+    const lastAt = manualSyntheses.at(-1)?.created_at ?? null
+    const oldestAt = manualSyntheses[0]?.created_at ?? null
+    const nextAvailableAt = manualSyntheses.length >= quota.count && oldestAt
+      ? new Date(Date.parse(oldestAt) + quota.windowDays * 24 * 3600_000).toISOString()
+      : null
+    return { lastAt, nextAvailableAt, used: manualSyntheses.length, limit: quota.count, windowDays: quota.windowDays }
+  }
   const lastAt = await getLastManualSynthesisAt(client, siteId)
-  return { lastAt, nextAvailableAt: nextSynthesisAt(plan, lastAt) }
+  return { lastAt, nextAvailableAt: nextSynthesisAt(plan, lastAt), used: 0, limit: null, windowDays: null }
 }
 
 export const READ_ONLY_MESSAGE = 'Ce projet est en lecture seule : votre plan Gratuit inclut 1 projet actif. Passez à Pro pour le réactiver.'
