@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowRight } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
 import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section } from './primitives'
@@ -23,9 +24,8 @@ export function LightLanding() {
         <div className="flex min-h-[min(calc(100svh-4.5rem-7rem),46rem)] flex-col items-center justify-center py-12">
           <div className="hs-rise-now w-full">
             <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium" style={{ borderColor: LINE, color: MUTED }}>
-              <span className="rounded-full px-2 py-0.5 font-semibold text-white" style={{ background: ACCENT_INK }}>New</span>
               <span>Une lecture sourcée de vos avis</span>
-              <span aria-hidden="true" style={{ color: ACCENT }}>→</span>
+              <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" style={{ color: ACCENT }} />
             </div>
             <h1 className="mx-auto text-[clamp(2.25rem,5.8vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.055em] [text-wrap:balance]">
               <span className="block lg:whitespace-nowrap">Transformez vos avis clients</span>

@@ -55,7 +55,7 @@ export function WeeklyScreen({ full = true }: { full?: boolean }) {
         </div>
 
         <div className={`border bg-white p-5 sm:p-7 ${R_CARD}`} style={{ borderColor: LINE }}>
-          <Mark n={1} className="pl-4 sm:pl-3">
+          <Mark n={1} className="pl-8">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Recommandation n°1</span>
               <span className={`px-2 py-0.5 text-[11px] font-semibold ${R_CHIP}`} style={{ background: ACCENT_SOFT, color: ACCENT_INK }}>Priorité haute</span>
@@ -66,20 +66,26 @@ export function WeeklyScreen({ full = true }: { full?: boolean }) {
             <p className="mt-2 text-[15px]" style={{ color: MUTED }}>14 avis sur 40 mentionnent la difficulté à retrouver leurs factures.</p>
           </Mark>
 
-          <Mark n={2} className="mt-5 pl-4 sm:pl-3">
-            <ul className="space-y-2 text-[14px]" style={{ color: INK }}>
-              <li>▸ « Je n’arrive jamais à retrouver ma facture » <span style={{ color: MUTED }}>— 12/10</span></li>
-              <li>▸ « Où sont les factures ? » <span style={{ color: MUTED }}>— 09/10</span></li>
-              <li>▸ « Facturation introuvable » <span style={{ color: MUTED }}>— 03/10</span></li>
-            </ul>
-            <p className="mt-3 text-[13px] font-medium underline underline-offset-4" style={{ color: INK }}>Voir les 14 avis</p>
+          <Mark n={2} className="mt-6 border-t pt-5 pl-8" >
+            <div className="rounded-lg border p-3 sm:p-4" style={{ borderColor: LINE, background: '#fafafa' }}>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Avis qui la prouvent</p>
+              <ul className="divide-y text-[14px]" style={{ color: INK }}>
+                <li className="py-2 first:pt-0">« Je n’arrive jamais à retrouver ma facture » <span style={{ color: MUTED }}>— 12/10</span></li>
+                <li className="py-2">« Où sont les factures ? » <span style={{ color: MUTED }}>— 09/10</span></li>
+                <li className="pb-0 pt-2">« Facturation introuvable » <span style={{ color: MUTED }}>— 03/10</span></li>
+              </ul>
+              <p className="mt-3 text-[13px] font-medium underline underline-offset-4" style={{ color: INK }}>Voir les 14 avis</p>
+            </div>
           </Mark>
 
-          <Mark n={3} className="mt-6 pl-4 sm:pl-3">
-            <div className="flex flex-wrap gap-2">
+          <Mark n={3} className="mt-6 border-t pt-5 pl-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px]" style={{ color: MUTED }}>Quelle suite pour cette recommandation ?</p>
+              <div className="flex flex-wrap gap-2">
               <span className={`px-5 py-2.5 text-[14px] font-semibold text-white ${R_BUTTON}`} style={{ background: ACCENT_INK }}>Accepter</span>
               <span className={`border px-5 py-2.5 text-[14px] font-semibold ${R_BUTTON}`} style={{ borderColor: LINE, color: INK }}>Plus tard</span>
               <span className={`px-5 py-2.5 text-[14px] font-medium ${R_BUTTON}`} style={{ color: MUTED }}>Écarter</span>
+              </div>
             </div>
           </Mark>
         </div>
