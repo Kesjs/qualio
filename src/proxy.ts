@@ -43,6 +43,21 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Fail closed: every dashboard URL must pass onboarding before any page can render.
+  // Keep /onboarding itself reachable so a user can create the first project.
+  if (pathname.startsWith('/dashboard')) {
+    const { count, error } = await supabase
+      .from('sites')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
+    if (error || !count) {
+      const onboardingUrl = request.nextUrl.clone()
+      onboardingUrl.pathname = '/onboarding'
+      return NextResponse.redirect(onboardingUrl)
+    }
+  }
+
   return response
 }
 
