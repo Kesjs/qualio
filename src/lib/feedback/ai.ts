@@ -83,6 +83,7 @@ Règles strictes :
 7. Retourne uniquement le JSON demandé.`
 
 const GEMINI_FALLBACK_MODEL = 'gemini-3.1-flash-lite'
+const GEMINI_SECONDARY_MODEL = 'gemini-2.5-flash-lite'
 
 function getProviderStatus(error: unknown): number | null {
   if (!error || typeof error !== 'object') return null
@@ -151,7 +152,9 @@ function buildUserPayload(feedback: FeedbackForSynthesis[]) {
 }
 
 async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configuredModel: string) {
-  const models = Array.from(new Set([configuredModel, GEMINI_FALLBACK_MODEL]))
+  // Gemini peut renvoyer 404 quand un alias n’est pas disponible pour une clé,
+  // ou 503 pendant un pic de demande. On essaie un modèle léger avant d’abandonner.
+  const models = Array.from(new Set([configuredModel, GEMINI_SECONDARY_MODEL, GEMINI_FALLBACK_MODEL]))
   const validIds = new Set(feedback.map((item) => item.id))
   let lastError: unknown = null
 
