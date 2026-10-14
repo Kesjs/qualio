@@ -8,7 +8,6 @@ import type { BillingStatus } from '@/components/dashboard/useBillingStatus'
 import { Banner, btnPrimary, btnSecondary, formatDayMonth, GeneratingPanel, surface } from './bricks'
 import { orderRecommendations } from './priority'
 import { CompactRecommendation, LargeRecommendation, type Decision } from './RecommendationCard'
-import { DemoRecommendations } from './DemoRecommendations'
 
 export interface WeeklyScreenProps {
   data: OverviewReady
@@ -65,8 +64,24 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
     </Banner>
   )
 
-  // A : compte neuf
-  if (data.state === 'empty') return <DemoRecommendations />
+  // Bandeau honnête quand la synthèse s'appuie sur des avis d'exemple
+  const exampleBanner = data.exampleCount > 0 && (
+    <Banner action={<Link href="/dashboard/collection" className={btnSecondary}>Ajouter mes avis</Link>}>
+      Ces recommandations s’appuient sur des avis d’exemple. Ajoutez vos avis pour obtenir les vôtres.
+    </Banner>
+  )
+
+  // A : projet sans avis, une seule action
+  if (data.state === 'empty') {
+    const unfinished = !data.project.onboarding_method
+    return (
+      <section className={`${surface} p-6 sm:p-8`}>
+        <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Ajoutez vos premiers avis</h2>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">Qualio a besoin d’au moins 3 avis pour vous proposer votre première recommandation.</p>
+        <Link href={unfinished ? '/onboarding' : '/dashboard/collection'} className={`${btnPrimary} mt-6`}>{unfinished ? 'Terminer la configuration' : 'Ajouter des avis'}</Link>
+      </section>
+    )
+  }
 
   // B : échauffement (1 ou 2 avis)
   if (data.state === 'warming') {
@@ -96,6 +111,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       <div className="space-y-5">
         {limitBanner}
         {errorBanner}
+        {exampleBanner}
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Vous avez {counts.total} avis. Lancez votre première synthèse.</h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Qualio lit vos avis, regroupe ce qui revient et cite les avis qui justifient chaque conseil.</p>
@@ -131,6 +147,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
     <div className="space-y-5">
       {limitBanner}
       {errorBanner}
+      {exampleBanner}
       {generating && <GeneratingPanel />}
       {!generating && counts.unsynthesized > 0 && (
         <Banner action={<button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>Actualiser</button>}>
