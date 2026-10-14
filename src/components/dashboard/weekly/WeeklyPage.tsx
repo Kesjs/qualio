@@ -1,14 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { usePeriod } from '@/lib/hooks/useDashboardPrefs'
 import { useActions, useDashboardMutations, useOverview } from '@/lib/hooks/useDashboard'
 import type { ActionItem } from '@/lib/feedback/types'
 import { ErrorState, PageHeader, Skeleton } from '@/components/dashboard/ui'
 import { useBillingStatus } from '@/components/dashboard/useBillingStatus'
-import { btnPrimary, surface } from './bricks'
 import { usePostponed } from './usePostponed'
 import { WeeklyScreen } from './WeeklyScreen'
 import { DetailsTab } from './DetailsTab'
@@ -21,6 +20,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
 
 /** Écran « Cette semaine » (doc 3.3) : une décision par écran. */
 export function WeeklyPage() {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [days, setDays] = usePeriod()
   const [tab, setTab] = useState<Tab>('recommendations')
@@ -31,22 +31,16 @@ export function WeeklyPage() {
   const { data: billing } = useBillingStatus(siteId)
   const { postponedIds, postpone } = usePostponed(siteId)
 
+  // Quelle que soit la façon de se connecter (mot de passe, code, Google, GitHub), un compte sans projet passe par l'onboarding.
+  const noProject = data?.state === 'no_project'
+  useEffect(() => { if (noProject) router.replace('/onboarding') }, [noProject, router])
+
   const header = <PageHeader title="Cette semaine" description="Les recommandations tirées de vos avis" />
 
   if (isLoading) return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /><Skeleton className="h-32" /></div>
   if (isError || !data) return <div className="space-y-6 pb-16">{header}<ErrorState message="Impossible de charger vos recommandations. Vérifiez votre connexion puis réessayez." onRetry={() => refetch()} /></div>
-  if (data.state === 'no_project') {
-    return (
-      <div className="space-y-6 pb-16">
-        {header}
-        <section className={`${surface} p-6 sm:p-8`}>
-          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Créez votre premier projet</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">Un projet regroupe les avis d’un produit ou d’un site.</p>
-          <Link href="/onboarding" className={`${btnPrimary} mt-6`}>Créer un projet</Link>
-        </section>
-      </div>
-    )
-  }
+  // Redirection vers l'onboarding en cours (cas rare : projet supprimé pendant la session) : aucun contenu intermédiaire.
+  if (data.state === 'no_project') return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /></div>
 
   const generate = () => {
     generateSynthesis.mutate(data.project.id, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['billing-status-header'] }) } })
