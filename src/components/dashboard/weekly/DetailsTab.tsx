@@ -24,22 +24,28 @@ export function DetailsTab({ data, actions, billing, days, onDays }: { data: Ove
   const themes = topThemes.filter((theme) => !theme.isUnclassified)
   const decided = actions.filter((action) => action.status !== 'open')
   const isFree = billing?.plan === 'free'
+  // Peu de données : le filtre de période et le graphique n'apprennent rien, on les masque.
+  const daysWithReviews = data.series.filter((point) => point.total > 0).length
+  const enoughForChart = daysWithReviews >= 3
+  const periodAddsInfo = counts.period !== counts.total
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end"><PeriodSelect days={days} onChange={onDays} /></div>
+      {enoughForChart && <div className="flex justify-end"><PeriodSelect days={days} onChange={onDays} /></div>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Counter label="Avis au total" value={counts.total} />
-        <Counter label={`Avis sur ${days} jours`} value={counts.period} />
-        <Counter label="Thème n°1" value={themes[0]?.name ?? '—'} />
+        <Counter label="Avis analysés" value={counts.total} />
+        {periodAddsInfo && <Counter label={`Avis sur ${days} jours`} value={counts.period} />}
+        <Counter label="Thème n°1" value={themes[0]?.name ?? 'Après la 1re synthèse'} />
         <Counter label="Recommandations en attente" value={counts.pendingActions} />
       </div>
 
-      <section className={`${surface} p-5`} aria-labelledby="volume-title">
-        <h3 id="volume-title" className="mb-4 text-sm font-semibold text-gray-950 dark:text-white">Volume d’avis</h3>
-        <VolumeChart series={data.series} days={days} />
-      </section>
+      {enoughForChart && (
+        <section className={`${surface} p-5`} aria-labelledby="volume-title">
+          <h3 id="volume-title" className="mb-4 text-sm font-semibold text-gray-950 dark:text-white">Volume d’avis</h3>
+          <VolumeChart series={data.series} days={days} />
+        </section>
+      )}
 
       <section aria-labelledby="themes-title">
         <h3 id="themes-title" className="mb-3 text-sm font-semibold text-gray-950 dark:text-white">Thèmes</h3>

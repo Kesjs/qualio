@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { ArrowRightOnRectangleIcon, ChevronUpDownIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { NAV_ITEMS, isNavActive } from '@/components/dashboard/nav'
+import { UpgradeButton, useFreePlanUpgrade } from '@/components/dashboard/PlanUsage'
 
 interface SidebarProps {
   isCollapsed?: boolean
@@ -37,6 +38,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   }, [])
 
   const initials = userName.slice(0, 2).toUpperCase()
+  const upgrade = useFreePlanUpgrade()
 
   return (
     <aside className={`relative flex h-full shrink-0 flex-col justify-between overflow-visible rounded-2xl border border-gray-200/80 bg-[#F8F9FA] transition-all dark:border-white/[0.08] dark:bg-[#111216] ${isCollapsed ? 'w-20' : 'w-72'}`}>
@@ -67,6 +69,16 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       </div>
 
       <div className="relative border-t border-gray-200/60 p-3 dark:border-white/[0.08]" ref={profileRef}>
+        {upgrade.show && !isCollapsed && (
+          <div className="mb-3 rounded-lg border border-gray-200/90 bg-white p-3 dark:border-white/[0.1] dark:bg-[#16181E]">
+            <p className="text-xs font-semibold text-gray-900 dark:text-white">Plan Gratuit</p>
+            <p className="mt-1 text-xs leading-5 text-gray-600 dark:text-zinc-400">{upgrade.hint}</p>
+            <UpgradeButton subtle={!upgrade.urgent} className="mt-3 w-full justify-center" />
+          </div>
+        )}
+        {upgrade.show && isCollapsed && (
+          <Link href="/pricing" title="Passer à Pro" aria-label="Passer à Pro" className={`mb-3 flex min-h-11 w-full items-center justify-center rounded-md border text-xs font-bold ${upgrade.urgent ? 'border-transparent bg-[#c2410c] text-white' : 'border-gray-200/90 bg-white text-gray-700 dark:border-white/[0.1] dark:bg-[#16181E] dark:text-zinc-300'}`}>Pro</Link>
+        )}
         {isProfileMenuOpen && (
           <div className="absolute bottom-full left-3 right-3 z-50 mb-2 rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-xl dark:border-white/[0.1] dark:bg-[#16181E]">
             <Link href="/dashboard/settings" onClick={() => setIsProfileMenuOpen(false)} className="flex min-h-11 items-center gap-2 rounded-md px-3 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-white/[0.06]"><Cog6ToothIcon className="h-4 w-4" /> Réglages</Link>

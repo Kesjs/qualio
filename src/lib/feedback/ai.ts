@@ -188,11 +188,11 @@ export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]
   let parsed: unknown = null
   let meta: FeedbackSynthesis['_meta'] | undefined
   if (provider === 'gemini') {
-    if (!process.env.GEMINI_API_KEY) return null
+    if (!process.env.GEMINI_API_KEY) { console.error('[Feedback synthesis] GEMINI_API_KEY manquante : ajoutez-la dans les variables d’environnement Vercel.'); return null }
     const model = process.env.GEMINI_FEEDBACK_MODEL || 'gemini-2.5-flash'
     return generateGeminiSynthesis(feedback, model)
   } else {
-    if (!process.env.OPENAI_API_KEY) return null
+    if (!process.env.OPENAI_API_KEY) { console.error('[Feedback synthesis] OPENAI_API_KEY manquante : ajoutez-la dans les variables d’environnement Vercel (ou choisissez FEEDBACK_AI_PROVIDER=gemini).'); return null }
     const model = process.env.OPENAI_FEEDBACK_MODEL || 'gpt-5.6-luna'
     const response = await new OpenAI({ apiKey: process.env.OPENAI_API_KEY }).chat.completions.create({
       model,

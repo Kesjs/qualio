@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, SIGNUP } from './tokens'
 
 /** Les trois destinations de la barre (section 4.8) : comprendre, voir, acheter. */
@@ -20,33 +19,12 @@ function Navbar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    let active = true
-
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      if (active) setIsAuthenticated(Boolean(user))
-    }).catch(() => {
-      if (active) setIsAuthenticated(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setIsAuthenticated(Boolean(session?.user))
-    })
-
-    return () => {
-      active = false
-      subscription.unsubscribe()
-    }
   }, [])
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
@@ -80,20 +58,17 @@ function Navbar() {
         </div>
 
         <div className="flex items-center gap-1">
-          {isAuthenticated ? (
-            <Link href="/dashboard" className={`px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: ACCENT_INK }}>
-              <span>Dashboard</span>
-            </Link>
-          ) : isAuthenticated === false ? (
-            <>
-              <Link href="/login" className={`hidden px-3.5 py-2 text-[14px] transition hover:bg-[#f4f4f5] sm:inline ${R_BUTTON} ${FOCUS}`} style={{ color: MUTED }}>
-                Connexion
-              </Link>
-              <Link href={SIGNUP} className={`px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: ACCENT_INK }}>
-                Démarrer
-              </Link>
-            </>
-          ) : null}
+          <Link href="/login" className={`hidden px-3.5 py-2 text-[14px] transition hover:bg-[#f4f4f5] sm:inline ${R_BUTTON} ${FOCUS}`} style={{ color: MUTED }}>
+            Se connecter
+          </Link>
+          <Link
+            href={SIGNUP}
+            className={`px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`}
+            style={{ background: ACCENT_INK }}
+          >
+            <span className="sm:hidden">Commencer</span>
+            <span className="hidden sm:inline">Commencer gratuitement</span>
+          </Link>
           <button
             type="button"
             className={`ml-1 flex h-10 w-10 items-center justify-center md:hidden ${R_BUTTON} ${FOCUS}`}
@@ -109,7 +84,7 @@ function Navbar() {
 
       {open && (
         <div id="mobile-menu" className="border-t bg-white px-5 py-3 md:hidden" style={{ borderColor: LINE }}>
-          {[...NAV_LINKS, ...(isAuthenticated ? [{ href: '/dashboard', label: 'Dashboard' }] : isAuthenticated === false ? [{ href: '/login', label: 'Connexion' }] : [])].map(({ href, label }) => (
+          {[...NAV_LINKS, { href: '/login', label: 'Se connecter' }].map(({ href, label }) => (
             <Link
               key={href}
               href={href}
