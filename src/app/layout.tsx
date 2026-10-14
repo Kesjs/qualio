@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   description:
     "Qualio rassemble vos avis clients, les structure par thèmes et vous aide à décider quoi améliorer.",
   keywords: ["avis clients", "feedback", "synthèse", "recommandations"],
+  icons: {
+    icon: [
+      { url: "/qualio-logo/export/favicon/favicon.ico", sizes: "any" },
+      { url: "/qualio-logo/export/favicon/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/qualio-logo/export/favicon/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/qualio-logo/export/app-icons/apple-touch-icon.png",
+  },
   openGraph: {
     title: "Qualio — Transformer les avis en décisions",
     description: "Collectez vos avis, comprenez les thèmes qui reviennent et décidez des prochaines actions.",
