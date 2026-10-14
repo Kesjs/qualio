@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import type { PaidPlan } from '@/lib/billing/plans'
 import { BILLING_PLANS } from '@/lib/billing/plans'
-import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP, SIGNUP } from '@/components/landing/tokens'
+import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP } from '@/components/landing/tokens'
 
 type Interval = 'month' | 'year'
 
@@ -55,28 +55,7 @@ export function PricingCards() {
       return
     }
 
-    setLoadingPlan(plan)
-    setError(null)
-    try {
-      const res = await fetch('/api/billing/switch-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      if (res.status === 401) {
-        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
-        return
-      }
-      if (res.ok) {
-        window.location.assign('/dashboard')
-        return
-      }
-      window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
-    } catch {
-      window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
-    } finally {
-      setLoadingPlan(null)
-    }
+    window.location.assign(`/contact?interest=${plan}&interval=${interval}`)
   }
 
   const free = BILLING_PLANS.free

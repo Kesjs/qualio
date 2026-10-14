@@ -199,7 +199,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
           <p className="text-sm text-gray-600 dark:text-zinc-400">{lastSynthesis ? `Synthèse du ${lastSynthesis}` : 'Aucune synthèse'}</p>
           {billing?.plan === 'agency' && (
             <span className="rounded bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white dark:bg-white dark:text-gray-900">
-              Synthèses illimitées à la demande
+              2 synthèses manuelles par semaine
             </span>
           )}
         </div>

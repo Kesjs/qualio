@@ -3,7 +3,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { LAUNCH_OFFERS } from '@/lib/billing/launch-offers'
-import { BILLING_PLANS } from '@/lib/billing/plans'
 import { MarketingCard, REGISTER_URL } from './ui'
 
 export function LaunchPricing() {
