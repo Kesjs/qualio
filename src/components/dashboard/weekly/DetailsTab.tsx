@@ -13,7 +13,7 @@ function Counter({ label, value }: { label: string; value: string | number }) {
   return (
     <div className={`${surface} p-4`}>
       <p className="text-xs text-gray-600 dark:text-zinc-400">{label}</p>
-      <p className="mt-1 truncate text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">{value}</p>
+      <p className="mt-1 line-clamp-2 break-words text-2xl font-semibold leading-tight tracking-tight text-gray-950 dark:text-white">{value}</p>
     </div>
   )
 }
@@ -33,7 +33,7 @@ export function DetailsTab({ data, actions, billing, days, onDays }: { data: Ove
     <div className="space-y-6">
       {enoughForChart && <div className="flex justify-end"><PeriodSelect days={days} onChange={onDays} /></div>}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={`grid grid-cols-2 gap-3 ${periodAddsInfo ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Counter label="Avis analysés" value={counts.total} />
         {periodAddsInfo && <Counter label={`Avis sur ${days} jours`} value={counts.period} />}
         <Counter label="Thème n°1" value={themes[0]?.name ?? 'Après la 1re synthèse'} />
