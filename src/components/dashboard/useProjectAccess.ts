@@ -14,7 +14,7 @@ export function useProjectAccess() {
   const { data: billing, isLoading: billingLoading, refetch } = useBillingStatus(activeSite?.id)
 
   const plan = billing?.plan ?? 'free'
-  const isFree = plan !== 'pro'
+  const isFree = plan === 'free'
   const site = billing?.site ?? null
   const readOnly = Boolean(activeSite && billing?.writableSiteIds && !billing.writableSiteIds.includes(activeSite.id))
   const limitReached = Boolean(site && site.feedbackLimit > 0 && site.feedback >= site.feedbackLimit)

@@ -141,7 +141,24 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   }
 
   const lastSynthesis = formatDayMonth(data.synthesis?.created_at ?? site?.lastSynthesisAt)
-  const refreshDisabled = generating || quotaBlocked
+  const exportClientReport = () => {
+    const title = data.synthesis?.title || 'Synthèse hebdomadaire'
+    const summary = data.synthesis?.summary || ''
+    const recs = [first, ...others].filter(Boolean).map((a, i) => `${i + 1}. ${a!.title} (${a!.feedback_ids?.length || 0} avis)`).join('\n')
+    const report = `# Rapport Feedback Client — ${data.project.name || data.project.url || 'Projet'}\n` +
+      `Date : ${new Date().toLocaleDateString('fr-FR')}\n\n` +
+      `## Synthèse des avis clients\n**${title}**\n\n${summary}\n\n` +
+      (recs ? `## Recommandations prioritaires\n${recs}\n\n` : '') +
+      `Total des avis analysés : ${counts.total}\n\n` +
+      `---\n*Rapport généré par Qualio Intelligence Feedback.*`
+    void navigator.clipboard.writeText(report).then(() => {
+      toast.success('Rapport client copié dans le presse-papier !')
+    }).catch(() => {
+      toast.error('Impossible de copier le rapport.')
+    })
+  }
+
+  const refreshDisabled = quotaBlocked || generating
 
   return (
     <div className="space-y-5">
@@ -178,8 +195,20 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
 
       {/* F : pied de page, date de la dernière synthèse et quota */}
       <footer className="flex flex-col gap-2 border-t border-gray-200/80 pt-4 dark:border-white/[0.08] sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-600 dark:text-zinc-400">{lastSynthesis ? `Synthèse du ${lastSynthesis}` : 'Aucune synthèse'}</p>
-        <div className="flex flex-col gap-2 sm:items-end">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-gray-600 dark:text-zinc-400">{lastSynthesis ? `Synthèse du ${lastSynthesis}` : 'Aucune synthèse'}</p>
+          {billing?.plan === 'agency' && (
+            <span className="rounded bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white dark:bg-white dark:text-gray-900">
+              Synthèses illimitées à la demande
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {billing?.plan === 'agency' && (
+            <button type="button" onClick={exportClientReport} className={btnSecondary}>
+              Exporter le rapport client
+            </button>
+          )}
           <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>Actualiser</button>
           {quotaMessage}
         </div>

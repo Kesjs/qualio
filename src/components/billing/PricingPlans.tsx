@@ -14,7 +14,7 @@ export function PricingPlans() {
           <Eyebrow>Tarifs</Eyebrow>
           <h1 className={`mt-5 ${H2}`}>Commencez gratuitement. Payez quand vos avis deviennent un rythme.</h1>
           <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>
-            Deux offres. Le plan Gratuit n’a pas de limite de durée et ne demande pas de carte bancaire.
+            Trois offres adaptées à votre rythme. Le plan Gratuit n’a pas de limite de durée et ne demande pas de carte bancaire.
           </p>
         </div>
         <PricingCards />

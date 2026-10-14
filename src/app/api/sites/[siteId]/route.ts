@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   const { data: site, error } = await supabase
     .from('sites')
-    .select('id, user_id, url, name, onboarding_method, sector, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, onboarding_completed_at, sector, created_at, updated_at')
     .eq('id', siteId)
     .eq('user_id', user.id)
     .maybeSingle()
@@ -33,8 +33,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { user } = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json().catch(() => null) as { name?: unknown; url?: unknown; onboarding_method?: unknown; sector?: unknown } | null
-  const updates: { name?: string | null; url?: string | null; onboarding_method?: 'widget' | 'import' | null; sector?: string | null } = {}
+  const body = await request.json().catch(() => null) as { name?: unknown; url?: unknown; onboarding_method?: unknown; onboarding_completed?: unknown; sector?: unknown } | null
+  const updates: { name?: string | null; url?: string | null; onboarding_method?: 'widget' | 'import' | null; onboarding_completed_at?: string | null; sector?: string | null } = {}
   if (body && 'name' in body) {
     if (typeof body.name !== 'string') return NextResponse.json({ error: 'Nom invalide.' }, { status: 400 })
     updates.name = body.name.trim().slice(0, 160) || null
@@ -58,6 +58,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (body.onboarding_method !== null && body.onboarding_method !== 'widget' && body.onboarding_method !== 'import') return NextResponse.json({ error: 'Méthode d’onboarding invalide.' }, { status: 400 })
     updates.onboarding_method = body.onboarding_method
   }
+  if (body && 'onboarding_completed' in body) {
+    if (typeof body.onboarding_completed !== 'boolean') return NextResponse.json({ error: 'État d’onboarding invalide.' }, { status: 400 })
+    updates.onboarding_completed_at = body.onboarding_completed ? new Date().toISOString() : null
+  }
   if (body && 'sector' in body) {
     if (body.sector === null || body.sector === '') updates.sector = null
     else if (typeof body.sector === 'string' && (PROJECT_SECTORS as readonly string[]).includes(body.sector)) updates.sector = body.sector
@@ -72,7 +76,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     .update(updates)
     .eq('id', siteId)
     .eq('user_id', user.id)
-    .select('id, user_id, url, name, onboarding_method, sector, created_at, updated_at')
+    .select('id, user_id, url, name, onboarding_method, onboarding_completed_at, sector, created_at, updated_at')
     .maybeSingle()
   if (error) return NextResponse.json({ error: 'Impossible de modifier le projet.' }, { status: 500 })
   if (!site) return NextResponse.json({ error: 'Projet introuvable.' }, { status: 404 })

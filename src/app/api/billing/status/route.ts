@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     plan,
-    label: data?.source === 'manual' && plan === 'pro' ? 'Pro (accès test)' : limits.label,
+    label: data?.source === 'manual' && plan !== 'free' ? `${limits.label} (accès test)` : limits.label,
     status: effectiveStatus,
     source: data?.source ?? null,
     interval: data?.source === 'stripe' ? getIntervalFromPriceId(data.stripe_price_id) : null,

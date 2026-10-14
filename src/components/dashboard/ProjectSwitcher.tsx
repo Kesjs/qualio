@@ -76,7 +76,11 @@ export function ProjectSwitcher({ compact = false }: { compact?: boolean }) {
                 <button type="button" disabled className="flex min-h-11 w-full cursor-not-allowed items-center gap-2 rounded-md text-left text-xs font-semibold text-gray-400 dark:text-zinc-500"><LockClosedIcon className="h-4 w-4" /> Nouveau projet</button>
                 <p className="mt-1 text-xs text-gray-600 dark:text-zinc-400">
                   {isFree ? `Le plan Gratuit est limité à ${billing?.limits.projects ?? 1} projet. ` : `Votre plan est limité à ${billing?.limits.projects} projets. `}
-                  {isFree && <Link href="/pricing" className="font-semibold text-[#c2410c] underline dark:text-orange-400">Passer à Pro</Link>}
+                  {isFree ? (
+                    <Link href="/pricing" className="font-semibold text-[#c2410c] underline dark:text-orange-400">Passer à Pro</Link>
+                  ) : billing?.plan === 'pro' ? (
+                    <Link href="/pricing" className="font-semibold text-[#c2410c] underline dark:text-orange-400">Passer à Agence</Link>
+                  ) : null}
                 </p>
               </div>
             ) : (

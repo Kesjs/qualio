@@ -11,10 +11,14 @@ const TEXT: Record<UsageLevel, string> = { ok: 'text-gray-600 dark:text-zinc-400
 const HINT: Record<UsageLevel, string | null> = { ok: null, warn: 'Vous approchez de la limite', full: 'Limite atteinte' }
 
 export function UpgradeButton({ className = '', subtle = false }: { className?: string; subtle?: boolean }) {
+  const { activeSite } = useActiveSite()
+  const { data } = useBillingStatus(activeSite?.id)
+  if (data?.plan === 'agency') return null
+  const label = data?.plan === 'pro' ? 'Passer à Agence' : 'Passer à Pro'
   const look = subtle
     ? 'border border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:text-gray-950 dark:border-white/[0.1] dark:bg-transparent dark:text-zinc-300 dark:hover:border-white/30 dark:hover:text-white'
     : 'bg-[#c2410c] text-white hover:opacity-90'
-  return <Link href="/pricing" className={`inline-flex min-h-9 items-center rounded-lg px-3 text-xs font-semibold ${look} ${className}`}>Passer à Pro</Link>
+  return <Link href="/pricing" className={`inline-flex min-h-9 items-center rounded-lg px-3 text-xs font-semibold ${look} ${className}`}>{label}</Link>
 }
 
 /** État du plan gratuit pour l'incitation à passer à Pro : visible seulement en Gratuit, « urgent » quand une limite est touchée. */

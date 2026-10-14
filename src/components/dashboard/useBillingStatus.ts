@@ -2,8 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+import type { PlanId } from '@/lib/billing/plans'
+
 export interface BillingStatus {
-  plan: 'free' | 'pro'
+  plan: PlanId
   label: string
   status: string
   source: 'stripe' | 'manual' | null

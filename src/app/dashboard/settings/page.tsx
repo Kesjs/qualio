@@ -191,7 +191,7 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
 
   if (access.isLoading || !billing) return <Skeleton className="h-64" />
 
-  const isPro = billing.plan === 'pro'
+  const isPaid = billing.plan !== 'free'
   const readOnlyCount = Math.max(0, billing.usage.projects - billing.writableSiteIds.length)
   const periodEnd = dateLabel(billing.currentPeriodEnd)
 
@@ -205,19 +205,19 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
 
   return (
     <div className="grid max-w-3xl gap-6">
-      {readOnlyCount > 0 && <Banner tone="warn" action={<Link href="/pricing" className={primaryButton}>Passer à Pro</Link>}>{readOnlyCount} projet{readOnlyCount > 1 ? 's sont' : ' est'} en lecture seule. Vos avis restent visibles et rien n’a été supprimé.</Banner>}
+      {readOnlyCount > 0 && <Banner tone="warn" action={<Link href="/pricing" className={primaryButton}>Voir les offres</Link>}>{readOnlyCount} projet{readOnlyCount > 1 ? 's sont' : ' est'} en lecture seule. Vos avis restent visibles et rien n’a été supprimé.</Banner>}
 
       <section className={`${surface} p-5 sm:p-6`} aria-labelledby="plan-title">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 id="plan-title" className="text-lg font-semibold text-gray-950 dark:text-white">Votre plan : {isPro ? billing.label : 'Gratuit'}</h2>
+            <h2 id="plan-title" className="text-lg font-semibold text-gray-950 dark:text-white">Votre plan : {billing.label}</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-              {isPro
-                ? `${billing.limits.feedbackPerProject.toLocaleString('fr-FR')} avis par projet · synthèse automatique chaque semaine${billing.interval ? ` · facturation ${billing.interval === 'year' ? 'annuelle' : 'mensuelle'}` : ''}`
+              {isPaid
+                ? `${billing.limits.projects} projets · ${billing.limits.feedbackPerProject.toLocaleString('fr-FR')} avis par projet · synthèse automatique chaque semaine${billing.interval ? ` · facturation ${billing.interval === 'year' ? 'annuelle' : 'mensuelle'}` : ''}`
                 : '1 projet · 50 avis · 1 synthèse toutes les 14 jours. Vos avis et vos données restent conservés.'}
             </p>
           </div>
-          <span className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-semibold ${isPro ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200'}`}>{isPro ? 'Actif' : 'Gratuit'}</span>
+          <span className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-semibold ${isPaid ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200'}`}>{isPaid ? 'Actif' : 'Gratuit'}</span>
         </div>
         {periodEnd && <p className="mt-4 text-sm text-gray-600 dark:text-zinc-300">{billing.cancelAtPeriodEnd ? 'Fin de l’abonnement' : 'Prochaine échéance'} : <strong className="text-gray-950 dark:text-white">{periodEnd}</strong></p>}
 
@@ -228,20 +228,20 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
       </section>
 
       <section className={`${surface} p-5 sm:p-6`} aria-labelledby="change-title">
-        <h2 id="change-title" className="text-base font-semibold text-gray-950 dark:text-white">{isPro ? 'Gérer votre abonnement' : 'Passer à Pro'}</h2>
-        {!isPro && (
+        <h2 id="change-title" className="text-base font-semibold text-gray-950 dark:text-white">{isPaid ? 'Gérer votre abonnement' : 'Changer d’offre'}</h2>
+        {!isPaid && (
           <>
-            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">5 projets, 2 000 avis par projet, widget sur votre site, synthèse automatique chaque semaine et email du lundi. Mensuel ou annuel (2 mois offerts).</p>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Pro (5 projets, 2 000 avis/projet) ou Agence (15 projets, 10 000 avis/projet, rapports partageables). Mensuel ou annuel (2 mois offerts).</p>
             <Link href="/pricing" className={`${primaryButton} mt-5`}>Voir les offres<ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden /></Link>
           </>
         )}
-        {isPro && billing.source === 'stripe' && (
+        {isPaid && billing.source === 'stripe' && (
           <>
             <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Changez de formule (mensuelle ou annuelle), mettez à jour votre moyen de paiement ou consultez vos factures sur le portail sécurisé.</p>
             <button type="button" onClick={() => void openPortal()} disabled={busy} className={`${secondaryButton} mt-5`}>{busy ? 'Ouverture…' : 'Gérer la facturation'}</button>
           </>
         )}
-        {isPro && billing.source !== 'stripe' && <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>}
+        {isPaid && billing.source !== 'stripe' && <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>}
       </section>
     </div>
   )

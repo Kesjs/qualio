@@ -539,6 +539,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string | null
+          onboarding_completed_at: string | null
           onboarding_method: string | null
           sector: string | null
           updated_at: string | null
@@ -549,6 +550,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string | null
+          onboarding_completed_at?: string | null
           onboarding_method?: string | null
           sector?: string | null
           updated_at?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string | null
+          onboarding_completed_at?: string | null
           onboarding_method?: string | null
           sector?: string | null
           updated_at?: string | null

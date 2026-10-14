@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { useInvalidateAll } from '@/lib/hooks/useDashboard'
-import { parseCsv, toCsv, detectColumn, COLUMN_HINTS } from '@/lib/csv'
+import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
 import { EmptyState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, selectClass, Tabs } from '@/components/dashboard/ui'
@@ -57,7 +58,7 @@ function notifyChange(message?: string) {
 function CsvPanel() {
   const access = useProjectAccess()
   const { invalidate } = useInvalidateAll()
-  const [rows, setRows] = useState<string[][]>([])
+  const [analysis, setAnalysis] = useState<CsvAnalysis | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [textCol, setTextCol] = useState(-1)
   const [authorCol, setAuthorCol] = useState(-1)
@@ -66,30 +67,40 @@ function CsvPanel() {
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
-  const headers = rows[0] ?? []
-  const dataRows = rows.slice(1)
+  const headers = analysis?.headers ?? []
+  const split = useMemo(() => splitByContent(analysis?.rows ?? [], textCol, dateCol), [analysis, textCol, dateCol])
+  const hasErrors = (analysis?.errors.length ?? 0) > 0
   const blocked = Boolean(access.blockReason) || !access.activeSite
   const remaining = access.site ? Math.max(0, access.site.feedbackLimit - access.site.feedback) : null
 
-  function loadFile(file: File | null | undefined) {
+  function reset() { setAnalysis(null); setFileName(null) }
+
+  function loadFiles(fileList: FileList | File[] | null | undefined) {
     setStatus(null); setProgress(0)
-    if (!file) return
-    void file.text().then((text) => {
-      const parsed = parseCsv(text)
-      if (parsed.length < 2) {
-        setRows([]); setFileName(null)
-        return setStatus({ tone: 'error', text: 'Le fichier doit contenir un en-tête et au moins une ligne.' })
+    const files = Array.from(fileList ?? [])
+    if (!files.length) return
+    if (files.some((file) => file.size > CSV_MAX_BYTES) || files.reduce((total, file) => total + file.size, 0) > CSV_MAX_BYTES) {
+      reset()
+      return setStatus({ tone: 'error', text: 'Les fichiers CSV ne doivent pas dépasser 5 Mo au total.' })
+    }
+    void Promise.all(files.map(async (file) => analyzeCsv(await file.text()))).then((analyses) => {
+      const first = analyses[0]
+      const firstHeaders = first.headers.map((header) => header.trim().toLowerCase())
+      const mismatched = analyses.slice(1).some((result) => result.headers.length !== first.headers.length || result.headers.some((header, index) => header.trim().toLowerCase() !== firstHeaders[index]))
+      const invalid = analyses.find((result) => result.errors.length > 0 || !result.headers.length || !result.rows.length)
+      if (invalid || mismatched) {
+        reset()
+        return setStatus({ tone: 'error', text: mismatched ? 'Pour fusionner plusieurs CSV, utilisez la même structure de colonnes dans chaque fichier.' : invalid?.errors[0]?.message ?? 'Les fichiers doivent contenir des avis valides.' })
       }
-      setRows(parsed); setFileName(file.name)
-      setTextCol(detectColumn(parsed[0], COLUMN_HINTS.text))
-      setAuthorCol(detectColumn(parsed[0], COLUMN_HINTS.author))
-      setDateCol(detectColumn(parsed[0], COLUMN_HINTS.date))
-    }).catch(() => setStatus({ tone: 'error', text: 'Le fichier n’a pas pu être lu.' }))
+      const merged = analyzeCsv(toCsv([first.headers, ...analyses.flatMap((result) => result.rows.map((row) => row.cells))]))
+      setAnalysis(merged); setFileName(files.length === 1 ? files[0].name : `${files.length} fichiers CSV`)
+      setTextCol(merged.detected.text); setAuthorCol(merged.detected.author); setDateCol(merged.detected.date)
+    }).catch(() => setStatus({ tone: 'error', text: 'Les fichiers n’ont pas pu être lus.' }))
   }
 
   function onDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault(); setDragging(false)
-    if (!blocked) loadFile(event.dataTransfer.files?.[0])
+    if (!blocked) loadFiles(event.dataTransfer.files)
   }
 
   function downloadSample() {
@@ -101,11 +112,9 @@ function CsvPanel() {
   }
 
   async function importRows() {
-    if (!access.activeSite || textCol < 0 || blocked) return
-    const body = dataRows
-      .map((cells) => [cells[textCol] ?? '', authorCol >= 0 ? cells[authorCol] ?? '' : '', dateCol >= 0 ? cells[dateCol] ?? '' : ''])
-      .filter(([content]) => content.trim() !== '')
-    const skippedEmpty = dataRows.length - body.length
+    if (!access.activeSite || textCol < 0 || blocked || hasErrors) return
+    const body = split.valid.map(({ cells }) => [cells[textCol] ?? '', authorCol >= 0 ? cells[authorCol] ?? '' : '', dateCol >= 0 ? cells[dateCol] ?? '' : ''])
+    const skippedEmpty = split.ignored
     if (!body.length) return setStatus({ tone: 'error', text: 'Aucune ligne avec un texte à importer dans la colonne choisie.' })
 
     setBusy(true); setStatus(null); setProgress(30)
@@ -120,14 +129,12 @@ function CsvPanel() {
         ? `${result.imported ?? 0} avis importés, ${result.overflow ?? 0} ignorés car la limite de votre plan est atteinte.`
         : `${result.imported ?? 0} avis importés${ignored ? `, ${ignored} ignoré(s)` : ''}.`
       setStatus({ tone: 'ok', text })
-      setRows([]); setFileName(null)
+      reset()
       await invalidate(); await access.refetchBilling(); notifyChange()
     } catch {
       setStatus({ tone: 'error', text: 'Import impossible pour le moment. Réessayez.' })
     } finally { setBusy(false) }
   }
-
-  const previewRows = dataRows.slice(0, 5)
 
   return (
     <section className={`${surface} space-y-5 p-5 sm:p-6`} aria-labelledby="csv-title">
@@ -148,47 +155,26 @@ function CsvPanel() {
         >
           <span className="font-semibold">Glissez votre fichier ici</span>
           <span className="mt-1 text-gray-500 dark:text-zinc-400">ou touchez pour le choisir</span>
-          <input type="file" accept=".csv,text/csv" disabled={blocked} onChange={(event) => loadFile(event.target.files?.[0])} className="sr-only" />
+          <input type="file" accept=".csv,text/csv" multiple disabled={blocked} onChange={(event) => loadFiles(event.target.files)} className="sr-only" />
         </label>
       )}
 
-      {fileName && (
+      {fileName && analysis && (
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p className="font-medium text-gray-900 dark:text-white"><span className="font-mono">{fileName}</span> · <span className="font-mono">{dataRows.length}</span> lignes</p>
-            <button type="button" onClick={() => { setRows([]); setFileName(null) }} className={`${secondaryButton} min-h-9 px-3 text-xs`}>Choisir un autre fichier</button>
+            <p className="min-w-0 font-medium text-gray-900 dark:text-white"><span className="break-all font-mono">{fileName}</span> · <span className="font-mono">{analysis.rows.length}</span> lignes</p>
+            <button type="button" onClick={reset} className={`${secondaryButton} min-h-9 px-3 text-xs`}>Choisir un autre fichier</button>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <ColumnSelect label="Texte de l’avis (obligatoire)" value={textCol} headers={headers} onChange={setTextCol} allowNone={false} />
-            <ColumnSelect label="Nom de l’auteur" value={authorCol} headers={headers} onChange={setAuthorCol} allowNone />
-            <ColumnSelect label="Date de l’avis" value={dateCol} headers={headers} onChange={setDateCol} allowNone noneLabel="Aujourd’hui" />
-          </div>
+          <ColumnPickers headers={headers} textCol={textCol} authorCol={authorCol} dateCol={dateCol} onText={setTextCol} onAuthor={setAuthorCol} onDate={setDateCol} />
 
-          {textCol >= 0 && previewRows.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold text-gray-700 dark:text-zinc-300">Aperçu des 5 premières lignes</p>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
-                <table className="min-w-full text-left text-xs">
-                  <tbody>
-                    {previewRows.map((cells, index) => (
-                      <tr key={index} className="border-b border-gray-100 last:border-0 dark:border-white/[0.06]">
-                        <td className="max-w-md px-3 py-2 text-gray-900 dark:text-zinc-100">{cells[textCol]}</td>
-                        {authorCol >= 0 && <td className="whitespace-nowrap px-3 py-2 text-gray-500 dark:text-zinc-400">{cells[authorCol]}</td>}
-                        {dateCol >= 0 && <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-500 dark:text-zinc-400">{cells[dateCol]}</td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <CsvPreview analysis={analysis} textCol={textCol} authorCol={authorCol} dateCol={dateCol} />
 
           {progress > 0 && busy && <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Import en cours"><div className="h-full rounded-full bg-gray-950 transition-[width] duration-300 motion-reduce:transition-none dark:bg-white" style={{ width: `${progress}%` }} /></div>}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button type="button" onClick={() => void importRows()} disabled={busy || blocked || textCol < 0} className={primaryButton}>
-              {busy ? 'Import en cours…' : `Importer ${dataRows.length} ligne${dataRows.length > 1 ? 's' : ''}`}
+            <button type="button" onClick={() => void importRows()} disabled={busy || blocked || textCol < 0 || hasErrors || split.valid.length === 0} className={primaryButton}>
+              {busy ? 'Import en cours…' : `Importer ${split.valid.length} avis`}
             </button>
             {remaining !== null && !blocked && <p className="font-mono text-xs text-gray-500 dark:text-zinc-400">{remaining} avis encore disponibles dans ce projet</p>}
           </div>
@@ -198,19 +184,6 @@ function CsvPanel() {
       {status && <p role={status.tone === 'error' ? 'alert' : 'status'} className={`rounded-lg border p-3 text-sm ${status.tone === 'error' ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200' : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100'}`}>{status.text}</p>}
       {status?.tone === 'ok' && <SynthesisHint />}
     </section>
-  )
-}
-
-function ColumnSelect({ label, value, headers, onChange, allowNone, noneLabel = 'Aucune' }: { label: string; value: number; headers: string[]; onChange: (index: number) => void; allowNone: boolean; noneLabel?: string }) {
-  return (
-    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
-      {label}
-      <select value={value} onChange={(event) => onChange(Number(event.target.value))} className={`${selectClass} mt-2 w-full`}>
-        {allowNone && <option value={-1}>{noneLabel}</option>}
-        {value < 0 && !allowNone && <option value={-1}>Choisir une colonne</option>}
-        {headers.map((header, index) => <option key={`${header}-${index}`} value={index}>{header || `Colonne ${index + 1}`}</option>)}
-      </select>
-    </label>
   )
 }
 
