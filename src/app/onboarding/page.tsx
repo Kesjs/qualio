@@ -10,6 +10,38 @@ type Site = { id: string; name: string | null; url: string | null; onboarding_me
 type OnboardingDraft = { projectName?: string; projectUrl?: string; choice?: Choice | null; widgetKey?: string | null; importedCount?: number; previewRows?: string[][]; csvFileName?: string | null }
 const ONBOARDING_DRAFT_KEY = 'qualio:onboarding-draft'
 
+function parseCsvLine(line: string, separator: ',' | ';'): string[] {
+  const cells: string[] = []
+  let cell = ''
+  let quoted = false
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index]
+    const nextCharacter = line[index + 1]
+    if (character === '"' && quoted && nextCharacter === '"') {
+      cell += '"'
+      index += 1
+    } else if (character === '"') {
+      quoted = !quoted
+    } else if (character === separator && !quoted) {
+      cells.push(cell.trim())
+      cell = ''
+    } else {
+      cell += character
+    }
+  }
+
+  cells.push(cell.trim())
+  return cells
+}
+
+function parseCsvPreview(text: string): string[][] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim())
+  if (!lines.length) return []
+  const separator = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ','
+  return lines.slice(0, 6).map((line) => parseCsvLine(line, separator))
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -81,7 +113,7 @@ export default function OnboardingPage() {
 
   async function prepareWidget() { const target = site ?? sites?.[0]; if (!target) return setStatus('Créez d’abord votre projet.'); setBusy(true); const response = await fetch('/api/feedback/sources', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: target.id }) }); const result = await response.json(); setBusy(false); if (!response.ok) return setStatus(result.error ?? 'Impossible de préparer le widget.'); setSite(target); setWidgetKey(result.public_key) }
   async function importCsv() { const target = site ?? sites?.[0]; if (!target || !csvFile) return setStatus('Sélectionnez un projet et un fichier CSV.'); setBusy(true); const text = await csvFile.text(); const response = await fetch('/api/feedback/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: target.id, csv: text }) }); const result = await response.json().catch(() => ({})); setBusy(false); if (!response.ok) return setStatus(result.error ?? 'Impossible d’importer ce fichier.'); setImportedCount(result.imported ?? 0); setStatus(`${result.imported} avis importés. ${result.skipped} ligne(s) ignorée(s).`); setSite(target) }
-  async function selectCsvFile(file: File | null) { setCsvFile(file); setCsvFileName(file?.name ?? null); setPreviewRows([]); if (!file) return; const text = (await file.text()).replace(/^\uFEFF/, ''); setPreviewRows(text.split(/\r?\n/).filter(Boolean).slice(0, 6).map((line) => line.split(/[,;]/).slice(0, 5))) }
+  async function selectCsvFile(file: File | null) { setCsvFile(file); setCsvFileName(file?.name ?? null); setPreviewRows([]); if (!file) return; const text = (await file.text()).replace(/^\uFEFF/, ''); setPreviewRows(parseCsvPreview(text)) }
   async function generateFirstSynthesis() { const target = site ?? sites?.[0]; if (!target) return; setBusy(true); const response = await fetch('/api/feedback/synthesis', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: target.id }) }); const result = await response.json().catch(() => ({})); setBusy(false); if (!response.ok) return setStatus(result.error ?? 'Impossible de générer la synthèse.'); finishOnboarding() }
   async function addExamples() { const target = site ?? sites?.[0]; if (!target) return; setBusy(true); const response = await fetch('/api/feedback/examples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: target.id }) }); const result = await response.json().catch(() => ({})); setBusy(false); if (!response.ok) return setStatus(result.error ?? 'Impossible de charger les exemples.'); setImportedCount(result.imported ?? 15); setStatus(`${result.imported ?? 15} avis d’exemple ajoutés. Ils seront clairement signalés et supprimables.`); setSite(target) }
   async function tryExamples() {
