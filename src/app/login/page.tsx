@@ -117,6 +117,7 @@ export default function LoginPage() {
     }
   }, [searchParams, t.errors.authCallbackFailed])
 
+  const planParam = searchParams.get('plan')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -158,11 +159,17 @@ export default function LoginPage() {
         toast.error(t.errors.tooManyAttempts)
         return
       }
+      const intendedPlan = planParam || 'free'
       const supabase = getSupabaseBrowserClient()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { weekly_digest_consent: weeklyDigestConsent } },
+        options: {
+          data: {
+            weekly_digest_consent: weeklyDigestConsent,
+            intended_plan: intendedPlan,
+          },
+        },
       })
       if (error) throw error
       if (data.user?.identities?.length === 0) {
@@ -257,11 +264,12 @@ export default function LoginPage() {
   async function handleGoogle() {
     setGoogleLoading(true)
     try {
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}${planSuffix}`,
         },
       })
       if (error) throw error
@@ -274,10 +282,11 @@ export default function LoginPage() {
   async function handleGithub() {
     setGithubLoading(true)
     try {
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}` },
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}${planSuffix}` },
       })
       if (error) throw error
     } catch (err: any) {
@@ -347,6 +356,33 @@ export default function LoginPage() {
             {/* ── REGISTER mode ── */}
             {mode === 'register' && (
               <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {planParam && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 4,
+                      background: planParam === 'agency' ? '#171717' : planParam === 'pro' ? '#fff7ed' : '#f4f4f5',
+                      border: `1px solid ${planParam === 'agency' ? '#333' : planParam === 'pro' ? '#fed7aa' : '#e4e4e7'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: 12,
+                      fontFamily: "'Manrope',sans-serif",
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: planParam === 'agency' ? '#f4f4f5' : planParam === 'pro' ? '#9a3412' : '#3f3f46', fontWeight: 600 }}>
+                        {planParam === 'agency' ? 'Plan Agence sélectionné (49 $/mois)' : planParam === 'pro' ? 'Plan Pro sélectionné (19 $/mois)' : 'Plan Gratuit sélectionné (0 $)'}
+                      </div>
+                      <div style={{ fontSize: 11, color: planParam === 'agency' ? '#a1a1aa' : planParam === 'pro' ? '#ea580c' : '#71717a' }}>
+                        {planParam === 'agency' ? '15 projets · 10 000 avis · Synthèses illimitées' : planParam === 'pro' ? '5 projets · 2 000 avis · Synthèse hebdo' : '1 projet · 50 avis'}
+                      </div>
+                    </div>
+                    <a href="/pricing" style={{ color: C.orange, textDecoration: 'underline', fontSize: 11, marginLeft: 8, whiteSpace: 'nowrap' }}>
+                      Changer
+                    </a>
+                  </div>
+                )}
                 <AuthInput
                   label={t.labels.email}
                   type="email"
