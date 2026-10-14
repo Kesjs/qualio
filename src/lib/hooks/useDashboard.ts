@@ -29,6 +29,8 @@ export function useOverview() {
     enabled: hydrated,
     staleTime: 30_000,
     placeholderData: (previous) => previous,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(400 * 2 ** attempt, 1600),
   })
 }
 

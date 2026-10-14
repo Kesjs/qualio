@@ -38,7 +38,10 @@ export function WeeklyPage() {
   const header = <PageHeader title="Cette semaine" description="Les recommandations tirées de vos avis" />
 
   if (isLoading) return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /><Skeleton className="h-32" /></div>
-  if (isError || !data) return <div className="space-y-6 pb-16">{header}<ErrorState message="Impossible de charger vos recommandations. Vérifiez votre connexion puis réessayez." onRetry={() => refetch()} /></div>
+  // Pendant un rafraîchissement, conserver les données déjà affichées : une erreur
+  // réseau transitoire ne doit pas remplacer l'accueil par un écran rouge.
+  if (isError && !data) return <div className="space-y-6 pb-16">{header}<ErrorState message="Impossible de charger vos recommandations. Vérifiez votre connexion puis réessayez." onRetry={() => refetch()} /></div>
+  if (!data) return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /><Skeleton className="h-32" /></div>
   // Redirection vers l'onboarding en cours (cas rare : projet supprimé pendant la session) : aucun contenu intermédiaire.
   if (data.state === 'no_project') return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /></div>
 
