@@ -84,7 +84,7 @@ export const FAQ = [
   },
   {
     q: 'Combien coûte le plan gratuit ?',
-    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis, une synthèse toutes les 14 jours, l’import CSV et la saisie manuelle.',
+    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis, 2 synthèses par mois, l’import CSV et la saisie manuelle.',
   },
   {
     // À confirmer avec les conditions du fournisseur d'IA choisi avant publication (doc 4.2), et à répéter dans la page Confidentialité.
