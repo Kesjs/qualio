@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { isValidCsvDate, splitByContent, type CsvAnalysis } from '@/lib/csv'
+import { Select } from '@/components/dashboard/Select'
 import { selectClass } from '@/components/dashboard/ui'
 import { surface } from '@/components/dashboard/weekly/bricks'
 
@@ -34,11 +35,7 @@ function ColumnSelect({ label, value, headers, onChange, allowNone, noneLabel = 
   return (
     <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
       {label}
-      <select value={value} onChange={(event) => onChange(Number(event.target.value))} className={`${selectClass} mt-2 w-full`}>
-        {allowNone && <option value={-1}>{noneLabel}</option>}
-        {value < 0 && !allowNone && <option value={-1}>Choisir une colonne</option>}
-        {headers.map((header, index) => <option key={`${header}-${index}`} value={index}>{header || `Colonne ${index + 1}`}</option>)}
-      </select>
+      <Select value={String(value)} onChange={(next) => onChange(Number(next))} label={label} className="mt-2" buttonClassName={`${selectClass} w-full`} options={[...(allowNone ? [{ value: '-1', label: noneLabel }] : []), ...(value < 0 && !allowNone ? [{ value: '-1', label: 'Choisir une colonne' }] : []), ...headers.map((header, index) => ({ value: String(index), label: header || `Colonne ${index + 1}` }))]} />
     </label>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { CheckIcon, ChevronRightIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { Select } from '@/components/dashboard/Select'
 
 type FeedbackItem = {
   id: string
@@ -112,10 +113,7 @@ export function FeedbackInbox({ siteId }: { siteId?: string }) {
             <label className="relative">
               <FunnelIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <span className="sr-only">Filtrer par source</span>
-              <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-8 text-xs text-gray-700 outline-none focus:border-[#ee6018] dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 sm:w-auto">
-                <option value="all">Toutes les sources</option>
-                {sources.map((source) => <option key={source} value={source}>{sourceLabels[source] ?? source}</option>)}
-              </select>
+              <Select label="Filtrer par source" value={sourceFilter} onChange={setSourceFilter} className="w-full sm:w-auto" buttonClassName="min-h-10 border-gray-200 bg-gray-50 py-2.5 pl-9 pr-8 text-xs dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200" options={[{ value: 'all', label: 'Toutes les sources' }, ...sources.map((source) => ({ value: source, label: sourceLabels[source] ?? source }))]} />
             </label>
           </div>
         </div>
