@@ -10,6 +10,7 @@ import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
 import { PROJECT_SECTORS } from '@/lib/projects/sectors'
 import { dangerButton, EmptyState, focusRing, inputClass, PageHeader, primaryButton, secondaryButton, selectClass, Skeleton, Tabs, UsageMeter } from '@/components/dashboard/ui'
+import { Select } from '@/components/dashboard/Select'
 
 type TabId = 'project' | 'notifications' | 'billing' | 'account'
 const TABS = [
@@ -107,10 +108,7 @@ function ProjectSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
         </label>
         <label className="mt-4 block text-sm font-semibold text-gray-800 dark:text-zinc-200">
           Secteur
-          <select value={sector} onChange={(event) => setSector(event.target.value)} className={`${selectClass} mt-2 h-11 w-full text-base`}>
-            <option value="">Non précisé</option>
-            {PROJECT_SECTORS.map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
+          <Select label="Secteur" value={sector} onChange={setSector} className="mt-2" buttonClassName={`${selectClass} h-11 w-full text-base`} options={[{ value: '', label: 'Non précisé' }, ...PROJECT_SECTORS.map((item) => ({ value: item, label: item }))]} />
         </label>
         <label className="mt-4 block text-sm font-semibold text-gray-800 dark:text-zinc-200">
           Adresse du site <span className="font-normal text-gray-500 dark:text-zinc-400">(lecture seule)</span>

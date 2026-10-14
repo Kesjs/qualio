@@ -9,6 +9,7 @@ import { formatDate, sourceLabels, timeAgo, type FeedbackItem } from '@/lib/feed
 import { useProjectAccess, READ_ONLY_TEXT } from '@/components/dashboard/useProjectAccess'
 import { Banner } from '@/components/dashboard/weekly/bricks'
 import { card, dangerButton, EmptyState, ErrorState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, SentimentBadge, SentimentDot, selectClass, SidePanel, Skeleton, UsageMeter } from '@/components/dashboard/ui'
+import { Select } from '@/components/dashboard/Select'
 
 type Filters = Omit<FeedbackFilters, 'q'>
 const EMPTY_FILTERS: Filters = { status: 'open', theme: '', sentiment: '', source: '', days: 0, page: 0 }
@@ -100,18 +101,10 @@ function FeedbackInner() {
             <button key={value} type="button" aria-pressed={filters.status === value} onClick={() => setFilter('status', value)} className={`rounded-md px-3 py-1.5 text-xs font-semibold transition duration-150 ${focusRing} ${filters.status === value ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white'}`}>{label}</button>
           ))}
         </div>
-        <select aria-label="Thème" value={filters.theme} onChange={(event) => setFilter('theme', event.target.value)} className={selectClass}>
-          <option value="">Tous les thèmes</option>{themeNames.map((name) => <option key={name} value={name}>{name}</option>)}<option value="__none__">Non classé</option>
-        </select>
-        <select aria-label="Sentiment" value={filters.sentiment} onChange={(event) => setFilter('sentiment', event.target.value)} className={selectClass}>
-          <option value="">Tous sentiments</option><option value="positive">Positif</option><option value="neutral">Neutre</option><option value="negative">Négatif</option>
-        </select>
-        <select aria-label="Source" value={filters.source} onChange={(event) => setFilter('source', event.target.value)} className={selectClass}>
-          <option value="">Toutes sources</option>{Object.entries(sourceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select aria-label="Période" value={filters.days} onChange={(event) => setFilter('days', Number(event.target.value))} className={selectClass}>
-          <option value={0}>Toute la période</option><option value={7}>7 jours</option><option value={30}>30 jours</option><option value={90}>90 jours</option>
-        </select>
+        <Select label="Thème" value={filters.theme} onChange={(value) => setFilter('theme', value)} buttonClassName={selectClass} options={[{ value: '', label: 'Tous les thèmes' }, ...themeNames.map((name) => ({ value: name, label: name })), { value: '__none__', label: 'Non classé' }]} />
+        <Select label="Sentiment" value={filters.sentiment} onChange={(value) => setFilter('sentiment', value)} buttonClassName={selectClass} options={[{ value: '', label: 'Tous sentiments' }, { value: 'positive', label: 'Positif' }, { value: 'neutral', label: 'Neutre' }, { value: 'negative', label: 'Négatif' }]} />
+        <Select label="Source" value={filters.source} onChange={(value) => setFilter('source', value)} buttonClassName={selectClass} options={[{ value: '', label: 'Toutes sources' }, ...Object.entries(sourceLabels).map(([value, label]) => ({ value, label }))]} />
+        <Select label="Période" value={String(filters.days)} onChange={(value) => setFilter('days', Number(value))} buttonClassName={selectClass} options={[{ value: '0', label: 'Toute la période' }, { value: '7', label: '7 jours' }, { value: '30', label: '30 jours' }, { value: '90', label: '90 jours' }]} />
         {access.site && <div className="ml-auto"><UsageMeter used={access.site.feedback} limit={access.site.feedbackLimit} label="avis" /></div>}
       </div>
 
@@ -215,9 +208,7 @@ function ThemeSelect({ item, themes }: { item: FeedbackItem; themes: string[] })
     updateFeedback.mutate({ ids: [item.id], theme: value || null })
   }
   return (
-    <select aria-label="Thème de l’avis" value={item.theme ?? ''} onChange={(event) => change(event.target.value)} className={`h-8 w-36 shrink-0 rounded-md border border-transparent bg-gray-100 px-2 text-xs font-medium text-gray-700 outline-none hover:border-gray-300 focus:border-gray-950 dark:bg-white/[0.06] dark:text-zinc-300 dark:focus:border-white ${focusRing}`}>
-      <option value="">Non classé</option>{options.map((name) => <option key={name} value={name}>{name}</option>)}<option value="__new__">+ Nouveau thème…</option>
-    </select>
+    <Select label="Thème de l’avis" value={item.theme ?? ''} onChange={change} compact className="w-36 shrink-0" buttonClassName={`border-transparent bg-gray-100 dark:bg-white/[0.06] ${focusRing}`} options={[{ value: '', label: 'Non classé' }, ...options.map((name) => ({ value: name, label: name })), { value: '__new__', label: '+ Nouveau thème…' }]} />
   )
 }
 

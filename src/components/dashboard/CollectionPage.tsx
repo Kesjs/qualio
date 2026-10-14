@@ -10,6 +10,7 @@ import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
 import { EmptyState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, selectClass, Tabs } from '@/components/dashboard/ui'
+import { Select } from '@/components/dashboard/Select'
 
 type Tab = 'csv' | 'manual' | 'widget'
 const TABS = [
@@ -345,9 +346,7 @@ function WidgetPanel() {
               <input type="color" value={settings.accentColor} onChange={(event) => setSettings((current) => ({ ...current, accentColor: event.target.value }))} aria-label="Couleur du widget" className="mt-2 h-11 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white p-1 dark:border-white/15" />
             </label>
             <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">Position
-              <select value={settings.position} onChange={(event) => setSettings((current) => ({ ...current, position: event.target.value }))} className={`${selectClass} mt-2 h-11 w-full`}>
-                <option value="right">Droite</option><option value="left">Gauche</option>
-              </select>
+              <Select label="Position" value={settings.position} onChange={(position) => setSettings((current) => ({ ...current, position }))} className="mt-2" buttonClassName={`${selectClass} h-11 w-full`} options={[{ value: 'right', label: 'Droite' }, { value: 'left', label: 'Gauche' }]} />
             </label>
             <button type="button" onClick={() => void action('settings')} disabled={busy || !settings.buttonLabel.trim()} className={`${secondaryButton} sm:col-span-3 sm:justify-self-start`}>Enregistrer l’apparence</button>
           </div>

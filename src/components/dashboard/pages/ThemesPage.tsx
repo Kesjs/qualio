@@ -8,6 +8,7 @@ import { usePeriod } from '@/lib/hooks/useDashboardPrefs'
 import { useActions, useDashboardMutations, useSyntheses, useThemes } from '@/lib/hooks/useDashboard'
 import type { ThemeStat } from '@/lib/feedback/types'
 import { card, Delta, EmptyState, ErrorState, PageHeader, PeriodSelect, PriorityBadge, secondaryButton, Skeleton, Sparkline } from '@/components/dashboard/ui'
+import { Select } from '@/components/dashboard/Select'
 
 export function ThemesPage() {
   const { activeSite: project } = useActiveSite()
@@ -129,10 +130,7 @@ function ThemePanel({ theme, siteId, allThemes, onClose }: { theme: ThemeStat; s
               <button type="button" disabled={isPending || !name.trim() || name.trim() === theme.name} onClick={() => apply(name.trim())} className={secondaryButton}>Renommer</button>
             </div>
             <div className="flex gap-2">
-              <select value={mergeInto} onChange={(event) => setMergeInto(event.target.value)} aria-label="Fusionner avec" className="h-9 min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-2 text-sm outline-none focus:border-[#ee6018] dark:border-white/[0.1] dark:bg-[#16181E] dark:text-white">
-                <option value="">Fusionner avec…</option>
-                {allThemes.filter((item) => !item.isUnclassified && item.name !== theme.name).map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
-              </select>
+              <Select label="Fusionner avec" value={mergeInto} onChange={setMergeInto} className="min-w-0 flex-1" buttonClassName="h-9 border-gray-200 bg-white px-2 dark:border-white/[0.1] dark:bg-[#16181E] dark:text-white" options={[{ value: '', label: 'Fusionner avec…' }, ...allThemes.filter((item) => !item.isUnclassified && item.name !== theme.name).map((item) => ({ value: item.name, label: item.name }))]} />
               <button type="button" disabled={isPending || !mergeInto} onClick={() => apply(mergeInto)} className={secondaryButton}>Fusionner</button>
             </div>
             <button type="button" disabled={isPending} onClick={() => apply('')} className="text-xs font-semibold text-rose-600 hover:underline dark:text-rose-400">Retirer ce thème (les avis redeviennent « Non classé »)</button>
