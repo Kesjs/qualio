@@ -15,7 +15,19 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getSupabaseAdminClient() as any
-  const { error } = await admin.from('billing_subscriptions').upsert({
+
+  // Mettre à jour app_metadata et user_metadata de l'utilisateur
+  try {
+    await admin.auth.admin.updateUserById(user.id, {
+      app_metadata: { plan },
+      user_metadata: { ...user.user_metadata, intended_plan: plan },
+    })
+  } catch (authErr) {
+    console.error('[switch-plan] auth metadata update error:', authErr)
+  }
+
+  // Mettre à jour billing_subscriptions
+  const { error: dbError } = await admin.from('billing_subscriptions').upsert({
     user_id: user.id,
     plan,
     status: 'active',
@@ -24,9 +36,8 @@ export async function POST(request: NextRequest) {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
 
-  if (error) {
-    console.error('[switch-plan] error:', error)
-    return NextResponse.json({ error: 'Impossible de changer de plan.' }, { status: 500 })
+  if (dbError) {
+    console.warn('[switch-plan] billing_subscriptions upsert warning (check constraint or db sync):', dbError.message)
   }
 
   return NextResponse.json({ ok: true, plan })

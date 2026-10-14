@@ -14,6 +14,14 @@ export async function POST() {
     const intendedPlan = user.user_metadata?.intended_plan
     if (isPaidPlan(intendedPlan)) {
       const admin = getSupabaseAdminClient() as any
+      try {
+        await admin.auth.admin.updateUserById(user.id, {
+          app_metadata: { plan: intendedPlan },
+        })
+      } catch (authErr) {
+        console.error('[sync-preferences] auth metadata update error:', authErr)
+      }
+
       const { data: existing } = await admin
         .from('billing_subscriptions')
         .select('id, plan, status')
@@ -21,7 +29,7 @@ export async function POST() {
         .maybeSingle()
 
       if (!existing) {
-        await admin.from('billing_subscriptions').insert({
+        const { error: insErr } = await admin.from('billing_subscriptions').insert({
           user_id: user.id,
           plan: intendedPlan,
           status: 'active',
@@ -29,6 +37,9 @@ export async function POST() {
           stripe_customer_id: `cus_intent_${user.id.slice(0, 8)}`,
           updated_at: new Date().toISOString(),
         })
+        if (insErr) {
+          console.warn('[sync-preferences] billing_subscriptions insert warning:', insErr.message)
+        }
       }
     }
 

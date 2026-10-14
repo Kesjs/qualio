@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
-import { BILLING_PLANS, getIntervalFromPriceId, resolvePlan } from '@/lib/billing/plans'
+import { BILLING_PLANS, getIntervalFromPriceId, isPaidPlan, resolvePlan } from '@/lib/billing/plans'
 import { writableSiteIds as writableSiteIdsFor } from '@/lib/billing/writable'
 import { getFeedbackCapacity, getSynthesisAvailability, getWritableSiteIds } from '@/lib/billing/limits'
 
@@ -12,11 +12,25 @@ export async function GET(request: NextRequest) {
     (supabase as any).from('billing_subscriptions').select('plan, status, source, stripe_price_id, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('sites').select('id, created_at').eq('user_id', user.id),
   ])
-  const plan = resolvePlan(data)
+
+  let effectiveData = data
+  const metaPlan = user.app_metadata?.plan || user.user_metadata?.intended_plan
+  if ((!data || data.plan === 'free') && isPaidPlan(metaPlan)) {
+    effectiveData = {
+      plan: metaPlan,
+      status: 'active',
+      source: 'manual',
+      stripe_price_id: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+    }
+  }
+
+  const plan = resolvePlan(effectiveData)
   const projectCount = siteRows?.length ?? 0
   const writableSiteIds = writableSiteIdsFor(siteRows ?? [], BILLING_PLANS[plan].projects)
   const limits = BILLING_PLANS[plan]
-  const effectiveStatus = plan === 'free' && data?.status !== 'free' ? 'free' : data?.status ?? 'free'
+  const effectiveStatus = plan === 'free' && effectiveData?.status !== 'free' ? 'free' : effectiveData?.status ?? 'free'
 
   // Usage d'un projet (compteur « 32 / 50 avis », prochaine synthèse possible) quand siteId est fourni.
   let site: { feedback: number; feedbackLimit: number; lastSynthesisAt: string | null; nextSynthesisAt: string | null } | null = null

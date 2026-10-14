@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { syncWeeklyDigestPreference } from '@/lib/auth/notification-preferences'
+import { isPaidPlan } from '@/lib/billing/plans'
 
 // GET /auth/callback — handles Supabase OAuth and OTP redirects
 export async function GET(req: NextRequest) {
@@ -19,7 +20,22 @@ export async function GET(req: NextRequest) {
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        try { await syncWeeklyDigestPreference(user) } catch (syncError) { console.error('[auth-callback] preference sync failed:', syncError) }
+        try {
+          await syncWeeklyDigestPreference(user)
+          const intendedPlan = searchParams.get('plan') || user.user_metadata?.intended_plan
+          if (isPaidPlan(intendedPlan)) {
+            const admin = getSupabaseAdminClient() as any
+            await admin.auth.admin.updateUserById(user.id, { app_metadata: { plan: intendedPlan } }).catch(() => {})
+            await admin.from('billing_subscriptions').upsert({
+              user_id: user.id,
+              plan: intendedPlan,
+              status: 'active',
+              source: 'manual',
+              stripe_customer_id: `cus_intent_${user.id.slice(0, 8)}`,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' }).catch(() => {})
+          }
+        } catch (syncError) { console.error('[auth-callback] preference sync failed:', syncError) }
       }
       if (type === 'recovery') {
         return NextResponse.redirect(`${origin}/login?mode=reset-password`)

@@ -34,7 +34,7 @@ export function PricingCards() {
       })
       const result = await response.json().catch(() => ({}))
       if (response.status === 401) {
-        window.location.assign(`/login?mode=register&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}`)}`)
+        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}`)}`)
         return
       }
       if (!response.ok || !result.url) {
@@ -44,6 +44,36 @@ export function PricingCards() {
       window.location.assign(result.url)
     } catch {
       setError('Impossible d’ouvrir le paiement. Réessayez dans un instant.')
+    } finally {
+      setLoadingPlan(null)
+    }
+  }
+
+  async function choosePlan(plan: PaidPlan) {
+    if (BILLING_ENABLED) {
+      await checkoutPlan(plan)
+      return
+    }
+
+    setLoadingPlan(plan)
+    setError(null)
+    try {
+      const res = await fetch('/api/billing/switch-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      if (res.status === 401) {
+        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
+        return
+      }
+      if (res.ok) {
+        window.location.assign('/dashboard')
+        return
+      }
+      window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
+    } catch {
+      window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent('/dashboard')}`)
     } finally {
       setLoadingPlan(null)
     }
@@ -93,7 +123,7 @@ export function PricingCards() {
             ))}
           </ul>
           <div className="flex-1" />
-          <Link href={SIGNUP} className={`mt-8 block border py-3 text-center text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`} style={{ borderColor: LINE, color: INK }}>
+          <Link href="/login?mode=register&plan=free" className={`mt-8 block border py-3 text-center text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`} style={{ borderColor: LINE, color: INK }}>
             Commencer gratuitement
           </Link>
         </article>
@@ -118,21 +148,15 @@ export function PricingCards() {
             ))}
           </ul>
           <div className="flex-1" />
-          {BILLING_ENABLED ? (
-            <button
-              type="button"
-              onClick={() => checkoutPlan('pro')}
-              disabled={loadingPlan !== null}
-              className={`mt-8 block w-full py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
-              style={{ background: ACCENT_INK }}
-            >
-              {loadingPlan === 'pro' ? 'Ouverture du paiement…' : 'Commencer avec Pro'}
-            </button>
-          ) : (
-            <Link href="/contact" className={`mt-8 block py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: ACCENT_INK }}>
-              Me prévenir
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => choosePlan('pro')}
+            disabled={loadingPlan !== null}
+            className={`mt-8 block w-full py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
+            style={{ background: ACCENT_INK }}
+          >
+            {loadingPlan === 'pro' ? 'Chargement…' : 'Commencer avec Pro'}
+          </button>
         </article>
 
         {/* Agence */}
@@ -155,21 +179,15 @@ export function PricingCards() {
             ))}
           </ul>
           <div className="flex-1" />
-          {BILLING_ENABLED ? (
-            <button
-              type="button"
-              onClick={() => checkoutPlan('agency')}
-              disabled={loadingPlan !== null}
-              className={`mt-8 block w-full py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
-              style={{ background: INK }}
-            >
-              {loadingPlan === 'agency' ? 'Ouverture du paiement…' : 'Commencer avec Agence'}
-            </button>
-          ) : (
-            <Link href="/contact?plan=agency" className={`mt-8 block py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: INK }}>
-              Me prévenir
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => choosePlan('agency')}
+            disabled={loadingPlan !== null}
+            className={`mt-8 block w-full py-3 text-center text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
+            style={{ background: INK }}
+          >
+            {loadingPlan === 'agency' ? 'Chargement…' : 'Commencer avec Agence'}
+          </button>
         </article>
       </div>
 
