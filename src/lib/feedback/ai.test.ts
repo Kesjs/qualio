@@ -57,7 +57,7 @@ describe('feedback synthesis validation', () => {
 
     expect(generateContent).toHaveBeenCalledTimes(2)
     expect(generateContent.mock.calls[0][0].model).toBe('gemini-3.8-flash')
-    expect(generateContent.mock.calls[1][0].model).toBe('gemini-3.1-flash-lite')
-    expect(result?._meta?.model).toBe('gemini-3.1-flash-lite')
+    expect(generateContent.mock.calls[1][0].model).toBe('gemini-2.5-flash-lite')
+    expect(result?._meta?.model).toBe('gemini-2.5-flash-lite')
   })
 })
