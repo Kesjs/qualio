@@ -13,7 +13,7 @@ export const LEGAL = {
   registration: '',     // Numéro d'immatriculation (RCCM, IFU…) s'il existe
   address: '',          // Adresse postale
   director: '',         // Directeur de la publication
-  email: 'hello@qualio.dev',
+  email: 'contact@tryqualio.pro',
   host: 'Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis',
   governingLaw: '',     // Droit applicable et juridiction, ex. « droit béninois, tribunaux de Cotonou »
   updatedAt: '13 octobre 2026',
