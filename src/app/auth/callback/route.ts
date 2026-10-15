@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { syncWeeklyDigestPreference } from '@/lib/auth/notification-preferences'
 import { isAllowedAdmin } from '@/lib/admin/auth'
+import { getSupabaseAdminClient } from '@/lib/supabase/server'
+import { sendWelcomeEmail } from '@/lib/email/billing-emails'
 
 // GET /auth/callback — handles Supabase OAuth and OTP redirects
 export async function GET(req: NextRequest) {
@@ -24,6 +26,13 @@ export async function GET(req: NextRequest) {
         try {
           await syncWeeklyDigestPreference(user)
         } catch (syncError) { console.error('[auth-callback] preference sync failed:', syncError) }
+        if (new URL(req.url).hostname !== 'admin.tryqualio.pro' && type !== 'recovery' && user.email) {
+          try {
+            const admin = getSupabaseAdminClient() as any
+            const { count } = await admin.from('feedback').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+            await sendWelcomeEmail(admin, user.id, user.email, count ?? 0)
+          } catch (welcomeError) { console.error('[auth-callback] welcome email failed:', welcomeError) }
+        }
       }
       if (new URL(req.url).hostname === 'admin.tryqualio.pro' && !isAllowedAdmin(user)) {
         return NextResponse.redirect(`${origin}/login?error=not_admin&redirectTo=/admin`)

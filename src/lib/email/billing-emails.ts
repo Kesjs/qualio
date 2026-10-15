@@ -1,9 +1,14 @@
 import type { PlanId } from '@/lib/billing/plans'
 import { appOrigin, resolveRecipient, sendQualioEmail } from '@/lib/email/send'
-import { paymentFailedEmail, subscriptionEndedEmail, upgradeConfirmedEmail, limitReachedEmail } from '@/lib/email/templates'
+import { paymentFailedEmail, subscriptionEndedEmail, upgradeConfirmedEmail, limitReachedEmail, welcomeEmail } from '@/lib/email/templates'
 
 const LABELS: Record<string, string> = { free: 'Gratuit', pro: 'Pro', agency: 'Agence' }
 const planLabel = (plan: PlanId) => LABELS[plan] ?? plan
+
+export async function sendWelcomeEmail(admin: any, userId: string, recipient: string, feedbackCount: number) {
+  const email = welcomeEmail({ origin: appOrigin('https://tryqualio.pro'), feedbackCount })
+  return sendQualioEmail(admin, { userId, type: 'welcome', eventKey: 'welcome:v1', recipient, ...email })
+}
 
 export async function sendUpgradeConfirmed(admin: any, userId: string, plan: PlanId, unlocked: number, eventKey: string) {
   const recipient = await resolveRecipient(admin, userId)
