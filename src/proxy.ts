@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
 
   if (hostname === 'admin.tryqualio.pro' && !pathname.startsWith('/admin') && !pathname.startsWith('/auth')) {
     const adminUrl = request.nextUrl.clone()
-    adminUrl.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`
+    adminUrl.pathname = pathname === '/' || pathname === '/dashboard' ? '/admin' : `/admin${pathname}`
     return NextResponse.rewrite(adminUrl)
   }
 
