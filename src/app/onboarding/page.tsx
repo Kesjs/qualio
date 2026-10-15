@@ -364,7 +364,7 @@ Consignes :
                   : <LockedChoiceCard title="Installer le widget" body="Disponible avec les plans Pro et Agence pour recevoir les prochains avis directement dans Qualio." />}
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">Pas d’avis sous la main ? <button type="button" onClick={() => void tryExamples(activeSite)} disabled={busy} className={`font-semibold text-gray-950 underline underline-offset-2 disabled:opacity-50 dark:text-white ${focusRing}`}>Essayer avec des avis d’exemple</button></p>
-              {!billingQuery.isLoading && <p className="text-sm text-gray-600 dark:text-zinc-400">Plan actif : <strong className="text-gray-950 dark:text-white">{billingQuery.data?.label ?? 'Gratuit'}</strong>.</p>}
+              {!billingQuery.isLoading && <p className="max-w-full break-words text-sm text-gray-600 dark:text-zinc-400">Plan actif : <strong className="text-gray-950 dark:text-white">{billingQuery.data?.label ?? 'Gratuit'}</strong>.</p>}
             </>
           )}
 
