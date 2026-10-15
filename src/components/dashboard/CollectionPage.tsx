@@ -274,7 +274,7 @@ function WidgetPanel() {
     queryKey: ['feedback-sources', site?.id],
     queryFn: async () => {
       const response = await fetch(`/api/feedback/sources?siteId=${encodeURIComponent(site!.id)}`)
-      if (!response.ok) throw new Error('Impossible de charger le widget.')
+      if (!response.ok) throw new Error(response.status === 401 ? 'Session expirée. Rechargez la page ou reconnectez-vous pour gérer le widget.' : 'Impossible de charger le widget. Réessayez dans un instant.')
       return response.json() as Promise<WidgetSource[]>
     },
     enabled: Boolean(site?.id),

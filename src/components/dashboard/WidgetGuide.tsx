@@ -6,10 +6,10 @@ import { Select } from './Select'
 import { primaryButton, secondaryButton } from './ui'
 
 const guides: Record<string, string> = {
-  html: 'Collez le script une seule fois avant </body> sur les pages où recevoir des avis. Publiez les changements.',
-  wordpress: 'Utilisez l’outil d’insertion de scripts de votre thème ou une extension dédiée aux scripts d’en-tête et de pied de page. Placez le script dans le pied de page global. Les blocs HTML peuvent filtrer les scripts selon vos permissions.',
-  webflow: 'Dans les réglages du site, ouvrez Custom Code et collez le script dans Footer Code. Publiez ensuite le site sur votre domaine. La disponibilité du code personnalisé dépend de votre offre Webflow.',
-  shopify: 'Dans Boutique en ligne → Thèmes → Modifier le code, ouvrez layout/theme.liquid et collez le script avant </body>. Enregistrez et vérifiez le thème publié. Cela concerne la boutique, pas les pages de paiement.',
+  html: '1. Ouvrez le code global du site. 2. Collez le script juste avant </body>. 3. Enregistrez et publiez. Le script doit être ajouté une seule fois.',
+  wordpress: '1. Ouvrez l’outil de scripts du thème ou une extension dédiée. 2. Ajoutez le script dans le pied de page global. 3. Enregistrez, videz le cache et publiez. Un bloc HTML peut filtrer les scripts.',
+  webflow: '1. Ouvrez Project settings → Custom Code. 2. Collez le script dans Footer Code. 3. Enregistrez et publiez le site. Custom Code nécessite une offre compatible.',
+  shopify: '1. Ouvrez Boutique en ligne → Thèmes → Modifier le code. 2. Ouvrez layout/theme.liquid. 3. Collez le script avant </body>, enregistrez et vérifiez le thème publié. Cela ne concerne pas le checkout.',
 }
 
 export function WidgetGuide({ script, accentColor, buttonLabel, position, projectName, onMessage }: { script: string; accentColor: string; buttonLabel: string; position: string; projectName: string; onMessage: (message: string) => void }) {
