@@ -3,10 +3,23 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 // Routes protégées — redirige vers /login si non authentifié
-const PROTECTED_PREFIXES = ['/dashboard', '/onboarding']
+const PROTECTED_PREFIXES = ['/dashboard', '/onboarding', '/admin']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  const hostname = request.headers.get('host')?.split(':')[0].toLowerCase()
+  if (hostname === 'admin.tryqualio.pro' && pathname === '/login') {
+    const adminLoginUrl = request.nextUrl.clone()
+    adminLoginUrl.pathname = '/admin-auth'
+    return NextResponse.rewrite(adminLoginUrl)
+  }
+
+  if (hostname === 'admin.tryqualio.pro' && !pathname.startsWith('/admin') && !pathname.startsWith('/auth')) {
+    const adminUrl = request.nextUrl.clone()
+    adminUrl.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`
+    return NextResponse.rewrite(adminUrl)
+  }
 
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   if (!isProtected) return NextResponse.next()
@@ -51,7 +64,7 @@ export async function proxy(request: NextRequest) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
 
-    if (error || !count) {
+    if ((error || !count) && !pathname.startsWith('/dashboard/feedback-produit')) {
       const onboardingUrl = request.nextUrl.clone()
       onboardingUrl.pathname = '/onboarding'
       return NextResponse.redirect(onboardingUrl)
