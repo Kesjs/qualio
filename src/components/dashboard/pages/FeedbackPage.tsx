@@ -1,5 +1,7 @@
 'use client'
 
+import { confirmAction, promptText } from '@/components/dashboard/dialogs'
+
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -57,9 +59,9 @@ function FeedbackInner() {
     if (status === 'archived') setOpenId(null)
   }, [updateFeedback])
 
-  const remove = useCallback((ids: string[]) => {
+  const remove = useCallback(async (ids: string[]) => {
     const message = ids.length > 1 ? `Supprimer définitivement ${ids.length} avis ? Cette action est irréversible.` : 'Supprimer définitivement cet avis ? Cette action est irréversible.'
-    if (!window.confirm(message)) return
+    if (!(await confirmAction(message))) return
     deleteFeedback.mutate(ids, { onSuccess: () => { setSelectedIds(new Set()); setOpenId(null) } })
   }, [deleteFeedback])
 
@@ -199,9 +201,9 @@ function FeedbackInner() {
 function ThemeSelect({ item, themes }: { item: FeedbackItem; themes: string[] }) {
   const { updateFeedback } = useDashboardMutations()
   const options = item.theme && !themes.includes(item.theme) ? [item.theme, ...themes] : themes
-  function change(value: string) {
+  async function change(value: string) {
     if (value === '__new__') {
-      const name = window.prompt('Nom du nouveau thème')?.trim()
+      const name = (await promptText('Nom du nouveau thème'))?.trim()
       if (name) updateFeedback.mutate({ ids: [item.id], theme: name })
       return
     }

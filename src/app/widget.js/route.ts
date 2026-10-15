@@ -128,7 +128,7 @@ export function GET(request: NextRequest) {
       shadow.querySelector('.qualio-email-label').textContent = copy.email;
       submitLabel.textContent = copy.submit;
       shadow.querySelector('.qualio-success-title').textContent = copy.success;
-      shadow.querySelector('.qualio-success-copy').textContent = copy.successCopy;
+      shadow.querySelector('.qualio-success-copy').textContent = (current && current.getAttribute('data-thank-you') || '').slice(0, 200) || copy.successCopy;
       return copy;
     };
     applyLanguage();

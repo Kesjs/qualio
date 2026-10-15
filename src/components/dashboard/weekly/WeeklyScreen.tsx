@@ -155,8 +155,8 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
     const body = await response.json().catch(() => null) as { url?: string; error?: string } | null
     if (response.ok && body?.url) {
       await navigator.clipboard?.writeText(body.url).catch(() => undefined)
-      window.alert(`Lien de rapport créé et copié :\n${body.url}`)
-    } else window.alert(body?.error ?? 'Impossible de créer le lien.')
+      toast.success('Lien de rapport créé', { description: body.url, duration: 10000 })
+    } else toast.error(body?.error ?? 'Impossible de créer le lien.')
   }
   const exportClientReport = () => {
     const title = data.synthesis?.title || 'Synthèse hebdomadaire'

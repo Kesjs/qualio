@@ -1,5 +1,8 @@
 'use client'
 
+import { confirmAction } from '@/components/dashboard/dialogs'
+import { ColorField } from '@/components/dashboard/ColorField'
+
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -11,6 +14,7 @@ import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner, surface } from '@/components/dashboard/weekly/bricks'
 import { EmptyState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, selectClass, Tabs } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
+import { WidgetGuide } from '@/components/dashboard/WidgetGuide'
 
 type Tab = 'csv' | 'manual' | 'widget'
 const TABS = [
@@ -41,7 +45,7 @@ export function CollectionPage() {
           <div role="tabpanel" aria-label={TABS.find((item) => item.id === tab)?.label} className="motion-safe:animate-[qualio-fade_200ms_ease-out]">
             {tab === 'csv' && <CsvPanel />}
             {tab === 'manual' && <ManualPanel />}
-            {tab === 'widget' && <WidgetPanel />}
+            {tab === 'widget' && <WidgetPanel key={access.activeSite?.id} />}
           </div>
         </>
       )}
@@ -263,6 +267,9 @@ function WidgetPanel() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [testStartedAt, setTestStartedAt] = useState<string | null>(null)
+  const [receipt, setReceipt] = useState<{ created_at: string; content: string } | null>(null)
+  const [thankYou, setThankYou] = useState('Votre message a bien été envoyé.')
   const sourcesQuery = useQuery({
     queryKey: ['feedback-sources', site?.id],
     queryFn: async () => {
@@ -279,16 +286,18 @@ function WidgetPanel() {
   }, [source])
 
   if (!site) return null
+  if (!access.isLoading && !access.billing?.limits.widget) return <section className={`${surface} space-y-4 p-6`}><h2 className="text-lg font-semibold">Widget disponible avec Pro et Agence</h2><p className="text-sm text-gray-600 dark:text-zinc-400">Vos avis déjà reçus restent conservés.</p><Link href="/pricing" className={primaryButton}>Voir les offres</Link></section>
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const script = source ? `<script src="${origin}/widget.js" data-key="${source.public_key}" data-accent="${escapeAttr(settings.accentColor)}" data-position="${settings.position}" data-label="${escapeAttr(settings.buttonLabel)}"></script>` : ''
+  const script = source ? `<script src="${origin}/widget.js" data-key="${source.public_key}" data-accent="${escapeAttr(settings.accentColor)}" data-position="${settings.position}" data-label="${escapeAttr(settings.buttonLabel)}" data-thank-you="${escapeAttr(thankYou)}"></script>` : ''
   const writeBlocked = Boolean(access.blockReason)
 
   async function action(kind: 'create' | 'disable' | 'enable' | 'regenerate' | 'settings') {
     if (!site) return
-    if (kind === 'disable' && !window.confirm('Désactiver le widget ? Les avis déjà reçus restent conservés.')) return
-    if (kind === 'regenerate' && !window.confirm('Régénérer la clé ? Le script actuellement installé cessera de fonctionner.')) return
+    if (kind === 'disable' && !(await confirmAction('Désactiver le widget ? Les avis déjà reçus restent conservés.'))) return
+    if (kind === 'regenerate' && !(await confirmAction('Régénérer la clé ? Le script actuellement installé cessera de fonctionner.'))) return
     setBusy(true); setMessage(null)
+    try {
     const init = kind === 'create'
       ? { method: 'POST', body: { siteId: site.id } }
       : { method: 'PATCH', body: kind === 'settings' ? { siteId: site.id, action: 'settings', ...settings } : { siteId: site.id, action: kind } }
@@ -298,6 +307,7 @@ function WidgetPanel() {
     if (!response.ok) return setMessage(result.error ?? 'Impossible de modifier le widget.')
     await sourcesQuery.refetch()
     setMessage({ create: 'Widget prêt. Copiez le script sur votre site.', disable: 'Widget désactivé.', enable: 'Widget réactivé.', regenerate: 'Nouvelle clé créée. Copiez le nouveau script.', settings: 'Apparence enregistrée.' }[kind])
+    } catch { setMessage('Impossible de modifier le widget. Vérifiez votre connexion et réessayez.') } finally { setBusy(false) }
   }
 
   async function copyScript() {
@@ -307,11 +317,16 @@ function WidgetPanel() {
 
   async function verify() {
     if (!site) return
+    if (!testStartedAt) { setTestStartedAt(new Date().toISOString()); setReceipt(null); setMessage('Test démarré. Envoyez maintenant un avis depuis votre site publié, puis cliquez sur Vérifier la réception.'); return }
     setBusy(true)
-    const response = await fetch(`/api/feedback?siteId=${encodeURIComponent(site.id)}`)
+    try {
+    const response = await fetch(`/api/feedback?siteId=${encodeURIComponent(site.id)}`, { cache: 'no-store' })
     const list = await response.json().catch(() => [])
-    setBusy(false)
-    setMessage(Array.isArray(list) && list.some((item: { source?: string }) => item.source === 'widget') ? 'Installation vérifiée : un avis widget est bien arrivé.' : 'Aucun avis widget reçu pour le moment. Envoyez un avis test depuis votre page.')
+    if (!response.ok) return setMessage('Impossible de vérifier les avis reçus. Réessayez.')
+    const received = Array.isArray(list) ? list.find((item: { source?: string; created_at: string }) => item.source === 'widget' && Date.parse(item.created_at) > Date.parse(testStartedAt)) : null
+    setReceipt(received)
+    setMessage(received ? 'Nouvel avis widget reçu depuis le début du test.' : 'Aucun nouvel avis widget depuis le début du test. Envoyez un avis depuis votre page publique, puis réessayez.')
+    } catch { setMessage('Vérification impossible. Vérifiez votre connexion et réessayez.') } finally { setBusy(false) }
   }
 
   return (
@@ -340,7 +355,7 @@ function WidgetPanel() {
               <input value={settings.buttonLabel} maxLength={60} onChange={(event) => setSettings((current) => ({ ...current, buttonLabel: event.target.value }))} className={`${inputClass} mt-2 text-sm`} />
             </label>
             <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">Couleur
-              <input type="color" value={settings.accentColor} onChange={(event) => setSettings((current) => ({ ...current, accentColor: event.target.value }))} aria-label="Couleur du widget" className="mt-2 h-11 w-16 cursor-pointer rounded-lg border border-gray-300 bg-white p-1 dark:border-white/15" />
+              <ColorField value={settings.accentColor} onChange={(accentColor) => setSettings((current) => ({ ...current, accentColor }))} />
             </label>
             <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">Position
               <Select label="Position" value={settings.position} onChange={(position) => setSettings((current) => ({ ...current, position }))} className="mt-2" buttonClassName={`${selectClass} h-11 w-full`} options={[{ value: 'right', label: 'Droite' }, { value: 'left', label: 'Gauche' }]} />
@@ -348,23 +363,24 @@ function WidgetPanel() {
             <button type="button" onClick={() => void action('settings')} disabled={busy || !settings.buttonLabel.trim()} className={`${secondaryButton} sm:col-span-3 sm:justify-self-start`}>Enregistrer l’apparence</button>
           </div>
 
+          <label className="block text-sm font-semibold">Message de remerciement<input maxLength={200} value={thankYou} onChange={(event) => setThankYou(event.target.value)} className={`${inputClass} mt-2`} /><span className="mt-2 block text-xs font-normal text-gray-500 dark:text-zinc-400">Inclus dans le script à copier. Pour le modifier sur votre site, remplacez le script installé.</span></label>
+          <WidgetGuide script={script} accentColor={settings.accentColor} buttonLabel={settings.buttonLabel} position={settings.position} projectName={site.name || site.url || 'Projet sans nom'} onMessage={setMessage} />
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => void verify()} disabled={busy} className={primaryButton}>Vérifier l’installation</button>
+            <button type="button" onClick={() => void verify()} disabled={busy || !source.active} className={primaryButton}>{busy ? 'Vérification…' : testStartedAt ? 'Vérifier la réception' : 'Démarrer un test de réception'}</button>
+          </div>
+          <details className="border-t border-gray-200 pt-4 dark:border-white/10"><summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-zinc-300">Réglages avancés</summary><div className="mt-4 flex flex-wrap gap-2">
             {source.active
               ? <button type="button" onClick={() => void action('disable')} disabled={busy} className={secondaryButton}>Désactiver</button>
               : <button type="button" onClick={() => void action('enable')} disabled={busy || writeBlocked} className={secondaryButton}>Réactiver</button>}
             <button type="button" onClick={() => void action('regenerate')} disabled={busy} className={secondaryButton}>Régénérer la clé</button>
-          </div>
+          </div></details>
         </>
       )}
 
       {message && <p role="status" className="rounded-lg bg-gray-50 p-3 text-sm text-gray-700 dark:bg-white/[0.05] dark:text-zinc-200">{message}</p>}
+      {receipt && <div className="space-y-2 border-t border-gray-200 pt-4 dark:border-white/10"><p className="text-sm font-semibold">Dernier avis reçu pendant ce test</p><p className="break-words text-sm text-gray-600 dark:text-zinc-300">{receipt.content}</p><p className="font-mono text-xs text-gray-500">{new Date(receipt.created_at).toLocaleString('fr-FR')}</p><Link href="/dashboard/feedback" className={secondaryButton}>Voir dans mes avis</Link></div>}
 
-      <div className="grid gap-3 border-t border-gray-100 pt-5 dark:border-white/[0.06] sm:grid-cols-3">
-        <Tip title="HTML simple" body="Ajoutez le script avant la balise de fermeture body, puis rechargez la page." />
-        <Tip title="Webflow, WordPress" body="Collez le script dans le code personnalisé du site ou dans un bloc HTML." />
-        <Tip title="Shopify" body="Ajoutez le script dans le code du thème, juste avant la balise de fermeture body." />
-      </div>
+      {!source && <div className="border-t border-gray-100 pt-5 text-sm text-gray-600 dark:border-white/10 dark:text-zinc-400">Préparez le widget pour personnaliser son apparence, obtenir le script et choisir vos instructions d’installation.</div>}
     </section>
   )
 }
