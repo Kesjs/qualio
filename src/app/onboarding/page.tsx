@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClipboardDocumentIcon, DocumentArrowUpIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClipboardDocumentIcon, DocumentArrowUpIcon, LockClosedIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
 import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import type { PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
 import { Banner, btnQuiet, surface } from '@/components/dashboard/weekly/bricks'
@@ -14,6 +16,7 @@ type Choice = 'import' | 'widget'
 type Status = { tone: 'info' | 'alert'; text: string }
 type CopyState = 'idle' | 'copying' | 'copied' | 'error'
 type WidgetSource = { id: string; public_key: string }
+type OnboardingBilling = { plan: PlanId; label: string; limits: { widget: boolean; projects: number; feedbackPerProject: number } }
 
 /**
  * La progression vit sur le serveur : projet créé → étape 2, méthode choisie → étape 3,
@@ -58,6 +61,19 @@ export default function OnboardingPage() {
   const activeSite = sites?.find((item) => !item.onboarding_completed_at) ?? null
   const choice: Choice | null = activeSite?.onboarding_method ?? null
   const step = !activeSite ? 1 : !choice ? 2 : 3
+
+  const billingQuery = useQuery({
+    queryKey: ['onboarding-billing', activeSite?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/billing/status?siteId=${encodeURIComponent(activeSite!.id)}`)
+      if (!response.ok) throw new Error('Impossible de charger votre plan.')
+      return response.json() as Promise<OnboardingBilling>
+    },
+    enabled: Boolean(activeSite),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+  const widgetAvailable = billingQuery.data?.limits.widget ?? false
 
   const widgetQuery = useQuery({
     queryKey: ['feedback-sources', activeSite?.id],
@@ -132,6 +148,10 @@ export default function OnboardingPage() {
   }
 
   async function chooseMethod(target: Site, next: Choice) {
+    if (next === 'widget' && !widgetAvailable) {
+      fail(null, 'Le widget est disponible avec les plans Pro et Agence. Passez à Pro pour continuer.')
+      return
+    }
     setStatus(null); setBusy(true)
     try { await patchSite(target, { onboarding_method: next }) } catch (error) { fail(error, 'Impossible d’enregistrer votre méthode de collecte.') } finally { setBusy(false) }
   }
@@ -339,13 +359,29 @@ Consignes :
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <ChoiceCard icon={<DocumentArrowUpIcon className="h-5 w-5" aria-hidden />} title="Importer un CSV" body="Retrouvez votre historique et obtenez votre première synthèse en quelques minutes." disabled={busy} onClick={() => void chooseMethod(activeSite, 'import')} />
-                <ChoiceCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden />} title="Installer le widget" body="Recevez les prochains avis directement dans Qualio." disabled={busy} onClick={() => void chooseMethod(activeSite, 'widget')} />
+                {widgetAvailable
+                  ? <ChoiceCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden />} title="Installer le widget" body="Recevez les prochains avis directement dans Qualio." disabled={busy} onClick={() => void chooseMethod(activeSite, 'widget')} />
+                  : <LockedChoiceCard title="Installer le widget" body="Disponible avec les plans Pro et Agence pour recevoir les prochains avis directement dans Qualio." />}
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">Pas d’avis sous la main ? <button type="button" onClick={() => void tryExamples(activeSite)} disabled={busy} className={`font-semibold text-gray-950 underline underline-offset-2 disabled:opacity-50 dark:text-white ${focusRing}`}>Essayer avec des avis d’exemple</button></p>
+              {!billingQuery.isLoading && <p className="text-sm text-gray-600 dark:text-zinc-400">Plan actif : <strong className="text-gray-950 dark:text-white">{billingQuery.data?.label ?? 'Gratuit'}</strong>.</p>}
             </>
           )}
 
-          {activeSite && choice === 'widget' && !widgetKey && (
+          {activeSite && choice === 'widget' && !widgetAvailable && (
+            <section className={`${surface} space-y-4 p-5 sm:p-6`}>
+              <div className="flex items-start gap-4">
+                <span className="rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-950 dark:text-white">Widget réservé aux plans payants</h2>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">Le plan actif ne permet pas d’installer le widget. Passez à Pro ou Agence pour recevoir les prochains avis directement depuis votre site.</p>
+                  <Link href="/pricing" className="mt-4 inline-flex text-sm font-semibold text-[#c2410c] underline underline-offset-2">Voir les offres</Link>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSite && choice === 'widget' && widgetAvailable && !widgetKey && (
             <section className={`${surface} space-y-5 p-5 sm:p-6`}>
               <div className="flex items-start gap-4">
                 <span className="rounded-xl bg-gray-100 p-3 text-gray-700 dark:bg-white/[0.06] dark:text-zinc-200"><SparklesIcon className="h-5 w-5" aria-hidden /></span>
@@ -358,7 +394,7 @@ Consignes :
             </section>
           )}
 
-          {activeSite && choice === 'widget' && widgetKey && (
+          {activeSite && choice === 'widget' && widgetAvailable && widgetKey && (
             <section className={`${surface} space-y-4 p-5 sm:p-6`}>
               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><CheckIcon className="h-5 w-5" aria-hidden />Source widget prête</div>
               <p className="text-sm leading-6 text-gray-600 dark:text-zinc-400">Collez ce script juste avant la balise <code>&lt;/body&gt;</code> de votre site, ou copiez le prompt pour demander à votre agent de code de l’intégrer.</p>
@@ -446,5 +482,19 @@ function ChoiceCard({ icon, title, body, onClick, disabled }: { icon: ReactNode;
       <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">{body}</p>
       <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-gray-950 dark:text-white">Commencer<ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden /></span>
     </button>
+  )
+}
+
+function LockedChoiceCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className={`${surface} p-6 opacity-75`} aria-disabled="true">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
+        <h2 className="font-semibold text-gray-950 dark:text-white">{title}</h2>
+        <span className="ml-auto rounded-md bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:bg-white/10 dark:text-zinc-300">Pro / Agence</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-zinc-400">{body}</p>
+      <Link href="/pricing" className="mt-4 inline-flex text-sm font-semibold text-[#c2410c] underline underline-offset-2">Voir les offres</Link>
+    </div>
   )
 }

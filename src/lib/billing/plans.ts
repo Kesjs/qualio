@@ -12,10 +12,10 @@ export const BILLING_PLANS = {
     /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
     synthesisQuota: { count: 2, windowDays: 30 },
     synthesisCooldownHours: 0,
-    /** Widget de collecte en continu (ouvert dès le Gratuit : c'est lui qui fait revenir). */
-    widget: true,
+    /** Le widget est une fonctionnalité payante, réservée à Pro et Agence. */
+    widget: false,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Widget sur votre site', 'Import CSV et saisie manuelle', 'Vos avis conservés, même au-delà de 50'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Import CSV et saisie manuelle', 'Vos avis conservés, même au-delà de 50'],
   },
   pro: {
     label: 'Pro',

@@ -26,7 +26,7 @@ describe('billing plans', () => {
   })
 
   it('applies the limits written in the document', () => {
-    expect(BILLING_PLANS.free).toMatchObject({ projects: 1, feedbackPerProject: 50, synthesisQuota: { count: 2, windowDays: 30 }, synthesisCooldownHours: 0, widget: true })
+    expect(BILLING_PLANS.free).toMatchObject({ projects: 1, feedbackPerProject: 50, synthesisQuota: { count: 2, windowDays: 30 }, synthesisCooldownHours: 0, widget: false })
     expect(BILLING_PLANS.pro).toMatchObject({ projects: 5, feedbackPerProject: 2000, synthesisCooldownHours: 24, widget: true })
     expect(BILLING_PLANS.agency).toMatchObject({ projects: 15, feedbackPerProject: 10000, synthesisQuota: { count: 2, windowDays: 7 }, synthesisCooldownHours: 0, widget: true })
   })
