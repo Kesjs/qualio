@@ -7,7 +7,7 @@ import { ArrowTopRightOnSquareIcon, CheckCircleIcon } from '@heroicons/react/24/
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
-import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
+import { Banner, surface } from '@/components/dashboard/weekly/bricks'
 import { PROJECT_SECTORS } from '@/lib/projects/sectors'
 import { dangerButton, EmptyState, focusRing, inputClass, PageHeader, primaryButton, secondaryButton, selectClass, Skeleton, Tabs, UsageMeter } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
@@ -140,7 +140,6 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (access.isFree) { setLoaded(true); return }
     let cancelled = false
     void fetch('/api/settings/notifications').then(async (response) => {
       if (!response.ok || cancelled) return
@@ -148,7 +147,7 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
       setEnabled(preferences.weekly_digest); setConsent(preferences.consent_source)
     }).finally(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
-  }, [access.isFree])
+  }, [])
 
   async function save() {
     setBusy(true)
@@ -161,17 +160,16 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
   }
 
   if (!loaded) return <Skeleton className="h-48" />
-  if (access.isFree) return <LockedFeature title="Email du lundi">Un résumé court chaque lundi avec les évolutions de vos avis et une recommandation à décider.</LockedFeature>
 
   return (
     <section className={`${surface} max-w-2xl p-5 sm:p-6`} aria-labelledby="digest-title">
-      <h2 id="digest-title" className="text-lg font-semibold text-gray-950 dark:text-white">Email du lundi</h2>
+      <h2 id="digest-title" className="text-lg font-semibold text-gray-950 dark:text-white">{access.isFree ? 'Emails de suivi' : 'Email du lundi et alertes'}</h2>
       <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Vous gardez le contrôle : désinscription possible à tout moment.</p>
       <label className={`mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition-colors duration-150 hover:border-gray-400 dark:border-white/10 dark:hover:border-white/30 ${focusRing}`}>
         <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} className="mt-1 h-5 w-5 accent-gray-950 dark:accent-white" />
         <span>
-          <strong className="block text-sm text-gray-950 dark:text-white">Recevoir le résumé hebdomadaire</strong>
-          <span className="mt-1 block text-sm leading-6 text-gray-500 dark:text-zinc-400">Un email court le lundi avec les évolutions de vos avis.</span>
+          <strong className="block text-sm text-gray-950 dark:text-white">{access.isFree ? 'Être prévenu quand de nouveaux avis arrivent' : 'Recevoir le résumé hebdomadaire et les alertes'}</strong>
+          <span className="mt-1 block text-sm leading-6 text-gray-500 dark:text-zinc-400">{access.isFree ? '2 emails par mois au maximum, seulement s’il y a de nouveaux avis et une synthèse disponible.' : 'Un email le lundi avec les évolutions de vos avis, et une alerte (une par semaine au plus) quand un thème négatif augmente.'}</span>
         </span>
       </label>
       {consent && <p className="mt-3 text-xs text-gray-500 dark:text-zinc-500">Dernier consentement enregistré depuis {consent === 'signup' ? 'l’inscription' : 'les réglages'}.</p>}

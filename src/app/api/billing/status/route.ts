@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { BILLING_PLANS, getIntervalFromPriceId, resolvePlan } from '@/lib/billing/plans'
 import { writableSiteIds as writableSiteIdsFor } from '@/lib/billing/writable'
-import { getFeedbackCapacity, getSynthesisAvailability } from '@/lib/billing/limits'
+import { getFeedbackCapacity, getLockedCount, getSynthesisAvailability } from '@/lib/billing/limits'
 
 export async function GET(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
   const effectiveStatus = plan === 'free' ? 'free' : data?.status ?? 'free'
 
   // Usage d'un projet (compteur « 32 / 50 avis », prochaine synthèse possible) quand siteId est fourni.
-  let site: { feedback: number; feedbackLimit: number; lastSynthesisAt: string | null; nextSynthesisAt: string | null; synthesisUsed: number; synthesisLimit: number | null; synthesisWindowDays: number | null } | null = null
+  let site: { id: string; feedback: number; feedbackLimit: number; lockedFeedback: number; lockedPreview: Array<{ excerpt: string; created_at: string }>; lastSynthesisAt: string | null; nextSynthesisAt: string | null; synthesisUsed: number; synthesisLimit: number | null; synthesisWindowDays: number | null } | null = null
   const siteId = request.nextUrl.searchParams.get('siteId')
   if (siteId) {
     const { data: owned } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
     if (owned) {
-      const [capacity, availability] = await Promise.all([getFeedbackCapacity(supabase, siteId, plan), getSynthesisAvailability(supabase, siteId, plan)])
-      site = { feedback: capacity.used, feedbackLimit: capacity.limit, lastSynthesisAt: availability.lastAt, nextSynthesisAt: availability.nextAvailableAt, synthesisUsed: availability.used, synthesisLimit: availability.limit, synthesisWindowDays: availability.windowDays }
+      const [capacity, availability, lockedFeedback] = await Promise.all([getFeedbackCapacity(supabase, siteId, plan), getSynthesisAvailability(supabase, siteId, plan), getLockedCount(supabase, siteId)])
+      const { data: lockedRows } = plan === 'free' ? await supabase.from('feedback_items').select('content, created_at').eq('site_id', siteId).eq('status', 'locked').order('created_at', { ascending: false }).limit(2) : { data: [] as Array<{ content: string; created_at: string }> }
+      const lockedPreview = (lockedRows ?? []).map((row: { content: string; created_at: string }) => ({ excerpt: String(row.content ?? '').slice(0, 160), created_at: row.created_at }))
+      site = { id: siteId, feedback: capacity.used, feedbackLimit: capacity.limit, lockedFeedback, lockedPreview, lastSynthesisAt: availability.lastAt, nextSynthesisAt: availability.nextAvailableAt, synthesisUsed: availability.used, synthesisLimit: availability.limit, synthesisWindowDays: availability.windowDays }
     }
   }
 

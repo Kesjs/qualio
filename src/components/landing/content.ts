@@ -18,7 +18,7 @@ export const STEPS = [
   {
     n: '02',
     tag: 'Collecte',
-    title: 'Recueillez les prochains avis sur votre site (avec Pro).',
+    title: 'Recueillez les prochains avis directement sur votre site.',
     body: 'Copiez un script, placez-le dans votre site. Vos clients donnent leur avis dans leur parcours, et il arrive dans le même espace.',
   },
   {
@@ -60,15 +60,17 @@ export const AUDIENCES = [
 export const COMPARISON = [
   ['Avis cités à l’appui de chaque conseil', 'Selon ce que vous lui demandez', 'Oui, toujours'],
   ['Mémoire des avis d’une semaine à l’autre', 'Non, il faut tout recoller', 'Oui'],
-  ['Collecte continue sur votre site', 'Non', 'Oui, avec le widget (Pro)'],
-  ['Rappel chaque semaine', 'Non', 'Oui, par email (Pro)'],
+  ['Collecte continue sur votre site', 'Non', 'Oui, avec le widget'],
+  ['Rappel chaque semaine', 'Non', 'Oui, par email (Pro et Agence)'],
+  ['Alerte quand un thème négatif augmente', 'Non', 'Oui (Pro et Agence)'],
+  ['Effet de vos décisions sur les avis', 'Non', 'Oui, sur 14 jours (Pro et Agence)'],
   ['Suivi de ce que vous avez accepté ou écarté', 'Non', 'Oui'],
 ] as const
 
 export const FAQ = [
   {
     q: 'Faut-il installer quelque chose sur mon site ?',
-    a: 'Seulement si vous voulez le widget (avec Pro) : vous copiez un script et le placez dans votre site, sans modifier votre code. Sinon, rien à installer.',
+    a: 'Seulement si vous voulez le widget : vous copiez un script et le placez dans votre site, sans modifier votre code. Sinon, rien à installer.',
   },
   {
     q: 'Puis-je importer mes anciens avis ?',
@@ -84,7 +86,11 @@ export const FAQ = [
   },
   {
     q: 'Combien coûte le plan gratuit ?',
-    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis, 2 synthèses par mois, l’import CSV et la saisie manuelle.',
+    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis analysés, 2 synthèses par mois, le widget, l’import CSV et la saisie manuelle.',
+  },
+  {
+    q: 'Que se passe-t-il si je dépasse 50 avis ?',
+    a: 'Les avis reçus par le widget sont conservés, mais pas analysés (jusqu’à 100). Si vous passez à Pro, ils sont analysés automatiquement. Rien n’est perdu.',
   },
   {
     // À confirmer avec les conditions du fournisseur d'IA choisi avant publication (doc 4.2), et à répéter dans la page Confidentialité.
@@ -93,7 +99,7 @@ export const FAQ = [
   },
   {
     q: 'Que se passe-t-il si je quitte Pro ?',
-    a: 'Vos données restent. Ce qui dépasse la limite du plan Gratuit passe en lecture seule.',
+    a: 'Vos données restent. Ce qui dépasse la limite du plan Gratuit passe en lecture seule. Vous pouvez gérer ou arrêter votre abonnement depuis vos réglages.',
   },
 ] as const
 

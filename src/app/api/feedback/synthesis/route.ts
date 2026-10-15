@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
   const [plan, { data: feedback, error: feedbackError }] = await Promise.all([
     getUserPlan(supabase, user.id),
-    (supabase as any).from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('user_id', user.id).eq('site_id', siteId).neq('status', 'archived').order('created_at', { ascending: false }).limit(301),
+    (supabase as any).from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('user_id', user.id).eq('site_id', siteId).not('status', 'in', '(archived,locked)').order('created_at', { ascending: false }).limit(301),
   ])
   if (feedbackError) return NextResponse.json({ error: 'Impossible de charger les avis.' }, { status: 500 })
   if (!feedback || feedback.length < 3) return NextResponse.json({ error: 'Ajoutez encore des avis pour lancer une synthèse.', minimum: 3, current: feedback?.length ?? 0 }, { status: 422 })

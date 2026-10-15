@@ -132,13 +132,13 @@ export function ImportAnimation({ mode = 'play' }: { mode?: DemoMode }) {
   )
 }
 
-/* ───────── 2. Collecter (Pro) ───────── */
+/* ───────── 2. Collecter ───────── */
 
 const WIDGET_TIMINGS = [300, 1000, 1900, 2500] as const
 
 export function WidgetAnimation({ mode = 'play' }: { mode?: DemoMode }) {
   return (
-    <Stage label="Widget de collecte (Pro)" minH={290} mode={mode} timings={WIDGET_TIMINGS}>
+    <Stage label="Widget de collecte" minH={290} mode={mode} timings={WIDGET_TIMINGS}>
       {(phase) => (
         <>
           <div className="relative h-[150px] overflow-hidden border bg-white" style={{ borderColor: LINE, borderRadius: 8 }}>

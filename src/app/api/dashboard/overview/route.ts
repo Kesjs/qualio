@@ -29,9 +29,9 @@ export async function GET(request: NextRequest) {
 
   const since = new Date(Date.now() - days * 2 * DAY).toISOString()
   const [totalRes, rowsRes, recentRes, actionsRes, synthesisRes, sourceRes, exampleRes] = await Promise.all([
-    db.from('feedback_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('site_id', project.id).neq('status', 'archived'),
-    db.from('feedback_items').select('theme, sentiment, created_at, content').eq('user_id', userId).eq('site_id', project.id).neq('status', 'archived').gte('created_at', since).order('created_at', { ascending: false }).limit(2000),
-    db.from('feedback_items').select('id, content, source, author_name, theme, sentiment, status, created_at').eq('user_id', userId).eq('site_id', project.id).neq('status', 'archived').order('created_at', { ascending: false }).limit(4),
+    db.from('feedback_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('site_id', project.id).not('status', 'in', '(archived,locked)'),
+    db.from('feedback_items').select('theme, sentiment, created_at, content').eq('user_id', userId).eq('site_id', project.id).not('status', 'in', '(archived,locked)').gte('created_at', since).order('created_at', { ascending: false }).limit(2000),
+    db.from('feedback_items').select('id, content, source, author_name, theme, sentiment, status, created_at').eq('user_id', userId).eq('site_id', project.id).not('status', 'in', '(archived,locked)').order('created_at', { ascending: false }).limit(4),
     db.from('feedback_recommendations').select('id, title, description, action, rationale, priority, theme, status, feedback_ids, created_at').eq('user_id', userId).eq('site_id', project.id).eq('status', 'open').order('created_at', { ascending: false }).limit(30),
     db.from('feedback_syntheses').select('id, title, summary, created_at').eq('user_id', userId).eq('site_id', project.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     db.from('collection_sources').select('id', { count: 'exact', head: true }).eq('site_id', project.id).eq('active', true),

@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto'
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
-import { BILLING_PLANS } from '@/lib/billing/plans'
-import { getFeedbackCapacity, getUserPlan, isSiteWritable } from '@/lib/billing/limits'
+import { BILLING_PLANS, LOCKED_FEEDBACK_MAX } from '@/lib/billing/plans'
+import { getFeedbackCapacity, getLockedCount, getUserPlan, isSiteWritable } from '@/lib/billing/limits'
+import { sendLimitReached } from '@/lib/email/billing-emails'
 import { isDuplicateIntakeEvent, MAX_INTAKE_BODY_BYTES, validateIntakeBody } from '@/lib/feedback/intake-validation'
 import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
 
@@ -67,15 +68,19 @@ export async function POST(request: NextRequest) {
   if (isDuplicateIntakeEvent(duplicate)) return json({ ok: true, duplicate: true }, 202)
 
   const plan = await getUserPlan(admin, source.user_id)
-  if (!BILLING_PLANS[plan].widget) return json({ error: 'Le widget est réservé au plan Pro. Les avis déjà reçus restent conservés.' }, 403)
+  if (!BILLING_PLANS[plan].widget) return json({ error: 'Le widget n’est pas disponible pour ce plan. Les avis déjà reçus restent conservés.' }, 403)
   if (!(await isSiteWritable(admin, source.user_id, source.site_id, plan))) return json({ error: 'Ce projet est en lecture seule.' }, 403)
   const capacity = await getFeedbackCapacity(admin, source.site_id, plan)
-  if (capacity.remaining < 1) return json({ error: 'La limite d’avis de ce projet est atteinte.' }, 429, { 'Retry-After': '3600' })
+  // Limite atteinte : l'avis du visiteur est quand même conservé (statut « locked », non analysé, sans appel IA)
+  // et sera débloqué si le compte passe à un plan payant. Plafonné pour éviter le stockage illimité.
+  const overflow = capacity.remaining < 1
+  if (overflow && (await getLockedCount(admin, source.site_id)) >= LOCKED_FEEDBACK_MAX) return json({ error: 'La limite d’avis de ce projet est atteinte.' }, 429, { 'Retry-After': '3600' })
 
   const { data: saved, error } = await admin.from('feedback_items').insert({
     user_id: source.user_id,
     site_id: source.site_id,
     source: 'widget',
+    status: overflow ? 'locked' : 'open',
     content,
     author_name: authorName || null,
     author_email: authorEmail || null,
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
     sentiment: null,
     theme: null,
     confidence: null,
-    metadata: { ip_address: ipAddress, user_agent: request.headers.get('user-agent') ?? null, classification_status: 'pending' },
+    metadata: { ip_address: ipAddress, user_agent: request.headers.get('user-agent') ?? null, classification_status: overflow ? 'locked' : 'pending' },
   }).select('id').single()
   if (error) {
     console.error('[Feedback intake] insert failed', error)
@@ -91,7 +96,8 @@ export async function POST(request: NextRequest) {
   }
   const { error: eventError } = await admin.from('feedback_intake_events').insert({ public_key: key, site_id: source.site_id, ip_address: ipAddress, content_hash: contentHash })
   if (eventError) console.error('[Feedback intake] rate-limit event insert failed', eventError)
-  if (saved?.id) after(async () => {
+  if (saved?.id && overflow) after(async () => { try { await sendLimitReached(admin, source.user_id, source.site_id, 'Votre projet', capacity.limit) } catch (limitError) { console.error('[Feedback intake] limit email failed', limitError) } })
+  if (saved?.id && !overflow) after(async () => {
     try { await classifyAndSaveFeedback(admin, saved.id, source.site_id, content) } catch (classificationError) { console.error('[Feedback intake] async classification failed', classificationError) }
   })
   return json({ ok: true })

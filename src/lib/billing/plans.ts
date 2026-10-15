@@ -12,10 +12,10 @@ export const BILLING_PLANS = {
     /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
     synthesisQuota: { count: 2, windowDays: 30 },
     synthesisCooldownHours: 0,
-    /** Widget de collecte en continu. */
-    widget: false,
+    /** Widget de collecte en continu (ouvert dès le Gratuit : c'est lui qui fait revenir). */
+    widget: true,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis', '2 synthèses par mois', 'Import CSV et saisie manuelle', 'Vos avis conservés'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Widget sur votre site', 'Import CSV et saisie manuelle', 'Vos avis conservés, même au-delà de 50'],
   },
   pro: {
     label: 'Pro',
@@ -29,7 +29,7 @@ export const BILLING_PLANS = {
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
-    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Widget sur votre site', 'Email du lundi', 'Historique des décisions'],
+    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Effet mesuré de vos décisions'],
   },
   agency: {
     label: 'Agence',
@@ -50,11 +50,14 @@ export const BILLING_PLANS = {
       '2 synthèses manuelles par semaine',
       'Widget sur 15 sites',
       'Rapport client partageable',
-      'Export des synthèses et avis',
+      'Export CSV des avis', 'Rapport partageable par lien',
       'Support prioritaire',
     ],
   },
 } as const
+
+/** Avis du widget reçus au-delà de la limite du plan, conservés mais non analysés (plafond anti-abus). */
+export const LOCKED_FEEDBACK_MAX = 100
 
 export type PaidPlan = Exclude<keyof typeof BILLING_PLANS, 'free'>
 export type PlanId = keyof typeof BILLING_PLANS

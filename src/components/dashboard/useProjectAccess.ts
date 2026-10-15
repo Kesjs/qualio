@@ -19,8 +19,9 @@ export function useProjectAccess() {
   const readOnly = Boolean(activeSite && billing?.writableSiteIds && !billing.writableSiteIds.includes(activeSite.id))
   const limitReached = Boolean(site && site.feedbackLimit > 0 && site.feedback >= site.feedbackLimit)
 
+  const readOnlyText = isFree ? READ_ONLY_TEXT : `Ce projet est en lecture seule : votre plan ${billing?.label ?? ''} inclut ${billing?.limits.projects ?? ''} projets actifs.${plan === 'pro' ? ' Passez à Agence pour le réactiver.' : ''}`
   const blockReason = readOnly
-    ? READ_ONLY_TEXT
+    ? readOnlyText
     : limitReached && site
       ? `Vous avez atteint ${site.feedbackLimit} avis. ${isFree ? 'Passez à Pro pour en ajouter.' : 'Archivez des avis pour en ajouter.'} Vos anciens avis restent visibles.`
       : null
@@ -32,6 +33,7 @@ export function useProjectAccess() {
     isFree,
     site,
     readOnly,
+    readOnlyText,
     limitReached,
     blockReason,
     canAdd: Boolean(activeSite) && !blockReason,

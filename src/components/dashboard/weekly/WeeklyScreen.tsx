@@ -60,8 +60,17 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
 
   const limitBanner = limitReached && site && (
     <Banner tone="warn" action={isFree ? <Link href="/pricing" className={btnPrimary}>Passer à Pro</Link> : undefined}>
-      Vous avez atteint {site.feedbackLimit} avis.{isFree ? ' Passez à Pro pour en ajouter.' : ' Archivez des avis pour en ajouter.'} Vos anciens avis restent visibles.
-    </Banner>
+      {isFree && site.lockedFeedback > 0
+        ? <>{site.lockedFeedback} {site.lockedFeedback > 1 ? 'nouveaux avis sont arrivés' : 'nouvel avis est arrivé'} mais {site.lockedFeedback > 1 ? 'ne sont' : 'n’est'} pas analysé{site.lockedFeedback > 1 ? 's' : ''} : la limite de {site.feedbackLimit} avis est atteinte. Passez à Pro pour {site.lockedFeedback > 1 ? 'les' : 'l’'}analyser. Rien n’est perdu.</>
+        : <>Vous avez atteint {site.feedbackLimit} avis.{isFree ? ' Passez à Pro pour en ajouter.' : ' Archivez des avis pour en ajouter.'} Vos anciens avis restent visibles.</>}
+    {isFree && (site?.lockedPreview?.length ?? 0) > 0 && (
+          <ul className="mt-3 space-y-2 text-xs">
+            {(site?.lockedPreview ?? []).map((item, index) => (
+              <li key={index} className="rounded-md bg-white/70 p-2 dark:bg-white/[0.04]">« {item.excerpt} »</li>
+            ))}
+          </ul>
+        )}
+      </Banner>
   )
 
   // Bandeau honnête quand la synthèse s'appuie sur des avis d'exemple
@@ -141,6 +150,14 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   }
 
   const lastSynthesis = formatDayMonth(data.synthesis?.created_at ?? site?.lastSynthesisAt)
+  const createShareLink = async (siteId: string) => {
+    const response = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId }) })
+    const body = await response.json().catch(() => null) as { url?: string; error?: string } | null
+    if (response.ok && body?.url) {
+      await navigator.clipboard?.writeText(body.url).catch(() => undefined)
+      window.alert(`Lien de rapport créé et copié :\n${body.url}`)
+    } else window.alert(body?.error ?? 'Impossible de créer le lien.')
+  }
   const exportClientReport = () => {
     const title = data.synthesis?.title || 'Synthèse hebdomadaire'
     const summary = data.synthesis?.summary || ''
@@ -205,9 +222,17 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {billing?.plan === 'agency' && (
-            <button type="button" onClick={exportClientReport} className={btnSecondary}>
-              Exporter le rapport client
-            </button>
+            <>
+              <button type="button" onClick={exportClientReport} className={btnSecondary}>
+                Exporter le rapport client
+              </button>
+              {billing.site && (
+                <>
+                  <button type="button" onClick={() => void createShareLink(billing.site!.id)} className={btnSecondary}>Créer un lien de rapport</button>
+                  <a href={`/api/feedback/export?siteId=${billing.site.id}`} className={btnSecondary}>Exporter les avis (CSV)</a>
+                </>
+              )}
+            </>
           )}
           <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>Actualiser</button>
           {quotaMessage}

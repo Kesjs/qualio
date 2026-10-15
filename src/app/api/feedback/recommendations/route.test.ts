@@ -8,6 +8,10 @@ const { client, query } = vi.hoisted(() => {
 })
 
 vi.mock('@/lib/supabase/server', () => ({ getSupabaseServerClient: async () => client }))
+vi.mock('@/lib/billing/limits', () => ({
+  getUserPlan: async () => 'pro',
+  isSiteWritable: async () => true,
+}))
 
 import { PATCH } from './route'
 

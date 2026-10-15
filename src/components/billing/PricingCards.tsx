@@ -68,11 +68,13 @@ export function PricingCards() {
     ['Avis par projet', '50', '2 000', '10 000'],
     ['Synthèses manuelles', '2 par mois', '1 par jour', '2 par semaine'],
     ['Synthèse automatique', '—', 'Chaque semaine', 'Chaque semaine'],
-    ['Widget de collecte', '—', 'Oui', 'Oui, sur 15 sites'],
-    ['Email du lundi', '—', 'Oui', 'Oui'],
-    ['Historique des décisions', '—', 'Oui', 'Oui'],
+    ['Widget de collecte', 'Oui (50 avis analysés)', 'Oui', 'Oui, sur 15 sites'],
+    ['Avis reçus au-delà de la limite', 'Conservés, non analysés', 'Analysés', 'Analysés'],
+    ['Email du lundi', 'Court, 2 par mois max', 'Complet', 'Complet, tous projets'],
+    ['Alerte thème négatif', '—', 'Oui', 'Oui'],
+    ['Historique et effet des décisions', '—', 'Oui', 'Oui'],
     ['Rapport client partageable', '—', '—', 'Oui'],
-    ['Export des synthèses et avis', '—', '—', 'Oui'],
+    ['Export CSV des avis', '—', '—', 'Oui'],
   ] as const
 
   return (

@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { SiteShell } from '@/components/landing/SiteShell'
 import { Eyebrow, PrimaryButton } from '@/components/landing/primitives'
 import { H2, MUTED } from '@/components/landing/tokens'
-import { LEGAL } from '@/components/landing/legal'
 
 export const metadata: Metadata = {
   title: 'Contact — Qualio',
@@ -19,7 +18,7 @@ export default function ContactPage() {
           Une question sur la collecte, l’import de vos avis ou leur transformation en décisions ? Écrivez-nous. Vous voulez être prévenu quand le plan Pro ouvre ? Dites-le-nous aussi.
         </p>
         <div className="mt-8">
-          <PrimaryButton href={`mailto:${LEGAL.email}`}>Écrire à l’équipe</PrimaryButton>
+          <PrimaryButton href="mailto:hello@qualio.dev">Écrire à l’équipe</PrimaryButton>
         </div>
       </div>
     </SiteShell>

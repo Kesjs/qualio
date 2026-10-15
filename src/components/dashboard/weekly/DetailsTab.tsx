@@ -75,7 +75,7 @@ export function DetailsTab({ data, actions, billing, days, onDays }: { data: Ove
             <ul className="mt-3 divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {decided.map((action) => (
                 <li key={action.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                  <span className="min-w-0 truncate text-gray-950 dark:text-white">{action.title}</span>
+                  <span className="min-w-0 text-gray-950 dark:text-white"><span className="block truncate">{action.title}</span>{action.effect && !action.effect.locked && <span className="mt-0.5 block text-xs text-gray-600 dark:text-zinc-400">Effet : {action.effect.label}{action.effect.concluded && action.effect.changePercent != null ? ` (${action.effect.changePercent > 0 ? '+' : ''}${action.effect.changePercent} %)` : ''}</span>}</span>
                   <span className="shrink-0 text-xs text-gray-600 dark:text-zinc-400">{DECISION_LABEL[action.status]} · proposée le {formatDate(action.created_at)}</span>
                 </li>
               ))}

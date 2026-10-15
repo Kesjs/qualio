@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArchiveBoxIcon, ArrowUturnLeftIcon, MagnifyingGlassIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useActions, useDashboardMutations, useFeedbackList, useThemes, type FeedbackFilters } from '@/lib/hooks/useDashboard'
 import { formatDate, sourceLabels, timeAgo, type FeedbackItem } from '@/lib/feedback/types'
-import { useProjectAccess, READ_ONLY_TEXT } from '@/components/dashboard/useProjectAccess'
+import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner } from '@/components/dashboard/weekly/bricks'
 import { card, dangerButton, EmptyState, ErrorState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, SentimentBadge, SentimentDot, selectClass, SidePanel, Skeleton, UsageMeter } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
@@ -89,7 +89,7 @@ function FeedbackInner() {
         actions={<Link href="/dashboard/collection" className={primaryButton}>Ajouter des avis</Link>}
       />
 
-      {access.readOnly && <Banner tone="info" action={access.isFree ? <Link href="/pricing" className={primaryButton}>Passer à Pro</Link> : undefined}>{READ_ONLY_TEXT}</Banner>}
+      {access.readOnly && <Banner tone="info" action={access.isFree ? <Link href="/pricing" className={primaryButton}>Passer à Pro</Link> : undefined}>{access.readOnlyText}</Banner>}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">

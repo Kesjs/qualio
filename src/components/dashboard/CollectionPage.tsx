@@ -8,7 +8,7 @@ import { useInvalidateAll } from '@/lib/hooks/useDashboard'
 import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
-import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
+import { Banner, surface } from '@/components/dashboard/weekly/bricks'
 import { EmptyState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, selectClass, Tabs } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
 
@@ -22,7 +22,7 @@ const TABS = [
 export function CollectionPage() {
   const access = useProjectAccess()
   const [tab, setTab] = useState<Tab>('csv')
-  const tabs = TABS.map((item) => (item.id === 'widget' ? { ...item, locked: access.isFree } : item))
+  const tabs = TABS
 
   return (
     <div className="space-y-6 pb-16">
@@ -270,7 +270,7 @@ function WidgetPanel() {
       if (!response.ok) throw new Error('Impossible de charger le widget.')
       return response.json() as Promise<WidgetSource[]>
     },
-    enabled: Boolean(site?.id) && !access.isFree,
+    enabled: Boolean(site?.id),
   })
   const source = sourcesQuery.data?.[0]
   const [settings, setSettings] = useState({ accentColor: '#ee6018', position: 'right', buttonLabel: 'Laisser un avis' })
@@ -278,9 +278,6 @@ function WidgetPanel() {
     if (source) setSettings({ accentColor: source.accent_color ?? '#ee6018', position: source.position ?? 'right', buttonLabel: source.button_label ?? 'Laisser un avis' })
   }, [source])
 
-  if (access.isFree) {
-    return <LockedFeature title="Widget en continu">Il reçoit les avis directement depuis votre site, sans import ni copier-coller.</LockedFeature>
-  }
   if (!site) return null
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
