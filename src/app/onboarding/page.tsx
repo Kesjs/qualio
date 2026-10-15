@@ -231,6 +231,34 @@ export default function OnboardingPage() {
     } catch (error) { fail(error, 'Impossible de terminer la configuration.'); setBusy(false) }
   }
 
+  async function skipOnboarding() {
+    setStatus(null)
+    setBusy(true)
+    try {
+      if (activeSite) {
+        await patchSite(activeSite, { onboarding_completed: true })
+      } else {
+        // Le dashboard nécessite un projet : créer un espace minimal permet de
+        // réellement quitter l'onboarding même depuis la toute première étape.
+        const response = await fetch('/api/sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Mon espace' }),
+        })
+        const result = await readJson(response)
+        if (!response.ok) throw new Error(result.error ?? 'Impossible de créer votre espace.')
+        const site = await patchSite(result as Site, { onboarding_completed: true })
+        saveSite(site)
+      }
+      window.localStorage.removeItem(DRAFT_KEY)
+      router.push('/dashboard')
+    } catch (error) {
+      fail(error, 'Impossible de passer cette étape.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function generateFirstSynthesis(target: Site) {
     setStatus(null); setBusy(true)
     try {
@@ -328,7 +356,7 @@ Consignes :
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1.5 dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
             <div><strong className="block text-sm">Qualio</strong><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-400">Première configuration</span></div>
           </div>
-          <button type="button" onClick={() => router.push('/dashboard')} className={btnQuiet}>Passer pour l’instant</button>
+          <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>Passer pour l’instant</button>
         </header>
 
         <div className="mx-auto mt-10 max-w-3xl space-y-6">
