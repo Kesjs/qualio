@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { PricingPlans } from '@/components/billing/PricingPlans'
 
 export const metadata: Metadata = {
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 }
 
 export default function PricingPage() {
-  return <PricingPlans />
+  return <Suspense fallback={null}><PricingPlans /></Suspense>
 }
