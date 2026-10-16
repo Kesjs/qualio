@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Check, ChevronDown } from 'lucide-react'
 import type { PaidPlan } from '@/lib/billing/plans'
-import { BILLING_PLANS } from '@/lib/billing/plans'
+import { BILLING_PLANS, isPaidPlan } from '@/lib/billing/plans'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP } from '@/components/landing/tokens'
 
 type Interval = 'month' | 'year'
@@ -13,22 +14,24 @@ const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || '$'
 
 /** Carte de tarif partagée par la landing, la page tarifs et les réglages. */
 export function PricingCards() {
+  const searchParams = useSearchParams()
   const [interval, setInterval] = useState<Interval>('month')
   const [loadingPlan, setLoadingPlan] = useState<PaidPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const checkoutStarted = useRef(false)
 
-  async function checkoutPlan(plan: PaidPlan) {
+  async function checkoutPlan(plan: PaidPlan, requestedInterval: Interval = interval) {
     setLoadingPlan(plan)
     setError(null)
     try {
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, interval }),
+        body: JSON.stringify({ plan, interval: requestedInterval }),
       })
       const result = await response.json().catch(() => ({}))
       if (response.status === 401) {
-        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}`)}`)
+        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}&interval=${requestedInterval}&checkout=1`)}`)
         return
       }
       if (!response.ok || !result.url) {
@@ -48,6 +51,18 @@ export function PricingCards() {
     // authentification si nécessaire, puis Checkout Stripe.
     await checkoutPlan(plan)
   }
+
+  // Après l’authentification, reprendre automatiquement l’intention payante
+  // au lieu de renvoyer l’utilisateur vers un dashboard Gratuit.
+  useEffect(() => {
+    const requestedPlan = searchParams.get('plan')
+    const requestedInterval = searchParams.get('interval')
+    if (searchParams.get('checkout') !== '1' || !isPaidPlan(requestedPlan) || checkoutStarted.current) return
+    const nextInterval = requestedInterval === 'month' || requestedInterval === 'year' ? requestedInterval : 'month'
+    if (requestedInterval === 'month' || requestedInterval === 'year') setInterval(requestedInterval)
+    checkoutStarted.current = true
+    void checkoutPlan(requestedPlan, nextInterval)
+  }, [searchParams])
 
   const free = BILLING_PLANS.free
   const pro = BILLING_PLANS.pro

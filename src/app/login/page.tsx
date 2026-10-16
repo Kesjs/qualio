@@ -180,7 +180,11 @@ export default function LoginPage() {
       toast.success(t.success.accountCreated)
       if (data.session) {
         await fetch('/api/auth/sync-preferences', { method: 'POST' }).catch((syncError) => console.error('[signup] preference sync failed:', syncError))
-        window.location.replace('/onboarding')
+        const paidPlan = intendedPlan === 'pro' || intendedPlan === 'agency'
+        const next = paidPlan
+          ? `/pricing?plan=${encodeURIComponent(intendedPlan)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}&checkout=1`
+          : '/onboarding'
+        window.location.replace(next)
       } else setMode('verify-email')
     } catch (err: any) {
       toast.error(err?.message || t.errors.registerFailed)
@@ -223,7 +227,7 @@ export default function LoginPage() {
     try {
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery&next=${encodeURIComponent(redirectPath)}`,
       })
       if (error) throw error
       toast.success(t.success.resetSent)
@@ -264,7 +268,7 @@ export default function LoginPage() {
   async function handleGoogle() {
     setGoogleLoading(true)
     try {
-      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -282,7 +286,7 @@ export default function LoginPage() {
   async function handleGithub() {
     setGithubLoading(true)
     try {
-      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
