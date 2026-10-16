@@ -4,7 +4,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export function AdminSignOut() {
   async function signOut() {
-    await getSupabaseBrowserClient().auth.signOut()
+    await getSupabaseBrowserClient().auth.signOut({ scope: 'local' })
+    await fetch('/api/auth/signout', { method: 'POST' }).catch(() => undefined)
     window.location.replace('/admin/login')
   }
 
