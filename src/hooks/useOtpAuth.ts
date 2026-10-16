@@ -28,12 +28,20 @@ export function useOtpAuth(): UseOtpAuthReturn {
     setIsLoading(true)
     setError(null)
     try {
+      const rateCheck = await fetch('/api/auth/signup-check', { method: 'POST' })
+      if (rateCheck.status === 429) {
+        setError(t.errors.tooManyAttempts)
+        toast.error(t.errors.tooManyAttempts)
+        return false
+      }
+
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
-          // OTP is a sign-in path. Account creation stays explicit in signup.
-          shouldCreateUser: false,
+          // OTP is also an explicit account-creation path. The rate-limit check
+          // above and Supabase's own email limits protect this endpoint.
+          shouldCreateUser: true,
           emailRedirectTo: (() => {
             const params = new URLSearchParams(window.location.search)
             const next = params.get('redirectTo')
