@@ -11,12 +11,6 @@ type Interval = 'month' | 'year'
 
 const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || '$'
 
-/**
- * Le paiement n'est proposé que lorsque NEXT_PUBLIC_BILLING_ENABLED=true (Stripe branché).
- * Sinon les cartes payantes gardent un bouton « Me prévenir » vers la page Contact (doc 9.1).
- */
-const BILLING_ENABLED = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
-
 /** Carte de tarif partagée par la landing, la page tarifs et les réglages. */
 export function PricingCards() {
   const [interval, setInterval] = useState<Interval>('month')
@@ -50,12 +44,9 @@ export function PricingCards() {
   }
 
   async function choosePlan(plan: PaidPlan) {
-    if (BILLING_ENABLED) {
-      await checkoutPlan(plan)
-      return
-    }
-
-    window.location.assign(`/contact?interest=${plan}&interval=${interval}`)
+    // Le bouton doit toujours suivre le vrai parcours d’abonnement :
+    // authentification si nécessaire, puis Checkout Stripe.
+    await checkoutPlan(plan)
   }
 
   const free = BILLING_PLANS.free
