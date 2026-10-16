@@ -8,6 +8,11 @@ function AuthCodeRedirect() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    const oauthError = searchParams.get("error_code") || searchParams.get("error");
+    if (oauthError === "bad_oauth_state" || oauthError === "invalid_request") {
+      window.location.replace("/login?error=oauth_state_expired");
+      return;
+    }
     const code = searchParams.get("code");
     if (!code) return;
     const next = searchParams.get("next");

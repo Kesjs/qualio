@@ -115,7 +115,10 @@ export default function LoginPage() {
     if (searchParams.get('error') === 'auth_callback_failed') {
       toast.error(t.errors.authCallbackFailed)
     }
-  }, [searchParams, t.errors.authCallbackFailed])
+    if (searchParams.get('error') === 'oauth_state_expired') {
+      toast.error(t.errors.oauthStateExpired)
+    }
+  }, [searchParams, t.errors.authCallbackFailed, t.errors.oauthStateExpired])
 
   const planParam = searchParams.get('plan')
   const [email, setEmail] = useState('')
