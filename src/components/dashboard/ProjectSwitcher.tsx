@@ -71,7 +71,7 @@ export function ProjectSwitcher({ compact = false }: { compact?: boolean }) {
             ))}
           </div>
           <div className="mt-1 border-t border-gray-100 pt-1 dark:border-white/[0.07]">
-            <Link href="/dashboard/projects" onClick={() => setOpen(false)} className="flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-white/[0.04]"><Cog6ToothIcon className="h-4 w-4" /> Gérer les projets</Link>
+            {billing?.plan !== 'free' && <Link href="/dashboard/projects" onClick={() => setOpen(false)} className="flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-white/[0.04]"><Cog6ToothIcon className="h-4 w-4" /> Gérer les projets</Link>}
             {limitReached ? (
               <div className="px-2.5 py-2">
                 <button type="button" disabled className="flex min-h-11 w-full cursor-not-allowed items-center gap-2 rounded-md text-left text-xs font-semibold text-gray-400 dark:text-zinc-500"><LockClosedIcon className="h-4 w-4" /> Nouveau projet</button>
