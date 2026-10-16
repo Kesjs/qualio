@@ -80,7 +80,7 @@ export default function LoginPage() {
   const { language } = useLanguage()
   const t = translations[language].auth
 
-  const { isLoading: otpLoading, requestOtp, verifyOtp } = useOtpAuth()
+  const { isLoading: otpLoading, error: otpRequestError, requestOtp, verifyOtp } = useOtpAuth()
 
   const redirectPath = (() => {
     const requestedPath = searchParams.get('redirectTo')
@@ -494,6 +494,7 @@ export default function LoginPage() {
                   required
                 />
                 <AuthButton loading={otpLoading} type="submit">{t.labels.sendCode}</AuthButton>
+                {otpRequestError && <p role="alert" style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#b42318', margin: 0 }}>{otpRequestError}</p>}
                 <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>{t.labels.signInPasswordInstead}</AuthButton>
               </form>
             )}

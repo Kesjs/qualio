@@ -8,12 +8,14 @@ import { translations } from '@/i18n/translations'
 
 interface UseOtpAuthReturn {
   isLoading: boolean
+  error: string | null
   requestOtp: (email: string) => Promise<boolean>
   verifyOtp: (email: string, code: string) => Promise<boolean>
 }
 
 export function useOtpAuth(): UseOtpAuthReturn {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { language } = useLanguage()
   const t = translations[language].auth
 
@@ -24,6 +26,7 @@ export function useOtpAuth(): UseOtpAuthReturn {
     }
 
     setIsLoading(true)
+    setError(null)
     try {
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOtp({
@@ -44,7 +47,9 @@ export function useOtpAuth(): UseOtpAuthReturn {
       toast.success(t.success.otpSent)
       return true
     } catch (err: any) {
-      toast.error(err?.message || t.errors.otpFailed)
+      const message = t.errors.otpFailed
+      setError(message)
+      toast.error(message)
       return false
     } finally {
       setIsLoading(false)
@@ -58,6 +63,7 @@ export function useOtpAuth(): UseOtpAuthReturn {
     }
 
     setIsLoading(true)
+    setError(null)
     try {
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.verifyOtp({
@@ -70,12 +76,14 @@ export function useOtpAuth(): UseOtpAuthReturn {
       toast.success(t.success.otpVerified)
       return true
     } catch (err: any) {
-      toast.error(err?.message === 'Token has expired or is invalid' ? t.errors.invalidCode : err?.message || t.errors.otpVerifyFailed)
+      const message = err?.message === 'Token has expired or is invalid' ? t.errors.invalidCode : t.errors.otpVerifyFailed
+      setError(message)
+      toast.error(message)
       return false
     } finally {
       setIsLoading(false)
     }
   }
 
-  return { isLoading, requestOtp, verifyOtp }
+  return { isLoading, error, requestOtp, verifyOtp }
 }
