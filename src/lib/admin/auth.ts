@@ -41,6 +41,10 @@ export async function requireAdminApi() {
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  // The layout and API must authorize the same authenticated session. This
+  // also preserves an explicit production email allowlist while a refreshed
+  // Supabase admin response is being reconciled.
+  if (isAllowedAdmin(user)) return user
   const authoritativeUser = await getAuthoritativeAdminUser(user)
   return isAllowedAdmin(authoritativeUser) ? authoritativeUser : null
 }
