@@ -505,6 +505,7 @@ export default function LoginPage() {
                   {t.labels.codeSentTo} <span style={{ color: C.stone }}>{otpEmail}</span>
                 </p>
                 <OtpInput
+                  length={6}
                   onComplete={handleOtpVerify}
                   error={otpError}
                   disabled={otpLoading}

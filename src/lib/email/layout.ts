@@ -20,7 +20,7 @@ export function renderEmail(input: {
   const unsubscribeHtml = input.unsubscribeUrl
     ? `<p style="font-size:12px;color:#666"><a href="${escapeHtml(input.unsubscribeUrl)}">Ne plus recevoir ces emails</a></p>`
     : ''
-  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#171717"><p style="color:#ee6018;font-weight:700">QUALIO</p><h1>${escapeHtml(input.heading)}</h1>${input.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}${ctaHtml}${unsubscribeHtml}</div>`
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#171717"><p style="margin:0 0 28px"><img src="https://tryqualio.pro/qualio-logo/export/lockup/lockup-brand-dark-900.png" width="150" alt="Qualio" style="display:block;border:0" /></p><h1>${escapeHtml(input.heading)}</h1>${input.lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}${ctaHtml}${unsubscribeHtml}<p style="margin-top:32px;font-size:12px;color:#777">Qualio — une vue fiable des avis qui comptent.</p></div>`
   const text = [
     input.heading,
     ...input.lines,

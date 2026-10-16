@@ -31,6 +31,11 @@ export function useOtpAuth(): UseOtpAuthReturn {
         options: {
           // OTP is a sign-in path. Account creation stays explicit in signup.
           shouldCreateUser: false,
+          emailRedirectTo: (() => {
+            const params = new URLSearchParams(window.location.search)
+            const next = params.get('redirectTo')
+            return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')}`
+          })(),
           data: { login_method: 'otp' },
         },
       })
@@ -47,7 +52,7 @@ export function useOtpAuth(): UseOtpAuthReturn {
   }
 
   const verifyOtp = async (email: string, code: string): Promise<boolean> => {
-    if (!email || !code) {
+    if (!email || !/^\d{6}$/.test(code)) {
       toast.error(t.errors.missingCode)
       return false
     }

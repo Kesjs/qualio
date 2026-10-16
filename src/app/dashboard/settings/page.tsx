@@ -249,6 +249,7 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
   const router = useRouter()
   const supabase = getSupabaseBrowserClient()
   const [email, setEmail] = useState('')
+  const [newEmail, setNewEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -269,6 +270,17 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
     const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim().slice(0, 120) } })
     setBusy(false)
     onFlash(error ? { tone: 'error', text: 'Impossible d’enregistrer votre profil.' } : { tone: 'ok', text: 'Profil enregistré.' })
+  }
+
+  async function changeEmail() {
+    const nextEmail = newEmail.trim().toLowerCase()
+    if (!nextEmail || nextEmail === email.toLowerCase()) return onFlash({ tone: 'error', text: 'Saisissez une nouvelle adresse email.' })
+    setBusy(true)
+    const { error } = await supabase.auth.updateUser({ email: nextEmail })
+    setBusy(false)
+    if (error) return onFlash({ tone: 'error', text: 'Impossible de demander le changement d’email.' })
+    setNewEmail('')
+    onFlash({ tone: 'ok', text: 'Vérifiez les emails de confirmation pour terminer le changement.' })
   }
 
   async function changePassword() {
@@ -304,6 +316,13 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
           <input value={email} readOnly className={`${inputClass} mt-2 cursor-default bg-gray-50 text-gray-600 dark:bg-white/[0.02] dark:text-zinc-400`} />
         </label>
         <button type="button" onClick={() => void saveProfile()} disabled={busy} className={`${primaryButton} mt-6`}>Enregistrer le profil</button>
+        <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/[0.08]">
+          <label className="block text-sm font-semibold text-gray-800 dark:text-zinc-200">Nouvelle adresse email
+            <input value={newEmail} onChange={(event) => setNewEmail(event.target.value)} type="email" autoComplete="email" placeholder="nouvelle-adresse@exemple.com" className={`${inputClass} mt-2`} />
+          </label>
+          <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-zinc-400">Une confirmation de sécurité sera demandée avant le remplacement de l’adresse.</p>
+          <button type="button" onClick={() => void changeEmail()} disabled={busy || !newEmail} className={`${secondaryButton} mt-4`}>Demander le changement d’email</button>
+        </div>
       </section>
 
       <section className={`${surface} p-5 sm:p-6`} aria-labelledby="password-title">
