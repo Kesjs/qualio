@@ -12,7 +12,12 @@ export function isAllowedAdmin(user: { email?: string | null; app_metadata?: Rec
 export async function getAuthoritativeAdminUser(user: { id: string; email?: string | null; app_metadata?: Record<string, unknown> | null }) {
   try {
     const { data } = await getSupabaseAdminClient().auth.admin.getUserById(user.id)
-    return data.user ?? user
+    const authoritativeUser = data.user ?? user
+    // Keep the production email allowlist effective when the admin API response
+    // does not expose the same app_metadata shape as the authenticated session.
+    if (isAllowedAdmin(authoritativeUser)) return authoritativeUser
+    if (user.email && allowlist().has(user.email.toLowerCase())) return user
+    return authoritativeUser
   } catch {
     return user
   }
