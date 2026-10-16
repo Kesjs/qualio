@@ -11,10 +11,11 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get('code')
   const type = searchParams.get('type') // 'recovery' | 'signup' | 'email'
   const callbackError = searchParams.get('error')
-  const requestedNext = searchParams.get('next') ?? (new URL(req.url).hostname === 'admin.tryqualio.pro' ? '/admin' : '/dashboard')
+  const isAdminHost = new URL(req.url).hostname === 'admin.tryqualio.pro'
+  const requestedNext = searchParams.get('next') ?? (isAdminHost ? '/admin' : '/dashboard')
   const legacyPrefixes = ['/dashboard/sites', '/dashboard/scans', '/dashboard/bugs', '/scan']
   const isLegacyPath = legacyPrefixes.some((prefix) => requestedNext === prefix || requestedNext.startsWith(`${prefix}/`))
-  const fallbackNext = new URL(req.url).hostname === 'admin.tryqualio.pro' ? '/admin' : '/dashboard'
+  const fallbackNext = isAdminHost ? '/admin' : '/dashboard'
   const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') && !isLegacyPath ? requestedNext : fallbackNext
 
   if (code) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
         try {
           await syncWeeklyDigestPreference(user)
         } catch (syncError) { console.error('[auth-callback] preference sync failed:', syncError) }
-        if (new URL(req.url).hostname !== 'admin.tryqualio.pro' && type !== 'recovery' && user.email) {
+        if (!isAdminHost && type !== 'recovery' && user.email) {
           try {
             const admin = getSupabaseAdminClient() as any
             const { count } = await admin.from('feedback').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
@@ -34,11 +35,11 @@ export async function GET(req: NextRequest) {
           } catch (welcomeError) { console.error('[auth-callback] welcome email failed:', welcomeError) }
         }
       }
-      if (new URL(req.url).hostname === 'admin.tryqualio.pro' && !isAllowedAdmin(user)) {
-        return NextResponse.redirect(`${origin}/login?error=not_admin&redirectTo=/admin`)
+      if (isAdminHost && !isAllowedAdmin(user)) {
+        return NextResponse.redirect(`${origin}/admin-auth?error=not_admin&redirectTo=/admin`)
       }
       if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/login?mode=reset-password&next=${encodeURIComponent(next)}`)
+        return NextResponse.redirect(`${origin}${isAdminHost ? '/admin-auth' : '/login'}?mode=reset-password&next=${encodeURIComponent(next)}`)
       }
       return NextResponse.redirect(`${origin}${next}`)
     }
@@ -49,8 +50,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?mode=reset-password&next=${encodeURIComponent(next)}`)
   }
 
-  const errorPath = new URL(req.url).hostname === 'admin.tryqualio.pro'
-    ? '/login?error=auth_callback_failed&redirectTo=/admin'
+  const errorPath = isAdminHost
+    ? '/admin-auth?error=auth_callback_failed&redirectTo=/admin'
     : '/login?error=auth_callback_failed'
   return NextResponse.redirect(`${origin}${errorPath}`)
 }

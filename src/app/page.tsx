@@ -10,7 +10,8 @@ function AuthCodeRedirect() {
   useEffect(() => {
     const oauthError = searchParams.get("error_code") || searchParams.get("error");
     if (oauthError === "bad_oauth_state" || oauthError === "invalid_request") {
-      window.location.replace("/login?error=oauth_state_expired");
+      const loginPath = window.location.hostname === 'admin.tryqualio.pro' ? '/admin-auth?error=oauth_state_expired' : '/login?error=oauth_state_expired'
+      window.location.replace(loginPath);
       return;
     }
     const code = searchParams.get("code");

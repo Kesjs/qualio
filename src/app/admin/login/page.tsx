@@ -28,6 +28,9 @@ export default function AdminLoginPage() {
     if (searchParams.get('error') === 'auth_callback_failed') {
       toast.error('La connexion Google n’a pas pu être finalisée. Réessayez.')
     }
+    if (searchParams.get('error') === 'oauth_state_expired') {
+      toast.error('Cette tentative de connexion Google a expiré. Recommencez.')
+    }
     getSupabaseBrowserClient().auth.getUser().then(({ data }) => {
       if (data.user) window.location.replace(redirectPath)
     })
