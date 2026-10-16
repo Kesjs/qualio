@@ -3,7 +3,7 @@
 import { confirmAction } from '@/components/dashboard/dialogs'
 import { ColorField } from '@/components/dashboard/ColorField'
 
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline'
@@ -69,14 +69,18 @@ function notifyChange(message?: string) {
 function CsvPanel() {
   const access = useProjectAccess()
   const { invalidate } = useInvalidateAll()
-  const [analysis, setAnalysis] = useState<CsvAnalysis | null>(null)
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [textCol, setTextCol] = useState(-1)
-  const [authorCol, setAuthorCol] = useState(-1)
-  const [dateCol, setDateCol] = useState(-1)
+  const draftKey = `qualio:csv-draft:${access.activeSite?.id ?? 'none'}`
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  const [analysis, setAnalysis] = useState<CsvAnalysis | null>(() => readCsvDraft(draftKey)?.analysis ?? null)
+  const [fileName, setFileName] = useState<string | null>(() => readCsvDraft(draftKey)?.fileName ?? null)
+  const [fileBytes, setFileBytes] = useState<number | null>(() => readCsvDraft(draftKey)?.fileBytes ?? null)
+  const [textCol, setTextCol] = useState(() => readCsvDraft(draftKey)?.textCol ?? -1)
+  const [authorCol, setAuthorCol] = useState(() => readCsvDraft(draftKey)?.authorCol ?? -1)
+  const [dateCol, setDateCol] = useState(() => readCsvDraft(draftKey)?.dateCol ?? -1)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
+  const abortRef = useRef<AbortController | null>(null)
   const [status, setStatus] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const headers = analysis?.headers ?? []
   const split = useMemo(() => splitByContent(analysis?.rows ?? [], textCol, dateCol), [analysis, textCol, dateCol])
@@ -84,7 +88,27 @@ function CsvPanel() {
   const blocked = Boolean(access.blockReason) || !access.activeSite
   const remaining = access.site ? Math.max(0, access.site.feedbackLimit - access.site.feedback) : null
 
-  function reset() { setAnalysis(null); setFileName(null) }
+  useEffect(() => {
+    const siteId = access.activeSite?.id
+    if (!siteId) return
+    const draft = readCsvDraft(`qualio:csv-draft:${siteId}`)
+    if (draft) {
+      setAnalysis(draft.analysis); setFileName(draft.fileName); setFileBytes(draft.fileBytes)
+      setTextCol(draft.textCol); setAuthorCol(draft.authorCol); setDateCol(draft.dateCol)
+    }
+    setDraftLoaded(true)
+  }, [access.activeSite?.id])
+
+  useEffect(() => {
+    if (!draftLoaded || !access.activeSite?.id) return
+    if (!analysis || !fileName) {
+      window.sessionStorage.removeItem(draftKey)
+      return
+    }
+    window.sessionStorage.setItem(draftKey, JSON.stringify({ analysis, fileName, fileBytes, textCol, authorCol, dateCol }))
+  }, [access.activeSite?.id, analysis, authorCol, dateCol, draftKey, draftLoaded, fileBytes, fileName, textCol])
+
+  function reset() { setAnalysis(null); setFileName(null); setFileBytes(null); setTextCol(-1); setAuthorCol(-1); setDateCol(-1) }
 
   function loadFiles(fileList: FileList | File[] | null | undefined) {
     setStatus(null); setProgress(0)
@@ -104,7 +128,7 @@ function CsvPanel() {
         return setStatus({ tone: 'error', text: mismatched ? 'Pour fusionner plusieurs CSV, utilisez la même structure de colonnes dans chaque fichier.' : invalid?.errors[0]?.message ?? 'Les fichiers doivent contenir des avis valides.' })
       }
       const merged = analyzeCsv(toCsv([first.headers, ...analyses.flatMap((result) => result.rows.map((row) => row.cells))]))
-      setAnalysis(merged); setFileName(files.length === 1 ? files[0].name : `${files.length} fichiers CSV`)
+      setAnalysis(merged); setFileName(files.length === 1 ? files[0].name : `${files.length} fichiers CSV`); setFileBytes(files.reduce((total, file) => total + file.size, 0))
       setTextCol(merged.detected.text); setAuthorCol(merged.detected.author); setDateCol(merged.detected.date)
     }).catch(() => setStatus({ tone: 'error', text: 'Les fichiers n’ont pas pu être lus.' }))
   }
@@ -131,7 +155,8 @@ function CsvPanel() {
     setBusy(true); setStatus(null); setProgress(30)
     try {
       const csv = toCsv([['content', 'author_name', 'created_at'], ...body])
-      const response = await fetch('/api/feedback/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: access.activeSite.id, csv }) })
+      abortRef.current = new AbortController()
+      const response = await fetch('/api/feedback/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteId: access.activeSite.id, csv }), signal: abortRef.current.signal })
       setProgress(100)
       const result = await response.json().catch(() => ({}))
       if (!response.ok) return setStatus({ tone: 'error', text: result.error ?? 'Le fichier n’a pas pu être importé.' })
@@ -142,9 +167,10 @@ function CsvPanel() {
       setStatus({ tone: 'ok', text })
       reset()
       await invalidate(); await access.refetchBilling(); notifyChange()
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return setStatus({ tone: 'error', text: 'Import annulé. Votre fichier est toujours prêt à être importé.' })
       setStatus({ tone: 'error', text: 'Import impossible pour le moment. Réessayez.' })
-    } finally { setBusy(false) }
+    } finally { abortRef.current = null; setBusy(false) }
   }
 
   return (
@@ -173,7 +199,7 @@ function CsvPanel() {
       {fileName && analysis && (
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <p className="min-w-0 font-medium text-gray-900 dark:text-white"><span className="break-all font-mono">{fileName}</span> · <span className="font-mono">{analysis.rows.length}</span> lignes</p>
+            <p className="min-w-0 font-medium text-gray-900 dark:text-white"><span className="break-all font-mono">{fileName}</span> · <span className="font-mono">{analysis.rows.length}</span> lignes{fileBytes !== null ? <> · <span className="font-mono">{formatFileSize(fileBytes)}</span></> : null}</p>
             <button type="button" onClick={reset} className={`${secondaryButton} min-h-9 px-3 text-xs`}>Choisir un autre fichier</button>
           </div>
 
@@ -187,8 +213,10 @@ function CsvPanel() {
             <button type="button" onClick={() => void importRows()} disabled={busy || blocked || textCol < 0 || hasErrors || split.valid.length === 0} className={primaryButton}>
               {busy ? 'Import en cours…' : `Importer ${split.valid.length} avis`}
             </button>
+            {busy && <button type="button" onClick={() => abortRef.current?.abort()} className={secondaryButton}>Annuler l’import</button>}
             {remaining !== null && !blocked && <p className="font-mono text-xs text-gray-500 dark:text-zinc-400">{remaining} avis encore disponibles dans ce projet</p>}
           </div>
+          <p className="text-xs text-gray-500 dark:text-zinc-400">{split.valid.length} avis seront importés{split.ignored ? ` · ${split.ignored} ligne${split.ignored > 1 ? 's' : ''} ignorée${split.ignored > 1 ? 's' : ''}` : ''}.</p>
         </div>
       )}
 
@@ -413,4 +441,29 @@ function Tip({ title, body }: { title: string; body: string }) {
 
 function escapeAttr(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character)
+}
+
+type CsvDraft = {
+  analysis: CsvAnalysis
+  fileName: string
+  fileBytes: number | null
+  textCol: number
+  authorCol: number
+  dateCol: number
+}
+
+function readCsvDraft(key: string): CsvDraft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const value = window.sessionStorage.getItem(key)
+    return value ? JSON.parse(value) as CsvDraft : null
+  } catch {
+    return null
+  }
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} Mo`
 }
