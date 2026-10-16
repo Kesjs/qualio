@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
-import { CheckIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, ChevronRightIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import type { Site } from '@/lib/hooks/useSites'
 import { card, dangerButton, EmptyState, ErrorState, focusRing, inputClass, PageHeader, primaryButton, secondaryButton, Skeleton } from '@/components/dashboard/ui'
@@ -53,7 +54,12 @@ export default function ProjectsPage() {
   }
 
   return <div className="space-y-6 pb-16">
-    <PageHeader eyebrow="Projets" title="Gérer vos projets" description="Identifiez, ouvrez, renommez ou supprimez les espaces de travail de votre compte." />
+    <nav aria-label="Fil d’Ariane" className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-zinc-400">
+      <Link href="/dashboard/settings" className={`rounded px-1.5 py-1 hover:text-gray-950 dark:hover:text-white ${focusRing}`}>Réglages</Link>
+      <ChevronRightIcon className="h-4 w-4 text-gray-400 dark:text-zinc-600" aria-hidden />
+      <span aria-current="page" className="px-1.5 py-1 font-medium text-gray-900 dark:text-zinc-100">Projets</span>
+    </nav>
+    <PageHeader eyebrow="Réglages · Projets" title="Gérer vos projets" description="Identifiez, ouvrez, renommez ou supprimez les espaces de travail de votre compte." />
     {message && <p role={message.tone === 'error' ? 'alert' : 'status'} className={`rounded-lg border px-4 py-3 text-sm ${message.tone === 'error' ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200' : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100'}`}>{message.text}</p>}
     {isLoading && <div className="space-y-3"><Skeleton className="h-28" /><Skeleton className="h-28" /></div>}
     {error && <ErrorState message="Impossible de charger vos projets." onRetry={() => refetch()} />}
