@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { syncWeeklyDigestPreference } from '@/lib/auth/notification-preferences'
-import { isAllowedAdmin } from '@/lib/admin/auth'
+import { getAuthoritativeAdminUser, isAllowedAdmin } from '@/lib/admin/auth'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail } from '@/lib/email/billing-emails'
 
@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
           } catch (welcomeError) { console.error('[auth-callback] welcome email failed:', welcomeError) }
         }
       }
-      if (isAdminHost && !isAllowedAdmin(user)) {
+      const adminUser = isAdminHost && user ? await getAuthoritativeAdminUser(user) : user
+      if (isAdminHost && !isAllowedAdmin(adminUser)) {
         return NextResponse.redirect(`${origin}/admin-auth?error=not_admin&redirectTo=/admin`)
       }
       if (type === 'recovery') {
