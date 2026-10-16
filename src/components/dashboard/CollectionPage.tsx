@@ -43,9 +43,15 @@ export function CollectionPage() {
           <Tabs label="Mode d’ajout" tabs={tabs} value={tab} onChange={setTab} />
 
           <div role="tabpanel" aria-label={TABS.find((item) => item.id === tab)?.label} className="motion-safe:animate-[qualio-fade_200ms_ease-out]">
-            {tab === 'csv' && <CsvPanel />}
-            {tab === 'manual' && <ManualPanel />}
-            {tab === 'widget' && <WidgetPanel key={access.activeSite?.id} />}
+            <div hidden={tab !== 'csv'}>
+              <CsvPanel />
+            </div>
+            <div hidden={tab !== 'manual'}>
+              <ManualPanel />
+            </div>
+            <div hidden={tab !== 'widget'}>
+              <WidgetPanel key={access.activeSite?.id} />
+            </div>
           </div>
         </>
       )}
