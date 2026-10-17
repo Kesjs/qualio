@@ -9,6 +9,7 @@ import { analyzeCsv, CSV_MAX_BYTES, isCsvFileName, splitByContent, toCsv, type C
 import type { PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
+import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { Banner, btnQuiet, surface } from '@/components/dashboard/weekly/bricks'
 import { focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton } from '@/components/dashboard/ui'
 
@@ -357,7 +358,10 @@ Consignes :
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
             <div><strong className="block text-sm">Qualio</strong><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-400">Première configuration</span></div>
           </div>
-          <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>Passer pour l’instant</button>
+          <div className="flex items-center gap-2">
+            <AnimatedThemeToggle className="h-9 w-9" />
+            <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>Passer pour l’instant</button>
+          </div>
         </header>
 
         <div className="mx-auto mt-10 max-w-3xl space-y-6">
