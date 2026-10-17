@@ -38,7 +38,10 @@ export function PricingCards() {
         setError(result.error ?? 'Le paiement n’est pas encore disponible.')
         return
       }
-      window.location.assign(result.url)
+      // Keep Qualio available while the hosted GeniusPay checkout is open.
+      // If the browser blocks a new tab, fall back to the current tab.
+      const paymentWindow = window.open(result.url, '_blank', 'noopener,noreferrer')
+      if (!paymentWindow) window.location.assign(result.url)
     } catch {
       setError('Impossible d’ouvrir le paiement. Réessayez dans un instant.')
     } finally {

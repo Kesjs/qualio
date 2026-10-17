@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     customer: { email: user.email ?? undefined },
     metadata: { user_id: user.id, plan, interval, provider: 'geniuspay' },
     successUrl: `${origin}/billing/success`,
-    errorUrl: `${origin}/pricing?checkout=canceled`,
+    errorUrl: `${origin}/billing/canceled`,
   })
   return NextResponse.json({ url: payment.payment_url, reference: payment.reference })
 }
