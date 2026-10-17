@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, Check, ChevronDown, Minus } from 'lucide-react'
 import { ACCENT, ACCENT_INK, DARK, FOCUS, H2, INK, LINE, MUTED, R_CARD, R_CHIP, SIGNUP, SOFT } from './tokens'
 import { AUDIENCES, COMPARISON, FAQ, PROBLEMS } from './content'
-import { Eyebrow, Reveal, PrimaryButton } from './primitives'
+import { Eyebrow, Reveal, PrimaryButton, UnderlineWord } from './primitives'
 
 /* ───────── Le problème (bloc sombre, statique) ───────── */
 
@@ -17,7 +17,7 @@ export function ProblemSection() {
         <div className={`grid gap-12 p-8 sm:p-14 lg:grid-cols-[1fr_1.15fr] lg:gap-16 ${R_CARD}`} style={{ background: DARK, color: '#fff' }}>
           <div>
             <Eyebrow dark>Le problème</Eyebrow>
-            <h2 className={`mt-5 ${H2}`}>Les avis s’accumulent. Les décisions, elles, attendent.</h2>
+            <h2 className={`mt-5 ${H2}`}>Les <UnderlineWord>avis</UnderlineWord> s’accumulent. Les décisions, elles, attendent.</h2>
           </div>
           <ul>
             {PROBLEMS.map(([t, d]) => (
@@ -70,7 +70,7 @@ export function ComparisonTable({ limit }: { limit?: number }) {
         <thead>
           <tr style={{ background: SOFT }}>
             <th scope="col" className="w-[40%] px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] sm:px-6" style={{ color: MUTED }}><span className="sr-only">Critère</span></th>
-            <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Un chat IA gratuit</th>
+            <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: MUTED }}>Un <UnderlineWord>chat IA gratuit</UnderlineWord></th>
             <th scope="col" className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: ACCENT_INK }}>Qualio</th>
           </tr>
         </thead>
@@ -168,8 +168,9 @@ export function FinalCta({ title = 'Transformez chaque avis en prochaine décisi
     <section className="px-5 pb-20">
       <Reveal className="mx-auto max-w-6xl">
         <div className={`px-6 py-16 text-center sm:px-16 sm:py-24 ${R_CARD}`} style={{ background: DARK, color: '#fff' }}>
-          <span className="mx-auto mb-8 block h-3 w-3 rounded-full" style={{ background: ACCENT }} aria-hidden="true" />
-          <h2 className="mx-auto max-w-3xl text-[clamp(2rem,4.8vw,3.75rem)] font-semibold leading-[1.1] tracking-[-0.03em] [text-wrap:balance]">{title}</h2>
+          <h2 className="mx-auto max-w-3xl text-[clamp(2rem,4.8vw,3.75rem)] font-semibold leading-[1.1] tracking-[-0.03em] [text-wrap:balance]">
+            {title === 'Transformez chaque avis en prochaine décision.' ? <>Transformez chaque <UnderlineWord>avis</UnderlineWord> en prochaine décision.</> : title}
+          </h2>
           <p className="mx-auto mt-6 max-w-xl text-base" style={{ color: '#a1a1aa' }}>{text}</p>
           <div className="mt-10">
             <PrimaryButton href={SIGNUP} dark>Commencer gratuitement</PrimaryButton>

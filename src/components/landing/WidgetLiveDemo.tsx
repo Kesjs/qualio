@@ -1,9 +1,7 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Check, MessageSquare, Star, X, Sparkles, Sliders, ArrowRight, RotateCcw } from 'lucide-react'
-import { SIGNUP } from './tokens'
+import { Check, MessageSquare, X, Sparkles, ArrowRight } from 'lucide-react'
 
 export interface WidgetDemoConfig {
   accentColor: string
@@ -35,18 +33,7 @@ interface WidgetLiveDemoProps {
 
 export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoProps) {
   const [config, setConfig] = useState<WidgetDemoConfig>(DEFAULT_CONFIG)
-  const [isWidgetActive, setIsWidgetActive] = useState(false)
-  const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  // Form states inside demo widget panel
-  const [rating, setRating] = useState<number | null>(5)
-  const [hoverRating, setHoverRating] = useState<number | null>(null)
-  const [content, setContent] = useState('')
-  const [authorName, setAuthorName] = useState('')
-  const [authorEmail, setAuthorEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
 
   // Auto-dismiss toast after 6 seconds
   useEffect(() => {
@@ -55,41 +42,51 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
     return () => clearTimeout(timer)
   }, [toastMessage])
 
-  // Listen for custom event to reopen demo modal from widget footer
-  useEffect(() => {
-    function handleReopen() {
-      // Re-trigger open
-      window.dispatchEvent(new CustomEvent('qualio:open-demo'))
-    }
-    window.addEventListener('qualio:open-demo-modal', handleReopen)
-    return () => window.removeEventListener('qualio:open-demo-modal', handleReopen)
-  }, [])
-
   function handleActivateDemo() {
-    setIsWidgetActive(true)
+    // 1. Supprimer l'éventuel widget précédent
+    const existingHost = document.querySelector('[data-qualio-widget]') as HTMLElement | null
+    if (existingHost) existingHost.remove()
+
+    const oldScript = document.querySelector('script[data-qualio-demo]') as HTMLElement | null
+    if (oldScript) oldScript.remove()
+
+    // 2. Réinitialiser le verrou singleton du widget
+    ;(window as any).__qualioWidgetLoaded = false
+
+    // 3. Récupérer la clé publique de démo
+    const demoKey = process.env.NEXT_PUBLIC_QUALIO_WIDGET_KEY || 'guWs9U6tKOXoeCnxVN_M1um9QqxgIhhm'
+
+    // 4. Injecter dynamiquement le vrai script /widget.js
+    const script = document.createElement('script')
+    script.src = '/widget.js'
+    script.setAttribute('data-qualio-demo', 'true')
+    script.setAttribute('data-key', demoKey)
+    script.setAttribute('data-accent', config.accentColor)
+    script.setAttribute('data-position', config.position)
+    script.setAttribute('data-label', config.buttonLabel || 'Donner mon avis')
+    script.setAttribute('data-title', 'Votre avis compte')
+    script.setAttribute('data-intro', 'Testez le widget Qualio en conditions réelles.')
+
+    // 5. À l'exécution du script, animer ou ouvrir le widget
+    script.onload = () => {
+      setTimeout(() => {
+        const w = (window as any).qualioWidget
+        if (w?.highlight) {
+          w.highlight()
+        } else if (w?.open) {
+          w.open()
+        }
+      }, 150)
+    }
+
+    document.body.appendChild(script)
+
+    // 6. Fermer la modal et afficher le toast confirmant que le vrai widget est actif
     onClose()
     onActivated?.()
     setToastMessage(
-      `Widget activé en bas à ${config.position === 'right' ? 'droite' : 'gauche'} ! Cliquez dessus pour tester l’expérience.`
+      `Le vrai widget Qualio est maintenant actif en bas à ${config.position === 'right' ? 'droite' : 'gauche'} !`
     )
-  }
-
-  function handleWidgetSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!content.trim()) return
-    setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSubmitted(true)
-    }, 400)
-  }
-
-  function resetForm() {
-    setContent('')
-    setAuthorName('')
-    setAuthorEmail('')
-    setRating(5)
-    setIsSubmitted(false)
   }
 
   return (
@@ -114,13 +111,13 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-[#ee6018]">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Démo interactive
+                  Démo en direct
                 </span>
                 <h2 id="demo-modal-title" className="mt-2 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
                   Tester le widget en direct
                 </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  Personnalisez l’apparence rapide du widget et testez-le directement sur cette page.
+                  Personnalisez l’apparence et activez le vrai widget Qualio directement sur cette page.
                 </p>
               </div>
               <button
@@ -138,7 +135,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
               {/* Couleur d'accent */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Couleur d’accent du widget
+                  Couleur d'accent du widget
                 </label>
                 <div className="mt-2.5 flex flex-wrap items-center gap-3">
                   {COLOR_OPTIONS.map((c) => (
@@ -168,7 +165,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
               {/* Position à l'écran */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Position sur l’écran
+                  Position sur l'écran
                 </label>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <button
@@ -269,7 +266,9 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
 
       {/* 2. Toast de confirmation */}
       {toastMessage && (
-        <div className="fixed bottom-24 right-6 z-[90] max-w-sm animate-in fade-in slide-in-from-bottom-3 duration-200 sm:bottom-6 sm:right-6">
+        <div
+          style={{ position: 'fixed', bottom: '5.5rem', right: '1.5rem', zIndex: 9000, maxWidth: '22rem' }}
+        >
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-3.5 shadow-xl text-gray-800">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
               <Check className="h-4 w-4" />
@@ -282,231 +281,6 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
             >
               <X className="h-4 w-4" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Bouton déclencheur flottant du widget démo sur la page */}
-      {isWidgetActive && (
-        <div
-          className={`fixed bottom-6 z-[95] transition-all duration-300 ${
-            config.position === 'right' ? 'right-6' : 'left-6'
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => setIsPanelOpen((prev) => !prev)}
-            aria-expanded={isPanelOpen}
-            aria-label={config.buttonLabel || 'Donner mon avis'}
-            className="group relative inline-flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            style={{
-              backgroundColor: config.accentColor,
-              boxShadow: `0 14px 28px -6px ${config.accentColor}50, 0 6px 12px -2px rgba(0,0,0,0.12)`,
-            }}
-          >
-            <MessageSquare className="h-4 w-4 shrink-0 transition-transform group-hover:scale-110" />
-            <span>{config.buttonLabel || 'Donner mon avis'}</span>
-
-            {/* Pastille indiquant le mode démo */}
-            <span className="flex h-2 w-2 rounded-full bg-white/90 animate-ping absolute -top-1 -right-1" />
-            <span className="flex h-2 w-2 rounded-full bg-white absolute -top-1 -right-1" />
-          </button>
-        </div>
-      )}
-
-      {/* 4. Panneau modal / popover du widget interactif */}
-      {isWidgetActive && isPanelOpen && (
-        <div
-          className={`fixed bottom-20 z-[95] w-[360px] max-w-[calc(100vw-32px)] animate-in fade-in slide-in-from-bottom-2 duration-150 ${
-            config.position === 'right' ? 'right-6' : 'left-6'
-          }`}
-        >
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl text-gray-900">
-            {/* Header du widget */}
-            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-2 w-2 rounded-full" style={{ backgroundColor: config.accentColor }} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    Démo Qualio Widget
-                  </span>
-                </div>
-                <h3 className="mt-1 text-base font-bold text-gray-950">Votre avis compte</h3>
-                <p className="text-xs text-gray-500">Partagez votre expérience ou vos suggestions.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPanelOpen(false)}
-                aria-label="Fermer"
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Contenu : Formulaire ou Succès */}
-            {!isSubmitted ? (
-              <form onSubmit={handleWidgetSubmit} className="mt-4 space-y-3.5">
-                {/* Note par étoiles */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Note globale</label>
-                  <div className="mt-1.5 flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => {
-                      const active = (hoverRating ?? rating ?? 0) >= star
-                      return (
-                        <button
-                          key={star}
-                          type="button"
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(null)}
-                          onClick={() => setRating(star)}
-                          aria-label={`${star} sur 5`}
-                          className="rounded p-1 text-gray-300 transition hover:scale-110 focus:outline-none"
-                        >
-                          <Star
-                            className={`h-5 w-5 ${
-                              active ? 'fill-amber-400 text-amber-400' : 'text-gray-200'
-                            }`}
-                          />
-                        </button>
-                      )
-                    })}
-                    <span className="ml-2 text-xs font-semibold text-gray-600">
-                      {rating === 5
-                        ? '5/5 · Excellent'
-                        : rating === 4
-                        ? '4/5 · Très bien'
-                        : rating === 3
-                        ? '3/5 · Moyen'
-                        : rating === 2
-                        ? '2/5 · À améliorer'
-                        : rating === 1
-                        ? '1/5 · Décevant'
-                        : 'Sans note'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Champ texte */}
-                <div>
-                  <label htmlFor="demo-content" className="block text-xs font-medium text-gray-700">
-                    Votre avis <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    id="demo-content"
-                    required
-                    rows={3}
-                    maxLength={1000}
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Écrivez ce qui fonctionne bien ou ce qu’on devrait améliorer…"
-                    className="mt-1 w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-800 outline-none transition focus:border-gray-400 focus:ring-1 focus:ring-gray-300"
-                  />
-                </div>
-
-                {/* Nom et email */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="demo-name" className="block text-[11px] font-medium text-gray-600">
-                      Nom (facultatif)
-                    </label>
-                    <input
-                      id="demo-name"
-                      type="text"
-                      maxLength={80}
-                      value={authorName}
-                      onChange={(e) => setAuthorName(e.target.value)}
-                      placeholder="Thomas"
-                      className="mt-1 h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-800 outline-none focus:border-gray-400"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="demo-email" className="block text-[11px] font-medium text-gray-600">
-                      Email (facultatif)
-                    </label>
-                    <input
-                      id="demo-email"
-                      type="email"
-                      maxLength={120}
-                      value={authorEmail}
-                      onChange={(e) => setAuthorEmail(e.target.value)}
-                      placeholder="thomas@exemple.com"
-                      className="mt-1 h-8 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-800 outline-none focus:border-gray-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Bouton d'envoi */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !content.trim()}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-                    style={{ backgroundColor: config.accentColor }}
-                  >
-                    {isSubmitting ? (
-                      <span>Envoi en cours…</span>
-                    ) : (
-                      <>
-                        <span>Envoyer mon avis</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Écran de succès */
-              <div className="py-4 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <Check className="h-6 w-6 stroke-[2.5]" />
-                </div>
-                <h4 className="mt-3 text-base font-bold text-gray-900">Merci pour votre retour !</h4>
-                <p className="mt-2 text-xs leading-relaxed text-gray-600">
-                  Dans votre dashboard Qualio, cet avis est automatiquement analysé par l’IA, catégorisé par
-                  sentiment et rattaché à une recommandation claire.
-                </p>
-
-                <div className="mt-5 space-y-2">
-                  <Link
-                    href={SIGNUP}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-950 py-2.5 text-xs font-semibold text-white hover:bg-black transition"
-                  >
-                    <span>Créer mon compte gratuit</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 transition"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    <span>Envoyer un autre avis test</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Pied de widget : bouton pour re-personnaliser */}
-            <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-[11px] text-gray-400">
-              <span className="font-mono">Qualio widget v1.0</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsPanelOpen(false)
-                  onClose()
-                  setTimeout(() => {
-                    const evt = new CustomEvent('qualio:open-demo-modal')
-                    window.dispatchEvent(evt)
-                  }, 100)
-                }}
-                className="inline-flex items-center gap-1 text-[#ee6018] hover:underline"
-              >
-                <Sliders className="h-3 w-3" />
-                <span>Modifier le style</span>
-              </button>
-            </div>
           </div>
         </div>
       )}

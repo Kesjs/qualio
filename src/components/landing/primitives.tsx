@@ -33,6 +33,24 @@ export function Eyebrow({ children, dark = false }: { children: ReactNode; dark?
   )
 }
 
+/** Trait dessiné permanent pour mettre en valeur un mot-clé dans un titre. */
+export function UnderlineWord({ children }: { children: ReactNode }) {
+  return (
+    <span className="relative inline-block whitespace-nowrap">
+      <span className="relative z-[1]">{children}</span>
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-[0.08em] left-[-0.04em] h-[0.24em] w-[108%]"
+        viewBox="0 0 120 12"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <path d="M2 8.5C24 5.8 47 10.2 69 7.2c18-2.4 31-1.7 49-3.4" stroke="#ee6018" strokeWidth="3.2" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
+}
+
 export function PrimaryButton({ href, children, dark = false }: { href: string; children: ReactNode; dark?: boolean }) {
   const className = `inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`
   const style = dark ? { background: '#fff', color: INK } : { background: ACCENT_INK, color: '#fff' }

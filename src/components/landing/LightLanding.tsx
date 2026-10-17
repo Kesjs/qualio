@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
-import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section } from './primitives'
+import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section, UnderlineWord } from './primitives'
 import { SiteShell } from './SiteShell'
 import { AudienceCards, BetaBand, ComparisonTable, FaqSection, FinalCta, ProblemSection } from './sections'
 import { DecisionAnimation } from './StepDemos'
@@ -129,7 +129,7 @@ export function LightLanding() {
       {/* 6. Pourquoi pas un chat IA gratuit ? : aperçu (version complète sur /produit) */}
       <Section tone="soft">
         <Reveal className="mx-auto max-w-3xl text-center">
-          <h2 className={H2}>Pourquoi pas un chat IA gratuit ?</h2>
+          <h2 className={H2}>Pourquoi pas un <UnderlineWord>chat IA gratuit</UnderlineWord> ?</h2>
           <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>
             Coller vos avis dans un chat marche une fois. Le suivi d’une semaine à l’autre, c’est ce que Qualio ajoute.
           </p>
@@ -143,7 +143,7 @@ export function LightLanding() {
       {/* 7. Pour qui : aperçu (version complète sur /produit) */}
       <Section>
         <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-          <h2 className={H2}>Pensé pour ceux qui reçoivent des avis.</h2>
+          <h2 className={H2}>Pensé pour ceux qui reçoivent des <UnderlineWord>avis</UnderlineWord>.</h2>
         </Reveal>
         <AudienceCards compact />
         <div className="mt-8 text-center"><MoreLink href="/produit#pour-qui">En savoir plus</MoreLink></div>
