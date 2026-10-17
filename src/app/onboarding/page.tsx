@@ -149,7 +149,7 @@ export default function OnboardingPage() {
 
   async function chooseMethod(target: Site, next: Choice) {
     if (next === 'widget' && !widgetAvailable) {
-      fail(null, 'Le widget est disponible avec les plans Pro et Agence. Passez à Pro pour continuer.')
+      fail(null, 'La collecte par widget n’est pas disponible pour ce plan. Passez à Pro pour continuer.')
       return
     }
     setStatus(null); setBusy(true)
@@ -389,7 +389,7 @@ Consignes :
                 <ChoiceCard icon={<DocumentArrowUpIcon className="h-5 w-5" aria-hidden />} title="Importer un CSV" body="Retrouvez votre historique et obtenez votre première synthèse en quelques minutes." disabled={busy} onClick={() => void chooseMethod(activeSite, 'import')} />
                 {widgetAvailable
                   ? <ChoiceCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden />} title="Installer le widget" body="Recevez les prochains avis directement dans Qualio." disabled={busy} onClick={() => void chooseMethod(activeSite, 'widget')} />
-                  : <LockedChoiceCard title="Installer le widget" body="Disponible avec les plans Pro et Agence pour recevoir les prochains avis directement dans Qualio." />}
+                  : <LockedChoiceCard title="Installer le widget" body="Passez à Pro pour recevoir les prochains avis directement dans Qualio." />}
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">Pas d’avis sous la main ? <button type="button" onClick={() => void tryExamples(activeSite)} disabled={busy} className={`font-semibold text-gray-950 underline underline-offset-2 disabled:opacity-50 dark:text-white ${focusRing}`}>Essayer avec des avis d’exemple</button></p>
               {!billingQuery.isLoading && <p className="max-w-full break-words text-sm text-gray-600 dark:text-zinc-400">Plan actif : <strong className="text-gray-950 dark:text-white">{billingQuery.data?.label ?? 'Gratuit'}</strong>.</p>}
@@ -402,7 +402,7 @@ Consignes :
                 <span className="rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-950 dark:text-white">Widget réservé aux plans payants</h2>
-                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">Le plan actif ne permet pas d’installer le widget. Passez à Pro ou Agence pour recevoir les prochains avis directement depuis votre site.</p>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">Le plan actif ne permet pas d’installer le widget. Passez à Pro pour recevoir les prochains avis directement depuis votre site.</p>
                   <Link href="/pricing" className="mt-4 inline-flex text-sm font-semibold text-[#c2410c] underline underline-offset-2">Voir les offres</Link>
                 </div>
               </div>

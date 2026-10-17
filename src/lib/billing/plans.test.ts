@@ -26,9 +26,9 @@ describe('billing plans', () => {
   })
 
   it('applies the limits written in the document', () => {
-    expect(BILLING_PLANS.free).toMatchObject({ projects: 1, feedbackPerProject: 50, synthesisQuota: { count: 2, windowDays: 30 }, synthesisCooldownHours: 0, widget: false })
+    expect(BILLING_PLANS.free).toMatchObject({ projects: 1, feedbackPerProject: 50, synthesisQuota: { count: 2, windowDays: 30 }, synthesisCooldownHours: 0, widget: true })
     expect(BILLING_PLANS.pro).toMatchObject({ projects: 5, feedbackPerProject: 2000, synthesisCooldownHours: 24, widget: true })
-    expect(BILLING_PLANS.agency).toMatchObject({ projects: 15, feedbackPerProject: 10000, synthesisQuota: { count: 2, windowDays: 7 }, synthesisCooldownHours: 0, widget: true })
+    expect(BILLING_PLANS.agency).toMatchObject({ projects: 15, feedbackPerProject: 10000, synthesisQuota: null, synthesisCooldownHours: 24, widget: true })
   })
 
   it('has no trial: no subscription means free', () => {
@@ -77,6 +77,6 @@ describe('billing plans', () => {
     expect(nextSynthesisAt('free', '2026-09-20T12:00:00.000Z', now)).toBeNull()
     expect(nextSynthesisAt('pro', '2026-10-13T06:00:00.000Z', now)).toBe('2026-10-14T06:00:00.000Z')
     expect(nextSynthesisAt('pro', '2026-10-12T06:00:00.000Z', now)).toBeNull()
-    expect(nextSynthesisAt('agency', '2026-10-13T06:00:00.000Z', now)).toBeNull()
+    expect(nextSynthesisAt('agency', '2026-10-13T06:00:00.000Z', now)).toBe('2026-10-14T06:00:00.000Z')
   })
 })

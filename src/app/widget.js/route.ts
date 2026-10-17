@@ -5,7 +5,6 @@ export function GET(request: NextRequest) {
   const script = `(() => {
   const current = document.currentScript;
   const key = current && current.getAttribute('data-key');
-  const requestedLanguage = current && current.getAttribute('data-lang');
   if (!key || window.__qualioWidgetLoaded) return;
   window.__qualioWidgetLoaded = true;
 
@@ -17,6 +16,9 @@ export function GET(request: NextRequest) {
     const requestedPosition = current && current.getAttribute('data-position') === 'left' ? 'left' : 'right';
     const requestedAccent = current && /^#[0-9a-f]{6}$/i.test(current.getAttribute('data-accent') || '') ? current.getAttribute('data-accent') : '#ee6018';
     const requestedLabel = current && current.getAttribute('data-label') ? current.getAttribute('data-label') : '';
+    const requestedTitle = current && current.getAttribute('data-title') ? current.getAttribute('data-title') : '';
+    const requestedIntro = current && current.getAttribute('data-intro') ? current.getAttribute('data-intro') : '';
+    const requestedQuestion = current && current.getAttribute('data-question') ? current.getAttribute('data-question') : '';
     host.style.cssText = 'position:fixed;inset:0;z-index:2147483646;width:100%;height:100%;pointer-events:none;';
     host.style.setProperty('--qualio-accent', requestedAccent);
     const syncViewport = () => {
@@ -48,7 +50,7 @@ export function GET(request: NextRequest) {
         .qualio-panel p { margin: 0 0 14px; color: #6b7280; font-size: 13px; }
         .qualio-close { border: 0; background: transparent; color: #6b7280; padding: 0 4px; font-size: 22px; line-height: 1; cursor: pointer; }
         .qualio-panel label { display: block; margin: 10px 0 0; color: #374151; font-size: 12px; font-weight: 600; }
-        .qualio-panel textarea, .qualio-panel input { display: block; width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #111827; padding: 10px; font: inherit; }
+        .qualio-panel textarea, .qualio-panel input, .qualio-panel select { display: block; width: 100%; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 9px; background: #fff; color: #111827; padding: 10px; font: inherit; }
         .qualio-panel textarea { resize: vertical; }
         .qualio-submit { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 92px; margin-top: 14px; border: 0; border-radius: 9px; background: #111827; color: #fff; padding: 10px 13px; font: 600 13px system-ui, sans-serif; cursor: pointer; }
         .qualio-submit:disabled { cursor: wait; opacity: .6; }
@@ -75,6 +77,7 @@ export function GET(request: NextRequest) {
         <div class="qualio-panel-header"><div><h2 id="qualio-feedback-title"></h2><p class="qualio-intro"></p></div><button class="qualio-close" type="button"></button></div>
         <form>
           <label><span class="qualio-content-label"></span><textarea name="content" rows="4" required maxlength="2000"></textarea></label>
+          <label><span class="qualio-rating-label">Note (facultative)</span><select name="rating"><option value="">—</option><option value="1">1 / 5</option><option value="2">2 / 5</option><option value="3">3 / 5</option><option value="4">4 / 5</option><option value="5">5 / 5</option></select></label>
           <label><span class="qualio-name-label"></span><input name="authorName" maxlength="160" autocomplete="name"></label>
           <label><span class="qualio-email-label"></span><input name="authorEmail" type="email" maxlength="320" autocomplete="email"></label>
           <label aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden"><span>Website</span><input name="honeypot" tabindex="-1" autocomplete="off"></label>
@@ -100,29 +103,15 @@ export function GET(request: NextRequest) {
       panel.style.right = 'auto'; panel.style.left = 'max(16px, env(safe-area-inset-left))';
     }
 
-    const translations = {
-      fr: { button: 'Laisser un avis', title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', close: 'Fermer', content: 'Votre avis', contentPlaceholder: 'Écrivez votre avis…', name: 'Votre nom (facultatif)', email: 'Votre email (facultatif)', submit: 'Envoyer', sending: 'Envoi', success: 'Merci pour votre avis', successCopy: 'Votre message a bien été envoyé.' },
-      en: { button: 'Feedback', title: 'Your feedback matters', intro: 'Tell us what works well or what could be improved.', close: 'Close', content: 'Your feedback', contentPlaceholder: 'Write your feedback…', name: 'Your name (optional)', email: 'Your email (optional)', submit: 'Send', sending: 'Sending', success: 'Thanks for your feedback', successCopy: 'Your message has been sent.' },
-      de: { button: 'Feedback geben', title: 'Ihr Feedback zählt', intro: 'Sagen Sie uns, was gut funktioniert oder verbessert werden könnte.', close: 'Schließen', content: 'Ihr Feedback', contentPlaceholder: 'Schreiben Sie Ihr Feedback…', name: 'Ihr Name (optional)', email: 'Ihre E-Mail (optional)', submit: 'Senden', sending: 'Wird gesendet', success: 'Vielen Dank für Ihr Feedback', successCopy: 'Ihre Nachricht wurde gesendet.' },
-      it: { button: 'Lascia un feedback', title: 'Il tuo feedback conta', intro: 'Dicci cosa funziona bene o cosa potrebbe essere migliorato.', close: 'Chiudi', content: 'Il tuo feedback', contentPlaceholder: 'Scrivi il tuo feedback…', name: 'Il tuo nome (facoltativo)', email: 'La tua email (facoltativa)', submit: 'Invia', sending: 'Invio', success: 'Grazie per il tuo feedback', successCopy: 'Il tuo messaggio è stato inviato.' },
-    };
-    const getLanguage = () => {
-      const candidate = requestedLanguage || document.documentElement.lang || navigator.languages?.[0] || navigator.language || 'fr';
-      const normalized = String(candidate).toLowerCase();
-      if (normalized.startsWith('en')) return 'en';
-      if (normalized.startsWith('de')) return 'de';
-      if (normalized.startsWith('it')) return 'it';
-      return 'fr';
-    };
     const applyLanguage = () => {
-      const copy = translations[getLanguage()];
+      const copy = { button: 'Laisser un avis', title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', close: 'Fermer', content: 'Votre avis', contentPlaceholder: 'Écrivez votre avis…', name: 'Votre nom (facultatif)', email: 'Votre email (facultatif)', submit: 'Envoyer', sending: 'Envoi', success: 'Merci pour votre avis', successCopy: 'Votre message a bien été envoyé.' };
       button.textContent = requestedLabel || copy.button;
       button.setAttribute('aria-label', copy.button);
-      shadow.querySelector('#qualio-feedback-title').textContent = copy.title;
-      shadow.querySelector('.qualio-intro').textContent = copy.intro;
+      shadow.querySelector('#qualio-feedback-title').textContent = requestedTitle || copy.title;
+      shadow.querySelector('.qualio-intro').textContent = requestedIntro || copy.intro;
       close.textContent = '×';
       close.setAttribute('aria-label', copy.close);
-      shadow.querySelector('.qualio-content-label').textContent = copy.content;
+      shadow.querySelector('.qualio-content-label').textContent = requestedQuestion || copy.content;
       shadow.querySelector('textarea').setAttribute('placeholder', copy.contentPlaceholder);
       shadow.querySelector('.qualio-name-label').textContent = copy.name;
       shadow.querySelector('.qualio-email-label').textContent = copy.email;
@@ -166,7 +155,7 @@ export function GET(request: NextRequest) {
       event.preventDefault();
       if (Date.now() - openedAt < 1800) {
         status.classList.add('error');
-        status.textContent = getLanguage() === 'en' ? 'Please take a moment to write your feedback.' : 'Prenez un instant pour écrire votre avis.';
+        status.textContent = 'Prenez un instant pour écrire votre avis.';
         return;
       }
       const data = new FormData(form);
@@ -177,15 +166,15 @@ export function GET(request: NextRequest) {
       submitDots.hidden = false;
       status.textContent = '';
       try {
-        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail'), honeypot: data.get('honeypot') }) });
-        if (!response.ok) throw new Error();
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), rating: data.get('rating'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail'), sourceUrl: window.location.href, honeypot: data.get('honeypot') }) });
+        if (!response.ok) { const payload = await response.json().catch(() => ({})); throw new Error(payload.error || 'Votre avis n’a pas pu être envoyé.'); }
         form.reset();
         form.hidden = true;
         success.hidden = false;
         window.setTimeout(() => setOpen(false), 1300);
-      } catch {
+      } catch (error) {
         status.classList.add('error');
-        status.textContent = getLanguage() === 'en' ? 'Unable to send your feedback right now.' : 'Impossible d’envoyer votre avis pour le moment.';
+        status.textContent = error instanceof Error ? error.message : 'Votre avis n’a pas pu être envoyé. Réessayez.';
       } finally {
         submit.disabled = false;
         submitLabel.textContent = applyLanguage().submit;

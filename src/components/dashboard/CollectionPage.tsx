@@ -293,17 +293,20 @@ function ManualPanel() {
 
 /* -------------------------------------------------------------- Widget */
 
-type WidgetSource = { id: string; public_key: string; active: boolean; accent_color?: string; position?: string; button_label?: string }
+type WidgetSource = { id: string; public_key: string; active: boolean; accent_color?: string; position?: string; button_label?: string; thank_you_message?: string; form_title?: string; form_intro?: string; form_question?: string }
 
 function WidgetPanel() {
   const access = useProjectAccess()
   const site = access.activeSite
+  const plan = access.billing?.plan ?? 'free'
+  const hasAdvancedWidget = plan === 'pro' || plan === 'agency'
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [testStartedAt, setTestStartedAt] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<{ created_at: string; content: string } | null>(null)
   const [thankYou, setThankYou] = useState('Votre message a bien été envoyé.')
+  const [formCopy, setFormCopy] = useState({ title: 'Votre avis compte', intro: 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', question: 'Votre avis' })
   const sourcesQuery = useQuery({
     queryKey: ['feedback-sources', site?.id],
     queryFn: async () => {
@@ -314,16 +317,21 @@ function WidgetPanel() {
     enabled: Boolean(site?.id),
   })
   const source = sourcesQuery.data?.[0]
+  const feedbackQuery = useQuery({ queryKey: ['widget-feedback-counts', site?.id], queryFn: async () => { const response = await fetch(`/api/feedback?siteId=${encodeURIComponent(site!.id)}`); if (!response.ok) throw new Error('Impossible de charger la capacité du widget.'); return response.json() as Promise<Array<{ status?: string }>> }, enabled: Boolean(site?.id) })
+  const feedbackItems = feedbackQuery.data ?? []
+  const analysedCount = feedbackItems.filter((item) => item.status !== 'locked' && item.status !== 'archived').length
+  const pendingCount = feedbackItems.filter((item) => item.status === 'locked').length
+  const pendingCapacity = 100
   const [settings, setSettings] = useState({ accentColor: '#ee6018', position: 'right', buttonLabel: 'Laisser un avis' })
   useEffect(() => {
-    if (source) setSettings({ accentColor: source.accent_color ?? '#ee6018', position: source.position ?? 'right', buttonLabel: source.button_label ?? 'Laisser un avis' })
+    if (source) { setSettings({ accentColor: source.accent_color ?? '#ee6018', position: source.position ?? 'right', buttonLabel: source.button_label ?? 'Laisser un avis' }); setThankYou(source.thank_you_message ?? 'Votre message a bien été envoyé.'); setFormCopy({ title: source.form_title ?? 'Votre avis compte', intro: source.form_intro ?? 'Dites-nous ce qui fonctionne ou ce qui pourrait être amélioré.', question: source.form_question ?? 'Votre avis' }) }
   }, [source])
 
   if (!site) return null
-  if (!access.isLoading && !access.billing?.limits.widget) return <section className={`${surface} space-y-4 p-6`}><h2 className="text-lg font-semibold">Widget disponible avec Pro et Agence</h2><p className="text-sm text-gray-600 dark:text-zinc-400">Vos avis déjà reçus restent conservés.</p><Link href="/pricing" className={primaryButton}>Voir les offres</Link></section>
+  if (!access.isLoading && !access.billing?.limits.widget) return <section className={`${surface} space-y-4 p-6`}><h2 className="text-lg font-semibold">Collecte temporairement indisponible</h2><p className="text-sm text-gray-600 dark:text-zinc-400">Votre plan ne permet pas encore d’installer cette source. Vos avis déjà reçus restent conservés.</p><Link href="/pricing" className={primaryButton}>Voir les offres</Link></section>
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const script = source ? `<script src="${origin}/widget.js" data-key="${source.public_key}" data-accent="${escapeAttr(settings.accentColor)}" data-position="${settings.position}" data-label="${escapeAttr(settings.buttonLabel)}" data-thank-you="${escapeAttr(thankYou)}"></script>` : ''
+  const script = source ? `<script src="${origin}/widget.js" data-key="${source.public_key}" data-accent="${escapeAttr(settings.accentColor)}" data-position="${settings.position}" data-label="${escapeAttr(settings.buttonLabel)}" data-thank-you="${escapeAttr(thankYou)}" data-title="${escapeAttr(formCopy.title)}" data-intro="${escapeAttr(formCopy.intro)}" data-question="${escapeAttr(formCopy.question)}"></script>` : ''
   const writeBlocked = Boolean(access.blockReason)
 
   async function action(kind: 'create' | 'disable' | 'enable' | 'regenerate' | 'settings') {
@@ -334,7 +342,7 @@ function WidgetPanel() {
     try {
     const init = kind === 'create'
       ? { method: 'POST', body: { siteId: site.id } }
-      : { method: 'PATCH', body: kind === 'settings' ? { siteId: site.id, action: 'settings', ...settings } : { siteId: site.id, action: kind } }
+      : { method: 'PATCH', body: kind === 'settings' ? { siteId: site.id, action: 'settings', ...settings, thankYou, formTitle: formCopy.title, formIntro: formCopy.intro, formQuestion: formCopy.question } : { siteId: site.id, action: kind } }
     const response = await fetch('/api/feedback/sources', { method: init.method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(init.body) })
     const result = await response.json().catch(() => ({}))
     setBusy(false)
@@ -397,7 +405,26 @@ function WidgetPanel() {
             <button type="button" onClick={() => void action('settings')} disabled={busy || !settings.buttonLabel.trim()} className={`${secondaryButton} sm:col-span-3 sm:justify-self-start`}>Enregistrer l’apparence</button>
           </div>
 
-          <label className="block text-sm font-semibold">Message de remerciement<input maxLength={200} value={thankYou} onChange={(event) => setThankYou(event.target.value)} className={`${inputClass} mt-2`} /><span className="mt-2 block text-xs font-normal text-gray-500 dark:text-zinc-400">Inclus dans le script à copier. Pour le modifier sur votre site, remplacez le script installé.</span></label>
+          <label className="block text-sm font-semibold">Message de remerciement<input maxLength={200} value={thankYou} onChange={(event) => setThankYou(event.target.value)} className={`${inputClass} mt-2`} /><span className="mt-2 block text-xs font-normal text-gray-500 dark:text-zinc-400">Inclus dans le script à copier. Le Gratuit peut déjà adapter ce message.</span></label>
+          <div className="grid gap-3 sm:grid-cols-3" aria-label="Capacité du widget"><div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-white/[0.08] dark:bg-white/[0.03]"><span className="block text-[11px] text-gray-500 dark:text-zinc-400">Avis analysés</span><strong className="mt-1 block font-mono text-lg text-gray-950 dark:text-white">{analysedCount}</strong></div><div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-white/[0.08] dark:bg-white/[0.03]"><span className="block text-[11px] text-gray-500 dark:text-zinc-400">En attente</span><strong className="mt-1 block font-mono text-lg text-gray-950 dark:text-white">{pendingCount} / {pendingCapacity}</strong></div><div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-white/[0.08] dark:bg-white/[0.03]"><span className="block text-[11px] text-gray-500 dark:text-zinc-400">Capacité d’analyse</span><strong className="mt-1 block font-mono text-lg text-gray-950 dark:text-white">{Math.max(0, (access.billing?.limits.feedbackPerProject ?? 0) - analysedCount).toLocaleString('fr-FR')}</strong></div></div>
+          {pendingCount >= 80 && <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">{pendingCount} avis en attente sur {pendingCapacity}. Passez Pro pour les analyser avant d’atteindre la limite.</p>}
+          <section className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/[0.08] dark:bg-white/[0.03]" aria-labelledby="widget-advanced-title">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 id="widget-advanced-title" className="text-sm font-semibold text-gray-950 dark:text-white">Personnalisation avancée</h3>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-600 dark:text-zinc-400">Adaptez le titre, l’introduction et la question du formulaire à votre expérience client.</p>
+              </div>
+              {!hasAdvancedWidget && <Link href="/pricing" className="inline-flex min-h-10 shrink-0 items-center rounded-lg bg-[#ee6018] px-3 text-xs font-bold text-white">Passer à Pro</Link>}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-500 dark:text-zinc-400">
+              <span className="rounded-md border border-gray-200 px-2 py-1 dark:border-white/10">Titre du formulaire</span>
+              <span className="rounded-md border border-gray-200 px-2 py-1 dark:border-white/10">Introduction</span>
+              <span className="rounded-md border border-gray-200 px-2 py-1 dark:border-white/10">Question personnalisée</span>
+              <span className="rounded-md border border-gray-200 px-2 py-1 dark:border-white/10">Ouverture par lien</span>
+            </div>
+            {hasAdvancedWidget && <div className="mt-4 grid gap-3 sm:grid-cols-3"><label className="text-xs font-semibold">Titre<input value={formCopy.title} onChange={(event) => setFormCopy((current) => ({ ...current, title: event.target.value }))} maxLength={120} className={`${inputClass} mt-2 text-sm`} /></label><label className="text-xs font-semibold">Introduction<input value={formCopy.intro} onChange={(event) => setFormCopy((current) => ({ ...current, intro: event.target.value }))} maxLength={300} className={`${inputClass} mt-2 text-sm`} /></label><label className="text-xs font-semibold">Question<input value={formCopy.question} onChange={(event) => setFormCopy((current) => ({ ...current, question: event.target.value }))} maxLength={160} className={`${inputClass} mt-2 text-sm`} /></label></div>}
+            {!hasAdvancedWidget && <p className="mt-3 text-xs text-gray-600 dark:text-zinc-400">Le Gratuit inclut l’installation, la couleur, la position, le texte du bouton et le message de remerciement. Les réglages avancés sont disponibles avec Pro et Agence.</p>}
+          </section>
           <WidgetGuide script={script} accentColor={settings.accentColor} buttonLabel={settings.buttonLabel} position={settings.position} projectName={site.name || site.url || 'Projet sans nom'} onMessage={setMessage} />
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => void verify()} disabled={busy || !source.active} className={primaryButton}>{busy ? 'Vérification…' : testStartedAt ? 'Vérifier la réception' : 'Démarrer un test de réception'}</button>

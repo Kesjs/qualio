@@ -41,6 +41,17 @@ export async function POST(request: NextRequest) {
   const content = typeof body.content === 'string' ? body.content.trim() : ''
   const authorName = typeof body.authorName === 'string' ? body.authorName.trim() : ''
   const authorEmail = typeof body.authorEmail === 'string' ? body.authorEmail.trim() : ''
+  const rawSourceUrl = typeof body.sourceUrl === 'string' ? body.sourceUrl.trim().slice(0, 500) : ''
+  const sourceUrl = (() => {
+    if (!rawSourceUrl) return ''
+    try {
+      const parsed = new URL(rawSourceUrl)
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : ''
+    } catch {
+      return ''
+    }
+  })()
+  const rating = Number.isInteger(Number(body.rating)) && Number(body.rating) >= 1 && Number(body.rating) <= 5 ? Number(body.rating) : null
   const validationError = validateIntakeBody(body, new TextEncoder().encode(JSON.stringify(body)).byteLength)
   if (validationError) return json({ error: validationError }, 400)
 
@@ -84,11 +95,11 @@ export async function POST(request: NextRequest) {
     content,
     author_name: authorName || null,
     author_email: authorEmail || null,
-    source_url: request.headers.get('origin') ?? null,
+    source_url: sourceUrl || request.headers.get('origin') || null,
     sentiment: null,
     theme: null,
     confidence: null,
-    metadata: { ip_address: ipAddress, user_agent: request.headers.get('user-agent') ?? null, classification_status: overflow ? 'locked' : 'pending' },
+    metadata: { user_agent: request.headers.get('user-agent') ?? null, rating, origin_path: sourceUrl ? new URL(sourceUrl).pathname.slice(0, 300) : null, classification_status: overflow ? 'locked' : 'pending' },
   }).select('id').single()
   if (error) {
     console.error('[Feedback intake] insert failed', error)

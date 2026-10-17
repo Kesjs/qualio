@@ -1,6 +1,6 @@
 /** Règles d'envoi pures : elles n'appellent aucune base, donc elles se testent directement. */
 
-export const MARKETING_TYPES = ['weekly_digest', 'calm_digest', 'free_digest', 'alert'] as const
+export const MARKETING_TYPES = ['weekly_digest', 'calm_digest', 'free_digest', 'alert', 'welcome', 'activation_nudge', 'feedback_request'] as const
 export const WEEKLY_MARKETING_CAP = 3
 export const FREE_DIGEST_MONTHLY_CAP = 2
 export const FREE_DIGEST_MIN_NEW = 3

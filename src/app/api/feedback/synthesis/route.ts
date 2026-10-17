@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   if (feedbackError) return NextResponse.json({ error: 'Impossible de charger les avis.' }, { status: 500 })
   if (!feedback || feedback.length < 3) return NextResponse.json({ error: 'Ajoutez encore des avis pour lancer une synthèse.', minimum: 3, current: feedback?.length ?? 0 }, { status: 422 })
 
-  // Quota de synthèses manuelles par projet (Free : 2/30 jours, Agence : 2/7 jours).
+  // Quota de synthèses manuelles par projet (Gratuit : 2/30 jours ; Pro/Agence : 1/jour).
   // Seules les synthèses réussies sont enregistrées, donc un échec ne consomme jamais le quota.
   // Les synthèses hebdomadaires automatiques (week_key renseigné) ne comptent pas.
   if (!(await isSiteWritable(supabase, user.id, siteId, plan))) return NextResponse.json({ error: READ_ONLY_MESSAGE, quota: 'read_only', plan }, { status: 403 })
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
     void recordProductEvent(getSupabaseAdminClient(), user.id, firstSynthesis ? 'first_synthesis' : 'synthesis_generated', `synthesis:${saved.id}`, { site_id: siteId, plan })
     const updatedAvailability = await getSynthesisAvailability(supabase, siteId, plan)
-    return NextResponse.json({ synthesis: saved, usage: { plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, used: updatedAvailability.used, limit: updatedAvailability.limit, windowDays: updatedAvailability.windowDays, nextAvailableAt: updatedAvailability.nextAvailableAt, analysed: sampled.length, sampled: feedback.length > 300 } }, { status: 201 })
+    return NextResponse.json({ synthesis: saved, usage: { plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, used: updatedAvailability.used, limit: updatedAvailability.limit, windowDays: updatedAvailability.windowDays, nextAvailableAt: updatedAvailability.nextAvailableAt, analysed: sampled.length, total: feedback.length, sampled: feedback.length > 300 } }, { status: 201 })
   } catch (error) {
     console.error('[Feedback synthesis] generation failed', error)
     return NextResponse.json({ error: 'La génération de la synthèse a échoué. Réessayez dans un instant.' }, { status: 502 })

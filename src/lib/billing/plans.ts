@@ -12,10 +12,10 @@ export const BILLING_PLANS = {
     /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
     synthesisQuota: { count: 2, windowDays: 30 },
     synthesisCooldownHours: 0,
-    /** Le widget est une fonctionnalité payante, réservée à Pro et Agence. */
-    widget: false,
+    /** Le widget sert de point d'entrée au Gratuit ; l'analyse reste limitée par le quota. */
+    widget: true,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Import CSV et saisie manuelle', 'Vos avis conservés, même au-delà de 50'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente'],
   },
   pro: {
     label: 'Pro',
@@ -39,15 +39,15 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_AGENCY_ANNUAL',
     projects: 15,
     feedbackPerProject: 10000,
-    /** Deux synthèses manuelles par semaine et par projet. */
-    synthesisQuota: { count: 2, windowDays: 7 },
-    synthesisCooldownHours: 0,
+    /** L'Agence garde au moins la cadence Pro, avec ses capacités multi-clients. */
+    synthesisQuota: null,
+    synthesisCooldownHours: 24,
     widget: true,
     features: [
       '15 projets clients',
       '10 000 avis par projet',
       'Synthèse automatique chaque semaine',
-      '2 synthèses manuelles par semaine',
+      '1 synthèse manuelle par jour et par projet',
       'Widget sur 15 sites',
       'Rapport client partageable',
       'Export CSV des avis', 'Rapport partageable par lien',

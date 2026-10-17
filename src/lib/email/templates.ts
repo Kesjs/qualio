@@ -85,3 +85,13 @@ export function welcomeEmail({ origin, feedbackCount }: { origin: string; feedba
   const { html, text } = renderEmail({ heading: 'Bienvenue sur Qualio', lines, cta: { label: feedbackCount < 3 ? 'Ajouter des avis' : 'Ouvrir Qualio', url: `${origin}${feedbackCount < 3 ? '/dashboard/collection' : '/dashboard'}` } })
   return { subject: 'Bienvenue sur Qualio', html, text }
 }
+
+export function activationNudgeEmail({ origin, userId }: Base) {
+  const { html, text } = renderEmail({ heading: 'Besoin d’un coup de main pour commencer ?', lines: ['Vous êtes inscrit à Qualio, mais votre espace n’a pas encore reçu sa première action.', 'Même un premier avis suffit pour voir comment Qualio le classe et le transforme en piste d’amélioration.'], cta: { label: 'Commencer dans Qualio', url: `${origin}/dashboard` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
+  return { subject: 'Votre premier retour Qualio vous attend', html, text }
+}
+
+export function feedbackRequestEmail({ origin, userId }: Base) {
+  const { html, text } = renderEmail({ heading: 'Votre retour nous aiderait vraiment', lines: ['Vous avez commencé à utiliser Qualio. Qu’est-ce qui vous a aidé, bloqué ou manqué ?', 'Deux minutes suffisent. Votre réponse restera privée, sauf si vous autorisez séparément un témoignage.'], cta: { label: 'Donner mon retour', url: `${origin}/dashboard/feedback-produit` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
+  return { subject: 'Pouvez-vous nous dire ce qu’il faut améliorer ?', html, text }
+}
