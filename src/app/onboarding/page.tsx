@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClipboardDocumentIcon, DocumentArrowUpIcon, LockClosedIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
-import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import { analyzeCsv, CSV_MAX_BYTES, isCsvFileName, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
 import type { PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
@@ -171,6 +171,7 @@ export default function OnboardingPage() {
   function selectCsvFile(file: File | null | undefined) {
     setStatus(null)
     if (!file) return
+    if (!isCsvFileName(file.name)) { resetCsv(); return setStatus({ tone: 'alert', text: 'Seuls les fichiers .csv sont acceptés.' }) }
     if (file.size > CSV_MAX_BYTES) { resetCsv(); return setStatus({ tone: 'alert', text: 'Le fichier CSV ne doit pas dépasser 5 Mo.' }) }
     void file.text().then((text) => {
       const result = analyzeCsv(text)

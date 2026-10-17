@@ -10,7 +10,7 @@ import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP }
 
 type Interval = 'month' | 'year'
 
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || '$'
+const CURRENCY = '€'
 
 /** Carte de tarif partagée par la landing, la page tarifs et les réglages. */
 export function PricingCards() {

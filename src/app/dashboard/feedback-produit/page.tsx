@@ -18,9 +18,13 @@ export default function ProductFeedbackPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setState('sending')
-    const response = await fetch('/api/product-feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ category, message, allowContact, allowPublicTestimonial }) })
-    setState(response.ok ? 'sent' : 'error')
-    if (response.ok) setMessage('')
+    try {
+      const response = await fetch('/api/product-feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ category, message, allowContact, allowPublicTestimonial }) })
+      setState(response.ok ? 'sent' : 'error')
+      if (response.ok) setMessage('')
+    } catch {
+      setState('error')
+    }
   }
 
   return <section className="max-w-3xl space-y-8 pb-16">

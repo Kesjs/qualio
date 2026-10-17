@@ -192,6 +192,7 @@ function CsvImportPanel({ siteId }: { siteId?: string }) {
   function selectFile(next: File | null) {
     setFile(next); setStatus(null); setProgress(0)
     if (!next) return setPreview([])
+    if (!/\.csv$/i.test(next.name.trim())) { setFile(null); setPreview([]); return setStatus('Seuls les fichiers .csv sont acceptés.') }
     void next.text().then((text) => setPreview(text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean).slice(0, 5).map((line) => line.split(/[;,]/).map((cell) => cell.trim()))))
   }
   function downloadSample() {

@@ -379,7 +379,7 @@ export default function LoginPage() {
                   >
                     <div>
                       <div style={{ color: planParam === 'agency' ? '#f4f4f5' : planParam === 'pro' ? '#9a3412' : '#3f3f46', fontWeight: 600 }}>
-                        {planParam === 'agency' ? 'Plan Agence sélectionné (49 $/mois)' : planParam === 'pro' ? 'Plan Pro sélectionné (19 $/mois)' : 'Plan Gratuit sélectionné (0 $)'}
+                        {planParam === 'agency' ? 'Plan Agence sélectionné (49 €/mois)' : planParam === 'pro' ? 'Plan Pro sélectionné (19 €/mois)' : 'Plan Gratuit sélectionné (0 €)'}
                       </div>
                       <div style={{ fontSize: 11, color: planParam === 'agency' ? '#a1a1aa' : planParam === 'pro' ? '#ea580c' : '#71717a' }}>
                         {planParam === 'agency' ? '15 projets · 10 000 avis par projet · 1 synthèse par jour et par projet' : planParam === 'pro' ? '5 projets · 2 000 avis · Synthèse hebdo' : '1 projet · 50 avis · 2 synthèses par mois'}

@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { useInvalidateAll } from '@/lib/hooks/useDashboard'
-import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import { analyzeCsv, CSV_MAX_BYTES, isCsvFileName, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner, surface } from '@/components/dashboard/weekly/bricks'
@@ -114,6 +114,10 @@ function CsvPanel() {
     setStatus(null); setProgress(0)
     const files = Array.from(fileList ?? [])
     if (!files.length) return
+    if (files.some((file) => !isCsvFileName(file.name))) {
+      reset()
+      return setStatus({ tone: 'error', text: 'Seuls les fichiers .csv sont acceptés.' })
+    }
     if (files.some((file) => file.size > CSV_MAX_BYTES) || files.reduce((total, file) => total + file.size, 0) > CSV_MAX_BYTES) {
       reset()
       return setStatus({ tone: 'error', text: 'Les fichiers CSV ne doivent pas dépasser 5 Mo au total.' })
