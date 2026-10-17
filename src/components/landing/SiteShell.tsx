@@ -46,9 +46,10 @@ function Navbar() {
       style={{ borderBottom: `1px solid ${scrolled || open ? LINE : 'transparent'}` }}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5" aria-label="Navigation principale">
-        <Link href="/" className={`flex items-center ${R_BUTTON} ${FOCUS}`} aria-label="Qualio, accueil">
+        <Link href="/" className={`flex items-center gap-2.5 ${R_BUTTON} ${FOCUS}`} aria-label="Qualio, accueil">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-8 w-8" />
+          <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-7 w-7 shrink-0" />
+          <span className="text-[18px] font-bold tracking-tight text-zinc-900">Qualio</span>
         </Link>
 
         <div className="hidden items-center gap-1 text-[14px] md:flex">
@@ -153,8 +154,11 @@ function Footer() {
     <footer className="border-t" style={{ borderColor: LINE }}>
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/qualio-logo/export/lockup/lockup-light.svg" alt="Qualio" className="h-7" />
+          <Link href="/" aria-label="Qualio, accueil" className={`inline-flex items-center gap-2.5 ${FOCUS}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-7 w-7 shrink-0" />
+            <span className="text-[18px] font-bold tracking-tight text-zinc-900">Qualio</span>
+          </Link>
           <p className="mt-3 max-w-xs text-sm" style={{ color: MUTED }}>Une vue fiable des avis qui comptent.</p>
         </div>
         {groups.map((g) => (

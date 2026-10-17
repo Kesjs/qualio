@@ -8,7 +8,7 @@ export interface BillingStatus {
   plan: PlanId
   label: string
   status: string
-  source: 'stripe' | 'manual' | null
+  source: 'stripe' | 'manual' | 'geniuspay' | null
   provider?: 'stripe' | 'geniuspay' | string
   interval: 'month' | 'year' | null
   currentPeriodEnd: string | null
