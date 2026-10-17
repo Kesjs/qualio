@@ -9,6 +9,7 @@ export interface BillingStatus {
   label: string
   status: string
   source: 'stripe' | 'manual' | null
+  provider?: 'stripe' | 'geniuspay' | string
   interval: 'month' | 'year' | null
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean

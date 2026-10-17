@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const [{ data }, { data: siteRows }] = await Promise.all([
-    (supabase as any).from('billing_subscriptions').select('plan, status, source, stripe_price_id, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
+    (supabase as any).from('billing_subscriptions').select('plan, status, source, provider, provider_price_id, stripe_price_id, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
     supabase.from('sites').select('id, created_at').eq('user_id', user.id),
   ])
 
@@ -32,12 +32,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const interval = data?.provider === 'geniuspay'
+    ? (data.provider_price_id?.includes('year') ? 'year' : 'month')
+    : (data?.source === 'stripe' ? getIntervalFromPriceId(data.stripe_price_id) : null)
+
+  const isTestAccess = (data?.source === 'manual' && data?.provider !== 'geniuspay')
+
   return NextResponse.json({
     plan,
-    label: data?.source === 'manual' && plan !== 'free' ? `${limits.label} (accès test)` : limits.label,
+    label: isTestAccess && plan !== 'free' ? `${limits.label} (accès test)` : limits.label,
     status: effectiveStatus,
     source: data?.source ?? null,
-    interval: data?.source === 'stripe' ? getIntervalFromPriceId(data.stripe_price_id) : null,
+    provider: data?.provider ?? (data?.source === 'stripe' ? 'stripe' : 'unknown'),
+    interval,
     currentPeriodEnd: data?.current_period_end ?? null,
     cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
     limits: { projects: limits.projects, feedbackPerProject: limits.feedbackPerProject, synthesisCooldownHours: limits.synthesisCooldownHours, synthesisQuota: limits.synthesisQuota ?? null, widget: limits.widget },

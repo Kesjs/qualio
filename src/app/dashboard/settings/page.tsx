@@ -237,7 +237,15 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
             <button type="button" onClick={() => void openPortal()} disabled={busy} className={`${secondaryButton} mt-5`}>{busy ? 'Ouverture…' : 'Gérer la facturation'}</button>
           </>
         )}
-        {isPaid && billing.source !== 'stripe' && <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>}
+        {isPaid && (billing.provider === 'geniuspay' || billing.source === 'geniuspay') && (
+          <>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Votre abonnement est géré via GeniusPay (Mobile Money & Carte). Pour modifier votre formule ou renouveler votre accès, accédez aux tarifs.</p>
+            <Link href="/pricing" className={`${primaryButton} mt-5`}>Changer ou renouveler mon offre<ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden /></Link>
+          </>
+        )}
+        {isPaid && billing.source !== 'stripe' && billing.provider !== 'geniuspay' && billing.source !== 'geniuspay' && (
+          <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>
+        )}
       </section>
     </div>
   )
