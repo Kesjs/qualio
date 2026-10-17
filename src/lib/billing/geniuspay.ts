@@ -1,0 +1,18 @@
+import crypto from 'node:crypto'
+
+const BASE_URL = (process.env.GENIUSPAY_BASE_URL ?? 'https://geniuspay.ci/api/v1/merchant').replace(/\/$/, '')
+
+export async function createGeniusPayPayment(input: { amount: number; externalReference: string; description: string; customer: { email?: string; country?: string }; metadata: Record<string, string>; successUrl: string; errorUrl: string }) {
+  const apiKey = process.env.GENIUSPAY_API_KEY
+  const apiSecret = process.env.GENIUSPAY_API_SECRET
+  if (!apiKey || !apiSecret) throw new Error('GeniusPay n’est pas configuré')
+  const response = await fetch(`${BASE_URL}/payments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'X-API-Secret': apiSecret, 'Idempotency-Key': input.externalReference }, body: JSON.stringify({ amount: input.amount, currency: 'XOF', payment_method: 'card', description: input.description, external_reference: input.externalReference, customer: { ...input.customer, country: input.customer.country ?? 'BJ' }, metadata: input.metadata, success_url: input.successUrl, error_url: input.errorUrl }), cache: 'no-store' })
+  const payload = await response.json().catch(() => null)
+  if (!response.ok || !payload?.success || !payload.data?.checkout_url) throw new Error(payload?.message ?? 'Impossible de créer le paiement GeniusPay')
+  return payload.data as { reference: string; checkout_url: string; status: string }
+}
+
+export function verifyGeniusPaySignature(payload: string, timestamp: string, signature: string, secret: string) {
+  const expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex')
+  return expected.length === signature.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+}

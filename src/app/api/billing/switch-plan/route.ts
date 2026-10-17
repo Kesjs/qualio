@@ -6,5 +6,5 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  return NextResponse.json({ error: 'Les changements de plan sont gérés uniquement par Stripe.' }, { status: 403 })
+  return NextResponse.json({ error: 'Les changements de plan sont gérés depuis GeniusPay. Un nouveau paiement carte sera nécessaire.' }, { status: 403 })
 }

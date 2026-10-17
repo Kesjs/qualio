@@ -29,7 +29,7 @@ export const BILLING_PLANS = {
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
-    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Effet mesuré de vos décisions'],
+    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis après vos décisions'],
   },
   agency: {
     label: 'Agence',
@@ -49,8 +49,8 @@ export const BILLING_PLANS = {
       'Synthèse automatique chaque semaine',
       '1 synthèse manuelle par jour et par projet',
       'Widget sur 15 sites',
-      'Rapport client partageable',
-      'Export CSV des avis', 'Rapport partageable par lien',
+      'Rapport client partageable par lien',
+      'Export CSV des avis',
       'Support prioritaire',
     ],
   },

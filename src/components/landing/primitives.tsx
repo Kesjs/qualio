@@ -34,25 +34,43 @@ export function Eyebrow({ children, dark = false }: { children: ReactNode; dark?
 }
 
 export function PrimaryButton({ href, children, dark = false }: { href: string; children: ReactNode; dark?: boolean }) {
+  const className = `inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`
+  const style = dark ? { background: '#fff', color: INK } : { background: ACCENT_INK, color: '#fff' }
+  if (href.startsWith('#')) {
+    return (
+      <a href={href} className={className} style={style}>
+        {children}
+        <span aria-hidden="true">→</span>
+      </a>
+    )
+  }
   return (
-    <Link
-      href={href}
-      className={`inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`}
-      style={dark ? { background: '#fff', color: INK } : { background: ACCENT_INK, color: '#fff' }}
-    >
+    <Link href={href} className={className} style={style}>
       {children}
       <span aria-hidden="true">→</span>
     </Link>
   )
 }
 
-export function SecondaryButton({ href, children }: { href: string; children: ReactNode }) {
+export function SecondaryButton({ href, children, onClick }: { href?: string; children: ReactNode; onClick?: () => void }) {
+  const className = `inline-flex items-center justify-center border px-5 py-3 text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`
+  const style = { borderColor: LINE, color: INK }
+  if (onClick && !href) {
+    return (
+      <button type="button" onClick={onClick} className={className} style={style}>
+        {children}
+      </button>
+    )
+  }
+  if (href?.startsWith('#')) {
+    return (
+      <a href={href} onClick={onClick} className={className} style={style}>
+        {children}
+      </a>
+    )
+  }
   return (
-    <Link
-      href={href}
-      className={`inline-flex items-center justify-center border px-5 py-3 text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`}
-      style={{ borderColor: LINE, color: INK }}
-    >
+    <Link href={href || '#'} onClick={onClick} className={className} style={style}>
       {children}
     </Link>
   )
@@ -60,8 +78,17 @@ export function SecondaryButton({ href, children }: { href: string; children: Re
 
 /** Lien « En savoir plus → » des aperçus. */
 export function MoreLink({ href, children }: { href: string; children: ReactNode }) {
+  const className = `inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline ${R_CHIP} ${FOCUS}`
+  if (href.startsWith('#')) {
+    return (
+      <a href={href} className={className} style={{ color: INK }}>
+        {children}
+        <span aria-hidden="true" style={{ color: ACCENT }}>→</span>
+      </a>
+    )
+  }
   return (
-    <Link href={href} className={`inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 hover:underline ${R_CHIP} ${FOCUS}`} style={{ color: INK }}>
+    <Link href={href} className={className} style={{ color: INK }}>
       {children}
       <span aria-hidden="true" style={{ color: ACCENT }}>→</span>
     </Link>
