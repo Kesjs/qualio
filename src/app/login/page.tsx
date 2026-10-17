@@ -72,9 +72,9 @@ function GithubButton({ onClick, loading }: { onClick: () => void; loading: bool
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const requestedMode = searchParams.get('mode')
-  const initialMode: AuthMode = requestedMode && AUTH_MODES.includes(requestedMode as AuthMode)
-    ? requestedMode as AuthMode
-    : 'password'
+  const initialMode: AuthMode = requestedMode === 'otp' || requestedMode === 'otp-verify'
+    ? requestedMode
+    : 'otp'
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
   const { language } = useLanguage()
@@ -498,7 +498,6 @@ export default function LoginPage() {
                 />
                 <AuthButton loading={otpLoading} type="submit">{t.labels.sendCode}</AuthButton>
                 {otpRequestError && <p role="alert" style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#b42318', margin: 0 }}>{otpRequestError}</p>}
-                <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>{t.labels.signInPasswordInstead}</AuthButton>
               </form>
             )}
 

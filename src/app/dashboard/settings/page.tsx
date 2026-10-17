@@ -259,8 +259,6 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
   const [email, setEmail] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
   const [deleteText, setDeleteText] = useState('')
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -289,17 +287,6 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
     if (error) return onFlash({ tone: 'error', text: 'Impossible de demander le changement d’email.' })
     setNewEmail('')
     onFlash({ tone: 'ok', text: 'Vérifiez les emails de confirmation pour terminer le changement.' })
-  }
-
-  async function changePassword() {
-    if (password !== confirmation) return onFlash({ tone: 'error', text: 'Les mots de passe ne correspondent pas.' })
-    if (password.length < 8) return onFlash({ tone: 'error', text: 'Le mot de passe doit contenir au moins 8 caractères.' })
-    setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password })
-    setBusy(false)
-    if (error) return onFlash({ tone: 'error', text: 'Impossible de modifier le mot de passe.' })
-    setPassword(''); setConfirmation('')
-    onFlash({ tone: 'ok', text: 'Mot de passe modifié.' })
   }
 
   async function deleteAccount() {
@@ -331,17 +318,6 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
           <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-zinc-400">Une confirmation de sécurité sera demandée avant le remplacement de l’adresse.</p>
           <button type="button" onClick={() => void changeEmail()} disabled={busy || !newEmail} className={`${secondaryButton} mt-4`}>Demander le changement d’email</button>
         </div>
-      </section>
-
-      <section className={`${surface} p-5 sm:p-6`} aria-labelledby="password-title">
-        <h2 id="password-title" className="text-lg font-semibold text-gray-950 dark:text-white">Mot de passe</h2>
-        <label className="mt-5 block text-sm font-semibold text-gray-800 dark:text-zinc-200">Nouveau mot de passe
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} autoComplete="new-password" className={`${inputClass} mt-2`} />
-        </label>
-        <label className="mt-4 block text-sm font-semibold text-gray-800 dark:text-zinc-200">Confirmer
-          <input type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" className={`${inputClass} mt-2`} />
-        </label>
-        <button type="button" onClick={() => void changePassword()} disabled={busy || !password} className={`${primaryButton} mt-6`}>Modifier le mot de passe</button>
       </section>
 
       <section className="rounded-2xl border border-red-200 p-5 sm:p-6 dark:border-red-500/25" aria-labelledby="account-danger">
