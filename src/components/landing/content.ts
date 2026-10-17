@@ -86,7 +86,7 @@ export const FAQ = [
   },
   {
     q: 'Combien coûte le plan gratuit ?',
-    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis analysés, 2 synthèses par mois, le widget, l’import CSV et la saisie manuelle.',
+    a: 'Rien, sans limite de durée. Il inclut 1 projet, 50 avis analysés, 2 synthèses manuelles sur 30 jours, le widget, l’import CSV et la saisie manuelle.',
   },
   {
     q: 'Que se passe-t-il si je dépasse 50 avis ?',

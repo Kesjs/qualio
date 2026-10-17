@@ -12,7 +12,7 @@ Lancer Gratuit, Pro et Agence ensemble, avec les fonctions V1 et V1.1. Ne pas ou
 | Pro | 19 € / 190 € | 5 | 2 000 |
 | Agence | 49 € / 490 € | 15 | 10 000 |
 
-- Gratuit : une synthèse manuelle toutes les 14 × 24 heures.
+- Gratuit : 2 synthèses manuelles sur une fenêtre glissante de 30 jours.
 - Pro et Agence : une synthèse manuelle par jour UTC et projet, plus une synthèse automatique hebdomadaire indépendante du consentement email.
 - Pro et Agence : widget, email du lundi à 08:00 UTC, historique, alertes de hausse.
 - Agence : rapport partageable anonymisé, révocable, expirant après 90 jours.

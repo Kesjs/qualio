@@ -17,7 +17,7 @@ Plan enregistré : [QUALIO_LAUNCH_PLAN.md](./QUALIO_LAUNCH_PLAN.md).
 |---|---|
 | 0 — Périmètre | Gratuit, Pro et Agence ensemble, après validation de Stripe et des fonctions payantes. Agence pas encore implémentée. |
 | 1 — Positionnement | Promesse conservée ; textes publics à vérifier contre les fonctions réellement connectées. |
-| 2 — Offres | À réaliser : 50 / 2 000 / 10 000 avis conservés, quotas 14 jours / quotidien, réservations concurrentes, Agence, suppression des nouveaux essais et rétrogradation. Le code applique encore 500 / 5 000 avis mensuels et 1 / 12 synthèses mensuelles. |
+| 2 — Offres | Livré : 50 / 2 000 / 10 000 avis par projet, 2 synthèses manuelles sur 30 jours pour Gratuit, 1 synthèse manuelle par jour et par projet pour Pro/Agence, synthèse automatique hebdomadaire pour Pro/Agence, Agence et rétrogradation. |
 | 3.1–3.3 — Accueil | Nouveau premier lot local : Cette semaine, Recommandations / Détails, recommandation principale, trois citations maximum, lien vers les avis exacts, Accepter / Plus tard / Écarter et suivantes compactes. |
 | 3.3 — États A–H | Démo fictive locale, échauffement, première génération, chargement, erreur et quota actuel. Délai de 14 jours et limite V1 attendent le lot serveur. |
 | 3.3 — Détails | Compteurs, huit semaines de volume, sujets et variation sur sept jours, historique Pro et bloc verrouillé Gratuit. |
@@ -93,7 +93,7 @@ Validation en cours : typecheck, tests, lint, build et inspection du rendu. Une 
 | Annuel (2 mois offerts) | — | 190 € |
 | Projets | 1 | 5 **(proposé : valeur déjà dans le code, adaptée aux freelances ; coût d'IA à vérifier)** |
 | Avis par projet | 50 | 2 000 **(proposé, à ajuster selon ton coût d'IA)** |
-| Recommandations de la semaine | 1 synthèse manuelle toutes les 14 jours | Automatique chaque semaine + 1 synthèse manuelle par jour et par projet **(proposé)** |
+| Recommandations de la semaine | 2 synthèses manuelles sur 30 jours | Automatique chaque semaine + 1 synthèse manuelle par jour et par projet |
 | Import CSV et ajout manuel | Oui | Oui |
 | Widget en continu | Non | Oui |
 | Email du lundi | Non | Oui |
@@ -114,7 +114,7 @@ L'alerte « un thème monte » est incluse dans Pro et Agence au lancement commu
 
 ### 2.3 Règles décidées
 
-- **Gratuit à vie** : aucun compte gratuit n'est supprimé pour inactivité. Le coût reste borné par 1 projet, 50 avis et 1 synthèse toutes les 14 jours.
+- **Gratuit à vie** : aucun compte gratuit n'est supprimé pour inactivité. Le coût reste borné par 1 projet, 50 avis et 2 synthèses manuelles sur 30 jours.
 - **Pas de carte bancaire** pour le gratuit. La ligne « carte bancaire » n'apparaît plus dans le tableau des prix.
 - **Un compte gratuit par adresse email.** Les limites s'appliquent à chaque compte.
 - **Suppression des nouveaux essais Pro : validée.** Les essais existants sont honorés jusqu’à leur échéance. Le Gratuit joue le rôle d'essai, limité par l'usage. Le code a aujourd'hui un essai Pro de 14 jours sans carte, qui est à retirer.
@@ -368,7 +368,7 @@ Ces textes s'appliquent aux sections complètes de la page Produit (4.1). La lan
 
 - Titre inchangé : « Commencez gratuitement. Payez quand vos avis deviennent un rythme. »
 - Ajouter une bascule **Mensuel / Annuel** (« 2 mois offerts ») sur la carte Pro.
-- **Carte Gratuit** : 1 projet · 50 avis · 1 synthèse toutes les 14 jours · Import CSV et saisie manuelle · Vos avis conservés. Bouton : « Commencer gratuitement ».
+- **Carte Gratuit** : 1 projet · 50 avis · 2 synthèses manuelles sur 30 jours · Import CSV et saisie manuelle · Vos avis conservés. Bouton : « Commencer gratuitement ».
 - **Carte Pro (19 €/mois)** : 5 projets · 2 000 avis par projet · Synthèse automatique chaque semaine · Widget sur votre site · Email du lundi · Historique des décisions. Retirer « 14 jours d'essai sans carte ».
 - **Bouton Pro** : « Commencer avec Pro » quand le paiement marche, sinon « Me prévenir » (vers Contact).
 - Phrase du bas inchangée : « Vos données sont conservées si vous repassez en Gratuit. »
@@ -599,7 +599,7 @@ Le projet n'a **pas** de page Confidentialité, Conditions d'utilisation ni Ment
 
 | # | Tâche | Détail |
 |---|---|---|
-| 1 | Offres et limites | Mettre à jour la configuration des plans : Gratuit 1 projet, 50 avis par projet (aujourd'hui la limite est de 500 par mois), 1 synthèse toutes les 14 jours, widget retiré du Gratuit ; Pro 5 projets (déjà la valeur actuelle), 2 000 avis par projet, synthèse manuelle 1 par jour et par projet (aujourd'hui 12 synthèses par mois). La section tarifs de la landing lit cette configuration : elle se met à jour toute seule |
+| 1 | Offres et limites | Configuration actuelle : Gratuit 1 projet, 50 avis, 2 synthèses manuelles sur 30 jours ; Pro 5 projets, 2 000 avis par projet, 1 synthèse manuelle par jour et par projet ; Agence 15 projets, 10 000 avis par projet, 1 synthèse manuelle par jour et par projet. La section tarifs de la landing lit cette configuration. |
 | 2 | Supprimer l'essai Pro de 14 jours | Retirer la logique d'essai et son affichage |
 | 3 | Prix annuel | Ajouter le prix annuel au paiement et au webhook |
 | 4 | Délai de 14 jours | Calculer la prochaine synthèse possible et l'afficher |

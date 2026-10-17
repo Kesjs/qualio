@@ -15,7 +15,7 @@ export const BILLING_PLANS = {
     /** Le widget sert de point d'entrée au Gratuit ; l'analyse reste limitée par le quota. */
     widget: true,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis analysés', '2 synthèses par mois', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses manuelles sur 30 jours', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente'],
   },
   pro: {
     label: 'Pro',

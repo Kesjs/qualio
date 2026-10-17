@@ -210,7 +210,7 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
             <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
               {isPaid
                 ? `${billing.limits.projects} projets · ${billing.limits.feedbackPerProject.toLocaleString('fr-FR')} avis par projet · synthèse automatique chaque semaine${billing.interval ? ` · facturation ${billing.interval === 'year' ? 'annuelle' : 'mensuelle'}` : ''}`
-                : '1 projet · 50 avis · 2 synthèses par mois. Vos avis et vos données restent conservés.'}
+                : '1 projet · 50 avis · 2 synthèses manuelles sur 30 jours. Vos avis et vos données restent conservés.'}
             </p>
           </div>
           <span className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-semibold ${isPaid ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200'}`}>{isPaid ? 'Actif' : 'Gratuit'}</span>

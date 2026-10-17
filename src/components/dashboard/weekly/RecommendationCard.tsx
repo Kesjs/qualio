@@ -18,7 +18,7 @@ function PriorityChip({ priority }: { priority: ActionItem['priority'] }) {
 /** Avis cités (3 au maximum) avec leur date et leur source, et le lien vers la liste filtrée. */
 export function CitedReviews({ siteId, action }: { siteId: string; action: ActionItem }) {
   const { data, isLoading, isError } = useCitedFeedback(siteId, action.feedback_ids)
-  const href = action.theme ? `/dashboard/feedback?theme=${encodeURIComponent(action.theme)}` : '/dashboard/feedback'
+  const href = `/dashboard/feedback?recommendation=${encodeURIComponent(action.id)}`
   return (
     <div className="mt-5">
       {isLoading && <div aria-hidden="true" className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100 motion-reduce:animate-none dark:bg-white/[0.06]" />)}</div>}

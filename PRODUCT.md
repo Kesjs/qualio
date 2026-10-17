@@ -15,7 +15,7 @@ Qualio transforme des avis clients en décisions vérifiables. Une personne impo
 ## Offres
 
 - Gratuit : 0 €, 1 projet, 1 synthèse par mois, avis conservés, CSV et widget.
-- Pro : 19 €/mois, 14 jours d’essai sans carte, 5 projets, 12 synthèses par mois, synthèse hebdomadaire et suivi des recommandations.
+- Pro : 19 €/mois, 5 projets, 1 synthèse manuelle par jour et par projet, synthèse automatique hebdomadaire et suivi des recommandations.
 
 ## Principes
 
