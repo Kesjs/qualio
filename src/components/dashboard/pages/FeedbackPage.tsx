@@ -133,14 +133,14 @@ function FeedbackInner() {
             ? <EmptyState title="Aucun avis archivé" body="Les avis que vous archivez apparaissent ici et peuvent être restaurés." />
             : <EmptyState title="Aucun avis pour l’instant" body="Ajoutez vos premiers avis par import CSV, par saisie ou avec le widget." href="/dashboard/collection" label="Ajouter des avis" />
       ) : (
-        <section className={`${card} overflow-hidden transition-opacity duration-150 ${isFetching ? 'opacity-70' : ''}`} aria-label="Liste des avis">
-          <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-2.5 dark:border-white/[0.06]">
+        <section className={`${card} overflow-visible transition-opacity duration-150 ${isFetching ? 'opacity-70' : ''}`} aria-label="Liste des avis">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-2.5 rounded-t-xl dark:border-white/[0.06]">
             <input type="checkbox" checked={allSelected} onChange={() => setSelectedIds(allSelected ? new Set() : new Set(items.map((item) => item.id)))} aria-label="Tout sélectionner" className="h-4 w-4 accent-gray-950 dark:accent-white" />
             <span className="font-mono text-xs text-gray-500 dark:text-zinc-400">{total} avis · <kbd>j</kbd>/<kbd>k</kbd> naviguer · <kbd>e</kbd> archiver</span>
           </div>
           <ul className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-            {items.map((item) => (
-              <li key={item.id} className={`flex items-start gap-3 px-5 py-3.5 transition-colors duration-150 ${openId === item.id ? 'bg-gray-50 dark:bg-white/[0.05]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.025]'}`}>
+            {items.map((item, index) => (
+              <li key={item.id} className={`flex items-start gap-3 px-5 py-3.5 transition-colors duration-150 ${total <= pageSize && index === items.length - 1 ? 'rounded-b-xl' : ''} ${openId === item.id ? 'bg-gray-50 dark:bg-white/[0.05]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.025]'}`}>
                 <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggle(item.id)} aria-label="Sélectionner cet avis" className="mt-1 h-4 w-4 accent-gray-950 dark:accent-white" />
                 <button type="button" onClick={() => setOpenId(item.id)} className={`min-w-0 flex-1 rounded-md text-left ${pressable} ${focusRing}`}>
                   <span className="line-clamp-2 block text-sm leading-5 text-gray-900 dark:text-zinc-100">{item.content}</span>
@@ -152,7 +152,7 @@ function FeedbackInner() {
             ))}
           </ul>
           {total > pageSize && (
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 font-mono text-xs text-gray-500 dark:border-white/[0.06] dark:text-zinc-400">
+            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 font-mono text-xs text-gray-500 rounded-b-xl dark:border-white/[0.06] dark:text-zinc-400">
               <span>{filters.page * pageSize + 1}–{Math.min(total, (filters.page + 1) * pageSize)} sur {total}</span>
               <div className="flex gap-2">
                 <button type="button" disabled={filters.page === 0} onClick={() => setFilter('page', filters.page - 1)} className={secondaryButton}>Précédent</button>

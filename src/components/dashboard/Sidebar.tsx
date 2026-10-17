@@ -45,7 +45,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       <div>
         <div className="flex h-16 items-center border-b border-gray-200/60 px-3 dark:border-white/[0.08]">
           <Link href="/dashboard" className="group flex w-full items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1.5 shadow-2xs dark:border-white/[0.1] dark:bg-black">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black">
               <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" />
             </div>
             {!isCollapsed && <div className="flex min-w-0 flex-col"><span className="truncate text-sm font-bold tracking-tight text-gray-900 dark:text-white">Qualio</span></div>}

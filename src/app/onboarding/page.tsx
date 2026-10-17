@@ -353,7 +353,7 @@ Consignes :
       <div className="mx-auto max-w-5xl">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1.5 dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
             <div><strong className="block text-sm">Qualio</strong><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-400">Première configuration</span></div>
           </div>
           <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>Passer pour l’instant</button>
