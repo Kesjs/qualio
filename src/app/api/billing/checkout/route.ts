@@ -33,5 +33,5 @@ export async function POST(request: NextRequest) {
     successUrl: `${origin}/billing/success`,
     errorUrl: `${origin}/pricing?checkout=canceled`,
   })
-  return NextResponse.json({ url: payment.checkout_url, reference: payment.reference })
+  return NextResponse.json({ url: payment.payment_url, reference: payment.reference })
 }

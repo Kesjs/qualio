@@ -9,8 +9,9 @@ export async function createGeniusPayPayment(input: { amount: number; currency?:
   const currency = input.currency ?? 'EUR'
   const response = await fetch(`${BASE_URL}/payments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'X-API-Secret': apiSecret, 'Idempotency-Key': input.externalReference }, body: JSON.stringify({ amount: input.amount, currency, payment_method: 'card', description: input.description, external_reference: input.externalReference, customer: { ...input.customer, country: input.customer.country ?? 'FR' }, metadata: input.metadata, success_url: input.successUrl, error_url: input.errorUrl }), cache: 'no-store' })
   const payload = await response.json().catch(() => null)
-  if (!response.ok || !payload?.success || !payload.data?.checkout_url) throw new Error(payload?.message ?? 'Impossible de créer le paiement GeniusPay')
-  return payload.data as { reference: string; checkout_url: string; status: string }
+  const paymentUrl = payload?.data?.payment_url ?? payload?.data?.checkout_url
+  if (!response.ok || !payload?.success || !paymentUrl) throw new Error(payload?.message ?? 'Impossible de créer le paiement GeniusPay')
+  return { ...payload.data, payment_url: paymentUrl } as { reference: string; payment_url: string; checkout_url?: string; status: string }
 }
 
 export function verifyGeniusPaySignature(payload: string, timestamp: string, signature: string, secret: string) {
