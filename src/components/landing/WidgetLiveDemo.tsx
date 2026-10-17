@@ -104,7 +104,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
             role="dialog"
             aria-modal="true"
             aria-labelledby="demo-modal-title"
-            className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-gray-200/90 bg-white p-6 shadow-2xl transition-all sm:p-7"
+            className="relative w-full max-w-lg overflow-hidden border border-gray-200/90 bg-white p-6 shadow-2xl transition-all sm:p-7"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
@@ -267,7 +267,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
       {/* 2. Toast de confirmation */}
       {toastMessage && (
         <div
-          style={{ position: 'fixed', bottom: '5.5rem', right: '1.5rem', zIndex: 9000, maxWidth: '22rem' }}
+          style={{ position: 'fixed', top: '1.5rem', right: '1.5rem', zIndex: 9000, maxWidth: '22rem' }}
         >
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-3.5 shadow-xl text-gray-800">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">

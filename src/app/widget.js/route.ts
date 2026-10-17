@@ -155,7 +155,7 @@ export function GET(request: NextRequest) {
       shadow.querySelector('#qualio-feedback-title').textContent = requestedTitle || copy.title;
       shadow.querySelector('.qualio-intro').textContent = requestedIntro || copy.intro;
       close.setAttribute('aria-label', copy.close);
-      shadow.querySelector('.qualio-content-label').textContent = requestedQuestion || copy.content;
+      shadow.querySelector('.qualio-content-label').textContent = copy.content;
       shadow.querySelector('textarea').setAttribute('placeholder', copy.contentPlaceholder);
       shadow.querySelector('.qualio-name-label').textContent = copy.name;
       shadow.querySelector('.qualio-email-label').textContent = copy.email;
