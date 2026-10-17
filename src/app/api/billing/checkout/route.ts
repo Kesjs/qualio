@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
   if (body.interval !== undefined && !isBillingInterval(body.interval)) return NextResponse.json({ error: 'Période de facturation invalide' }, { status: 400 })
   const plan = body.plan as PaidPlan
   const interval = isBillingInterval(body.interval) ? body.interval : 'month'
-  const { data: current } = await (supabase as any).from('billing_subscriptions').select('plan, status, source').eq('user_id', user.id).maybeSingle()
-  if (current?.source === 'geniuspay' && ['active', 'trialing'].includes(current.status)) return NextResponse.json({ error: 'Un accès payant existe déjà.' }, { status: 409 })
+  const { data: current } = await (supabase as any).from('billing_subscriptions').select('plan, status, source, provider').eq('user_id', user.id).maybeSingle()
+  if (current?.provider === 'geniuspay' && ['active', 'trialing'].includes(current.status)) return NextResponse.json({ error: 'Un accès payant existe déjà.' }, { status: 409 })
   const origin = request.nextUrl.origin
   const externalReference = `qualio:${user.id}:${plan}:${interval}:${Date.now()}`
   const amount = PLAN_AMOUNTS[plan][interval]
