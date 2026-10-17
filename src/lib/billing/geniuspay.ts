@@ -7,7 +7,7 @@ export async function createGeniusPayPayment(input: { amount: number; currency?:
   const apiSecret = process.env.GENIUSPAY_API_SECRET
   if (!apiKey || !apiSecret) throw new Error('GeniusPay n’est pas configuré')
   const currency = input.currency ?? 'EUR'
-  const response = await fetch(`${BASE_URL}/payments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'X-API-Secret': apiSecret, 'Idempotency-Key': input.externalReference }, body: JSON.stringify({ amount: input.amount, currency, payment_method: 'card', description: input.description, external_reference: input.externalReference, customer: { ...input.customer, country: input.customer.country ?? 'FR' }, metadata: input.metadata, success_url: input.successUrl, error_url: input.errorUrl }), cache: 'no-store' })
+  const response = await fetch(`${BASE_URL}/payments`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'X-API-Secret': apiSecret, 'Idempotency-Key': input.externalReference }, body: JSON.stringify({ amount: input.amount, currency, description: input.description, external_reference: input.externalReference, customer: { ...input.customer, country: input.customer.country ?? 'FR' }, metadata: input.metadata, success_url: input.successUrl, error_url: input.errorUrl }), cache: 'no-store' })
   const payload = await response.json().catch(() => null)
   const paymentUrl = payload?.data?.payment_url ?? payload?.data?.checkout_url
   if (!response.ok || !payload?.success || !paymentUrl) throw new Error(payload?.message ?? 'Impossible de créer le paiement GeniusPay')
