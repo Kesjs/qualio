@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 
-const BASE_URL = (process.env.GENIUSPAY_BASE_URL ?? 'https://geniuspay.ci/api/v1/merchant').replace(/\/$/, '')
+const BASE_URL = (process.env.GENIUSPAY_BASE_URL ?? 'https://pay.genius.ci/api/v1/merchant').replace(/\/$/, '')
 
 export async function createGeniusPayPayment(input: { amount: number; currency?: string; externalReference: string; description: string; customer: { email?: string; country?: string }; metadata: Record<string, string>; successUrl: string; errorUrl: string }) {
   const apiKey = process.env.GENIUSPAY_API_KEY
