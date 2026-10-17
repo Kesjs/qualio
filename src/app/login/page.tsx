@@ -520,6 +520,7 @@ export default function LoginPage() {
                   </p>
                 )}
                 <AuthButton
+                  variant="ghost"
                   type="button"
                   loading={otpLoading}
                   onClick={() => { setOtpEmail(''); setMode('otp') }}
