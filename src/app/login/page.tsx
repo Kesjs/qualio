@@ -19,8 +19,6 @@ const C = {
 
 type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'reset-password'
 
-const AUTH_MODES: AuthMode[] = ['password', 'register', 'forgot', 'otp', 'otp-verify', 'verify-email', 'reset-password']
-
 // Bouton Google SSO
 function GoogleButton({ onClick, loading, label }: { onClick: () => void; loading: boolean, label: string }) {
   return (
