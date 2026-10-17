@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
@@ -10,6 +11,7 @@ import { DecisionAnimation } from './StepDemos'
 import { HeroScene } from './HeroScene'
 import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
+import { WidgetLiveDemo } from './WidgetLiveDemo'
 
 /**
  * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
@@ -17,6 +19,14 @@ import { PricingCards } from '@/components/billing/PricingCards'
  */
 
 export function LightLanding() {
+  const [demoOpen, setDemoOpen] = useState(false)
+
+  useEffect(() => {
+    const onOpen = () => setDemoOpen(true)
+    window.addEventListener('qualio:open-demo', onOpen)
+    return () => window.removeEventListener('qualio:open-demo', onOpen)
+  }, [])
+
   return (
     <SiteShell>
       {/* 1. Hero : une visualisation fixe explique le passage des avis aux décisions */}
@@ -40,7 +50,7 @@ export function LightLanding() {
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
-              <SecondaryButton href="/exemple">Voir un exemple</SecondaryButton>
+              <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
             </div>
             <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED }}>
               <Check size={14} className="text-emerald-600" aria-hidden="true" />
@@ -112,7 +122,7 @@ export function LightLanding() {
         </Reveal>
         <Reveal delay={0.1} className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <PrimaryButton href={SIGNUP}>Commencer gratuitement</PrimaryButton>
-          <SecondaryButton href="/exemple">Voir un exemple</SecondaryButton>
+          <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
         </Reveal>
       </Section>
 
@@ -171,6 +181,9 @@ export function LightLanding() {
 
       {/* 11. Appel final */}
       <FinalCta />
+
+      {/* 12. Démo interactive du widget */}
+      <WidgetLiveDemo isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
     </SiteShell>
   )
 }

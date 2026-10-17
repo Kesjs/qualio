@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 
 const CONTACT_EMAIL = process.env.FEEDBACK_FROM_EMAIL || 'contact@tryqualio.pro'
@@ -124,8 +125,42 @@ export async function POST(request: NextRequest) {
     let providerId: string | null = null
     let emailError: string | null = null
 
-    // Envoi via Resend si configuré
-    if (process.env.RESEND_API_KEY) {
+    const smtpPassword = process.env.SMTP_PASSWORD || process.env.HOSTINGER_EMAIL_PASSWORD
+
+    // 1. Priorité SMTP Hostinger si le mot de passe est configuré
+    if (smtpPassword) {
+      try {
+        const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com'
+        const smtpPort = Number(process.env.SMTP_PORT) || 465
+        const smtpUser = process.env.SMTP_USER || process.env.FEEDBACK_FROM_EMAIL || 'contact@tryqualio.pro'
+
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPassword,
+          },
+        })
+
+        const info = await transporter.sendMail({
+          from: `"Formulaire Qualio" <${smtpUser}>`,
+          to: CONTACT_EMAIL,
+          replyTo: `"${name}" <${email}>`,
+          subject: subjectLine,
+          text: textContent,
+          html: htmlContent,
+        })
+
+        emailSent = true
+        providerId = info.messageId
+      } catch (smtpErr) {
+        emailError = smtpErr instanceof Error ? smtpErr.message : String(smtpErr)
+        console.error('[Contact Form] Erreur SMTP Hostinger:', smtpErr)
+      }
+    } else if (process.env.RESEND_API_KEY) {
+      // 2. Envoi via Resend si clé API configurée
       try {
         const resend = new Resend(process.env.RESEND_API_KEY)
         const recipients = [CONTACT_EMAIL]
@@ -154,7 +189,7 @@ export async function POST(request: NextRequest) {
         console.error('[Contact Form] Exception envoi email:', err)
       }
     } else {
-      console.warn('[Contact Form] RESEND_API_KEY non défini. Message journalisé sur le serveur.')
+      console.warn('[Contact Form] Aucun service email configuré (ni SMTP_PASSWORD pour Hostinger, ni RESEND_API_KEY).')
     }
 
     // Journalisation dans Supabase pour ne perdre aucun prospect
@@ -172,6 +207,19 @@ export async function POST(request: NextRequest) {
       })
     } catch (dbErr) {
       console.error('[Contact Form] Erreur journalisation Supabase:', dbErr)
+    }
+
+    if (!emailSent) {
+      const isConfigMissing = !smtpPassword && !process.env.RESEND_API_KEY
+      return NextResponse.json(
+        {
+          ok: false,
+          error: isConfigMissing
+            ? "Le serveur d'envoi d'emails n'est pas encore configuré (mot de passe SMTP Hostinger ou clé Resend manquant dans .env.local). Votre message a été enregistré en interne."
+            : `L'envoi par email a rencontré une erreur (${emailError || 'erreur inconnue'}). Veuillez nous écrire directement à ${CONTACT_EMAIL}.`,
+        },
+        { status: 502 }
+      )
     }
 
     return NextResponse.json({
