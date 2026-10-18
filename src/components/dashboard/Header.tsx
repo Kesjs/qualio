@@ -8,6 +8,7 @@ import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { AccountMenu } from '@/components/dashboard/AccountMenu'
 import { PlanUsage } from '@/components/dashboard/PlanUsage'
 import { ProjectSwitcher } from '@/components/dashboard/ProjectSwitcher'
+import { Tooltip } from '@/components/dashboard/Tooltip'
 import { NotificationBell } from '@/components/dashboard/NotificationBell'
 
 interface HeaderProps {
@@ -42,7 +43,7 @@ export function Header({ isCollapsed = false, onToggleCollapse }: HeaderProps) {
         <PlanUsage />
         <AnimatedThemeToggle />
         <NotificationBell />
-        <button type="button" onClick={() => void refreshDashboard()} disabled={refreshing} aria-label="Actualiser les données" title="Actualiser les données" className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white text-gray-600 shadow-2xs transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 disabled:cursor-wait disabled:opacity-70 dark:border-white/[0.08] dark:bg-[#16181E] dark:text-zinc-300 dark:hover:border-white/20 dark:hover:bg-[#1E212A] dark:hover:text-white"><ArrowPathIcon aria-hidden="true" className={`h-[18px] w-[18px] ${refreshing ? 'animate-spin' : ''}`} /></button>
+        <Tooltip label="Actualiser les données"><button type="button" onClick={() => void refreshDashboard()} disabled={refreshing} aria-label="Actualiser les données" className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white text-gray-600 shadow-2xs transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 disabled:cursor-wait disabled:opacity-70 dark:border-white/[0.08] dark:bg-[#16181E] dark:text-zinc-300 dark:hover:border-white/20 dark:hover:bg-[#1E212A] dark:hover:text-white"><ArrowPathIcon aria-hidden="true" className={`h-[18px] w-[18px] ${refreshing ? 'animate-spin' : ''}`} /></button></Tooltip>
         <AccountMenu />
       </div>
     </header>

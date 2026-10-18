@@ -7,6 +7,7 @@ import { ArrowRightOnRectangleIcon, ChevronUpDownIcon, Cog6ToothIcon } from '@he
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { NAV_ITEMS, isNavActive } from '@/components/dashboard/nav'
 import { UpgradeButton, useFreePlanUpgrade } from '@/components/dashboard/PlanUsage'
+import { Tooltip } from '@/components/dashboard/Tooltip'
 
 interface SidebarProps {
   isCollapsed?: boolean
@@ -66,12 +67,15 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                     ? 'sidebar-icon-sparkles'
                     : 'sidebar-icon-settings'
             return (
-              <Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} title={isCollapsed ? item.label : undefined} className={`group relative flex min-h-11 items-center rounded-md transition-colors ${isCollapsed ? 'justify-center px-2.5' : 'gap-3.5 px-3'} ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
+              <>{isCollapsed ? <Tooltip label={item.label} side="right"><Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} className={`group relative flex min-h-11 items-center justify-center rounded-md px-2.5 transition-colors ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
                 <Icon className={`h-5 w-5 shrink-0 ${iconMotion}`} />
-                {!isCollapsed && <span className="truncate text-sm">{item.label}</span>}
-                {isCollapsed && <span className="sr-only">{item.label}</span>}
+                <span className="sr-only">{item.label}</span>
                 {active && <span className={`absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018] ${isCollapsed ? 'right-1.5' : ''}`} />}
-              </Link>
+              </Link></Tooltip> : <Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} className={`group relative flex min-h-11 items-center gap-3.5 rounded-md px-3 transition-colors ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
+                <Icon className={`h-5 w-5 shrink-0 ${iconMotion}`} />
+                <span className="truncate text-sm">{item.label}</span>
+                {active && <span className="absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018]" />}
+              </Link>}</>
             )
           })}
         </nav>
