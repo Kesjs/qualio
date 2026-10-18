@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowTopRightOnSquareIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -24,7 +24,9 @@ type Flash = { tone: 'ok' | 'error'; text: string } | null
 const dateLabel = (value: string | null) => value ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }).format(new Date(value)) : null
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<TabId>('project')
+  const searchParams = useSearchParams()
+  const requestedTab = searchParams.get('tab') as TabId | null
+  const [tab, setTab] = useState<TabId>(requestedTab && TABS.some((item) => item.id === requestedTab) ? requestedTab : 'project')
   const [flash, setFlash] = useState<Flash>(null)
 
   useEffect(() => {

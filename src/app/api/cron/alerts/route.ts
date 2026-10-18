@@ -49,6 +49,15 @@ export async function GET(request: NextRequest) {
     }
     if (!spike) continue
 
+    await admin.from('dashboard_notifications').upsert({
+      user_id: userId,
+      type: 'alert',
+      title: `Le thème « ${spike.theme} » monte`,
+      body: `${spike.current} avis négatifs cette semaine contre ${spike.previous} la semaine précédente dans ${spike.site.name || spike.site.url || 'votre projet'}.`,
+      href: '/dashboard',
+      dedupe_key: `${userId}:${weekKey}:${spike.site.id}:${spike.theme}`,
+    }, { onConflict: 'dedupe_key', ignoreDuplicates: true })
+
     const recipient = await resolveRecipient(admin, userId)
     if (!recipient) continue
     const email = alertEmail({ origin, userId, projectName: spike.site.name || spike.site.url || 'votre projet', theme: spike.theme, current: spike.current, previous: spike.previous })

@@ -7,6 +7,7 @@ import { Header } from '@/components/dashboard/Header'
 import { MobileTabBar } from '@/components/dashboard/MobileTabBar'
 import { ProjectSwitcher } from '@/components/dashboard/ProjectSwitcher'
 import { AccountMenu } from '@/components/dashboard/AccountMenu'
+import { NotificationBell } from '@/components/dashboard/NotificationBell'
 import { PlanUsage } from '@/components/dashboard/PlanUsage'
 import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 
@@ -36,6 +37,7 @@ export default function DashboardLayout({
           <div className="flex shrink-0 items-center gap-2">
             <PlanUsage compact />
             <AnimatedThemeToggle className="h-8 w-8" />
+            <NotificationBell />
             <AccountMenu />
           </div>
         </div>
