@@ -8,6 +8,7 @@ import type { BillingStatus } from '@/components/dashboard/useBillingStatus'
 import { Banner, btnPrimary, btnSecondary, formatDayMonth, GeneratingPanel, surface } from './bricks'
 import { orderRecommendations } from './priority'
 import { CompactRecommendation, LargeRecommendation, type Decision } from './RecommendationCard'
+import { DecisionsInProgress } from './DecisionsInProgress'
 
 export interface WeeklyScreenProps {
   data: OverviewReady
@@ -138,7 +139,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
 
   const decision: Decision = {
     onAccept: (action) => {
-      void onStatus(action, 'accepted').then(() => toast.success('Recommandation acceptée', { action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })).catch((error: Error) => toast.error(error.message))
+      void onStatus(action, 'accepted').then(() => toast.success('Recommandation acceptée', { description: isFree ? 'L’effet sur vos avis est mesuré avec Pro.' : 'Effet mesuré dans 14 jours : retrouvez-le ici et dans l’e-mail du lundi.', action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })).catch((error: Error) => toast.error(error.message))
     },
     onDismiss: (action) => {
       void onStatus(action, 'dismissed').then(() => toast('Recommandation écartée', { action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })).catch((error: Error) => toast.error(error.message))
@@ -190,7 +191,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       )}
 
       {first ? (
-        <LargeRecommendation siteId={siteId} action={first} total={counts.total} decision={decision} busy={busy} />
+        <LargeRecommendation siteId={siteId} action={first} total={counts.total} decision={decision} busy={busy} plan={billing?.plan} />
       ) : (
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Rien à décider cette semaine</h2>
@@ -200,15 +201,17 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       )}
 
       {others.length > 0 && (
-        <section className={`${surface} overflow-hidden`} aria-labelledby="other-recs">
+        <section className={surface} aria-labelledby="other-recs">
           <h3 id="other-recs" className="border-b border-gray-200/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:border-white/[0.08] dark:text-zinc-400 sm:px-5">Autres recommandations</h3>
           <ul>
             {others.map((action, index) => (
-              <CompactRecommendation key={action.id} siteId={siteId} action={action} rank={index + 2} total={counts.total} decision={decision} busy={busy} />
+              <CompactRecommendation key={action.id} siteId={siteId} action={action} rank={index + 2} total={counts.total} decision={decision} busy={busy} plan={billing?.plan} />
             ))}
           </ul>
         </section>
       )}
+
+      <DecisionsInProgress siteId={siteId} actions={actions} plan={billing?.plan} />
 
       {/* F : pied de page, date de la dernière synthèse et quota */}
       <footer className="flex flex-col gap-2 border-t border-gray-200/80 pt-4 dark:border-white/[0.08] sm:flex-row sm:items-center sm:justify-between">

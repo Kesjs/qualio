@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
-import { isMarketingType, WEEKLY_MARKETING_CAP } from '@/lib/email/policy'
+import { isMarketingType, WEEKLY_CAP_COUNTED_TYPES, WEEKLY_MARKETING_CAP } from '@/lib/email/policy'
 
 export type SendResult = 'sent' | 'duplicate' | 'capped' | 'failed' | 'not_configured'
 
@@ -19,7 +19,7 @@ export async function sendQualioEmail(admin: any, input: { userId: string; type:
 
   if (isMarketingType(input.type)) {
     const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
-    const { count } = await admin.from('email_log').select('id', { count: 'exact', head: true }).eq('user_id', input.userId).in('event_type', ['weekly_digest', 'calm_digest', 'free_digest', 'alert']).in('status', ['pending', 'sent']).gte('created_at', since)
+    const { count } = await admin.from('email_log').select('id', { count: 'exact', head: true }).eq('user_id', input.userId).in('event_type', [...WEEKLY_CAP_COUNTED_TYPES]).in('status', ['pending', 'sent']).gte('created_at', since)
     if ((count ?? 0) >= WEEKLY_MARKETING_CAP) return 'capped'
   }
 
@@ -75,6 +75,12 @@ export async function resolveRecipient(admin: any, userId: string): Promise<stri
   if (process.env.NODE_ENV !== 'production') return process.env.RESEND_TEST_EMAIL ?? null
   const { data } = await admin.auth.admin.getUserById(userId)
   return data.user?.email ?? null
+}
+
+/** Vrai si un moyen d'envoi (SMTP ou Resend) et une adresse d'expéditeur sont configurés : même règle que sendQualioEmail. */
+export function isEmailConfigured() {
+  const hasTransport = Boolean(process.env.SMTP_PASSWORD || process.env.HOSTINGER_EMAIL_PASSWORD || process.env.RESEND_API_KEY)
+  return hasTransport && Boolean(process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER)
 }
 
 export function appOrigin(fallback: string) {

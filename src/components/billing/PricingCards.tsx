@@ -81,7 +81,9 @@ export function PricingCards() {
     ['Avis reçus au-delà de la limite', 'Conservés en attente, jusqu’à 100', 'Analysés', 'Analysés'],
     ['Email du lundi', 'Court, 2 par mois max', 'Complet', 'Complet, tous projets'],
     ['Alerte thème négatif', '—', 'Oui', 'Oui'],
-    ['Historique et effet des décisions', '—', 'Oui', 'Oui'],
+    ['Historique et effet des décisions (mesuré 14 jours après)', '—', 'Oui', 'Oui'],
+    ['Partage d’une tâche : copie, e-mail, CSV', 'Oui', 'Oui', 'Oui'],
+    ['Partage d’une tâche par lien et PDF', '—', 'Oui', 'Oui'],
     ['Rapport client partageable', '—', '—', 'Oui'],
     ['Export CSV des avis', '—', '—', 'Oui'],
   ] as const

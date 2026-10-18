@@ -15,7 +15,7 @@ export const BILLING_PLANS = {
     /** Le widget sert de point d'entrée au Gratuit ; l'analyse reste limitée par le quota. */
     widget: true,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis analysés', '2 synthèses manuelles sur 30 jours', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses manuelles sur 30 jours', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente', 'Partage de tâches : copie, e-mail, CSV'],
   },
   pro: {
     label: 'Pro',
@@ -29,7 +29,7 @@ export const BILLING_PLANS = {
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
-    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis après vos décisions'],
+    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis 14 jours après vos décisions', 'Partage de tâches par lien et PDF'],
   },
   agency: {
     label: 'Agence',
@@ -49,6 +49,7 @@ export const BILLING_PLANS = {
       'Synthèse automatique chaque semaine',
       '1 synthèse manuelle par jour et par projet',
       'Widget sur 15 sites',
+      'Partage de tâches par lien et PDF',
       'Rapport client partageable par lien',
       'Export CSV des avis',
       'Support prioritaire',

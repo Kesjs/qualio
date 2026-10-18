@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
@@ -11,6 +11,7 @@ import { DecisionAnimation } from './StepDemos'
 import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
 import { WidgetLiveDemo } from './WidgetLiveDemo'
+import { HeroVideo } from './HeroVideo'
 
 /**
  * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
@@ -19,16 +20,23 @@ import { WidgetLiveDemo } from './WidgetLiveDemo'
 
 export function LightLanding() {
   const [demoOpen, setDemoOpen] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  // Témoignages : ceux saisis dans content.ts, plus ceux que l'admin a publiés (avec l'accord de leurs auteurs).
+  const [testimonials, setTestimonials] = useState<{ quote: string; name: string; role: string }[]>(TESTIMONIALS)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/testimonials')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { testimonials?: { quote: string; name: string; role: string }[] } | null) => {
+        if (!cancelled && body?.testimonials?.length) setTestimonials([...TESTIMONIALS, ...body.testimonials].slice(0, 6))
+      })
+      .catch(() => undefined)
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     const onOpen = () => setDemoOpen(true)
     window.addEventListener('qualio:open-demo', onOpen)
     return () => window.removeEventListener('qualio:open-demo', onOpen)
-  }, [])
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = 1.5
   }, [])
 
   return (
@@ -75,22 +83,10 @@ export function LightLanding() {
               <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Qualio en 30 secondes
+            Qualio en moins d’une minute
           </p>
           <div className="qualio-hero-frame">
-            <div className="qualio-hero-video-wrap">
-              <video
-                ref={videoRef}
-                className="qualio-hero-video"
-                src="/qualio-final.mp4"
-                autoPlay
-                muted
-                playsInline
-                controls
-                preload="metadata"
-                aria-label="Démonstration de Qualio"
-              />
-            </div>
+            <HeroVideo />
           </div>
         </div>
       </section>
@@ -175,12 +171,12 @@ export function LightLanding() {
       </Section>
 
       {/* 8. Témoignages (seulement avec de vrais retours) ou bande « Bêta ouverte » */}
-      {TESTIMONIALS.length > 0 ? (
+      {testimonials.length > 0 ? (
         <section className="border-t" style={{ borderColor: LINE }}>
           <div className="mx-auto max-w-6xl px-5 py-20">
             <div className="grid gap-4 md:grid-cols-3">
-              {TESTIMONIALS.map((t, i) => (
-                <Reveal key={t.name} delay={i * 0.05} className={`border bg-white p-7 ${R_CARD}`}>
+              {testimonials.map((t, i) => (
+                <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`border bg-white p-7 ${R_CARD}`}>
                   <p className="text-lg leading-relaxed">« {t.quote} »</p>
                   <p className="mt-6 text-sm font-semibold">{t.name}</p>
                   <p className="text-xs" style={{ color: MUTED }}>{t.role}</p>

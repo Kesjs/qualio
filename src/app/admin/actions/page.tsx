@@ -1,10 +1,33 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
 import { getAdminContext } from '@/lib/admin/auth'
-import { getAdminData } from '@/lib/admin/overview'
+import { getActionsPage } from '@/lib/admin/data'
+import { listHref, parsePage } from '@/lib/admin/format'
+import { BTN_SECONDARY, EmptyState, Notice, PageHeader, Pagination } from '@/components/admin/ui'
+import { FeedbackCard } from '@/components/admin/FeedbackCard'
 
-const labels: Record<string, string> = { improvement: 'Amélioration', bug: 'Bug', difficulty: 'Difficulté', positive: 'Positif', other: 'Autre' }
-export default async function AdminActionsPage() {
+export const metadata: Metadata = { title: 'Actions prioritaires' }
+
+export default async function AdminActionsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await getAdminContext()
-  const data = await getAdminData()
-  const actions = data.latestFeedback.filter((item) => item.status === 'new' || item.priority === 'high')
-  return <div className="mx-auto max-w-7xl space-y-8"><header><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ee6018]">Actions prioritaires</p><h1 className="mt-3 text-4xl font-semibold">Décisions à prendre</h1><p className="mt-3 text-sm text-zinc-400">{actions.length} élément(s) nécessitent une décision.</p></header><section className="grid gap-4">{actions.map((item) => <article key={item.id} className="rounded-2xl border border-orange-500/20 bg-[#16181E] p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">{labels[item.category] ?? item.category}</h2><span className="text-xs font-bold text-orange-300">{item.priority === 'high' ? 'Prioritaire' : 'Nouveau'}</span></div><p className="mt-3 text-sm leading-6 text-zinc-300">{item.message}</p><p className="mt-3 text-xs text-zinc-500">Statut actuel : {item.status}</p></article>)}</section></div>
+  const params = await searchParams
+  const result = await getActionsPage({ page: parsePage(params.page) })
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <PageHeader
+        eyebrow="Actions prioritaires"
+        title="Décisions à prendre"
+        description={result.total === 0 ? 'Aucun retour n’attend de décision.' : `${result.total} retour${result.total > 1 ? 's' : ''} attend${result.total > 1 ? 'ent' : ''} une décision : nouveaux, ou prioritaires et encore ouverts. Un retour quitte cette liste dès qu’il est traité, écarté ou archivé.`}
+      />
+      {result.failed && <Notice tone="warning">La liste n’a pas pu être lue en entier. Rechargez la page dans un instant.</Notice>}
+      {result.rows.length === 0 ? (
+        <EmptyState title="Tout est à jour" description="Chaque retour a reçu une décision. Les prochains retours apparaîtront ici." action={<Link href="/admin/feedback" className={BTN_SECONDARY}>Voir tous les retours</Link>} />
+      ) : (
+        <ul role="list" className="space-y-3">
+          {result.rows.map((item) => <li key={item.id}><FeedbackCard item={item} showTestimonial={false} /></li>)}
+        </ul>
+      )}
+      <Pagination page={result.page} pageSize={result.pageSize} total={result.total} hrefFor={(page) => listHref('/admin/actions', { page })} />
+    </div>
+  )
 }

@@ -1,8 +1,53 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getAdminContext } from '@/lib/admin/auth'
 import { AdminSignOut } from '@/components/admin/AdminSessionActions'
+import { AdminNav } from '@/components/admin/AdminNav'
+import { FOCUS } from '@/components/admin/ui'
+
+export const metadata: Metadata = {
+  title: { template: '%s · Qualio Admin', default: 'Qualio Admin' },
+  robots: { index: false, follow: false },
+}
+
+function Brand({ size }: { size: 'md' | 'sm' }) {
+  const box = size === 'md' ? 'h-9 w-9' : 'h-8 w-8'
+  return (
+    <Link href="/admin" className={`flex items-center gap-3 rounded-lg ${FOCUS}`}>
+      <span className={`flex ${box} items-center justify-center rounded-lg bg-black p-1.5`}><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" width={36} height={36} className="h-full w-full" /></span>
+      <span className="font-bold">Qualio <span className="text-[#ff9a66]">Admin</span></span>
+    </Link>
+  )
+}
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getAdminContext()
-  return <div className="min-h-screen bg-[#0B0C0E] text-zinc-100 antialiased"><div className="mx-auto flex min-h-screen max-w-[1600px]"><aside className="hidden w-72 shrink-0 flex-col border-r border-white/[0.08] bg-[#111216] p-5 lg:flex"><Link href="/admin" className="flex items-center gap-3 border-b border-white/[0.08] pb-6"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-black p-1.5"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-full w-full" /></span><span className="font-bold">Qualio <span className="text-[#ee6018]">Admin</span></span></Link><nav className="mt-7 space-y-1 text-sm"><Link href="/admin" className="block rounded-lg bg-white/[0.08] px-3 py-3 font-semibold">Vue d’ensemble</Link><Link href="/admin/users" className="block rounded-lg px-3 py-3 text-zinc-400 hover:bg-white/[0.05] hover:text-white">Utilisateurs</Link><Link href="/admin/feedback" className="block rounded-lg px-3 py-3 text-zinc-400 hover:bg-white/[0.05] hover:text-white">Retours produit</Link><Link href="/admin/emails" className="block rounded-lg px-3 py-3 text-zinc-400 hover:bg-white/[0.05] hover:text-white">Emails & relances</Link><Link href="/admin/actions" className="block rounded-lg px-3 py-3 text-zinc-400 hover:bg-white/[0.05] hover:text-white">Actions prioritaires</Link></nav><div className="mt-auto space-y-3 border-t border-white/[0.08] pt-5 text-xs text-zinc-500"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-600">Session admin</p><p className="mt-1 truncate text-zinc-300">{user.email}</p></div><AdminSignOut /></div></aside><main className="min-w-0 flex-1 p-5 sm:p-8 lg:p-12"><div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4 lg:hidden"><div><Link href="/admin" className="font-bold">Qualio <span className="text-[#ee6018]">Admin</span></Link><p className="mt-1 max-w-[14rem] truncate text-xs text-zinc-500">{user.email}</p></div><AdminSignOut /></div><nav aria-label="Navigation admin" className="mb-6 flex gap-2 overflow-x-auto pb-1 text-sm lg:hidden"><Link href="/admin/users" className="whitespace-nowrap rounded-lg px-3 py-2 text-zinc-400">Utilisateurs</Link><Link href="/admin/feedback" className="whitespace-nowrap rounded-lg px-3 py-2 text-zinc-400">Retours produit</Link><Link href="/admin/emails" className="whitespace-nowrap rounded-lg px-3 py-2 text-zinc-400">Emails</Link><Link href="/admin/actions" className="whitespace-nowrap rounded-lg px-3 py-2 text-zinc-400">Actions</Link></nav>{children}</main></div></div>
+  return (
+    <div className="min-h-dvh bg-[#101010] text-[#eeeeee] antialiased">
+      <a href="#admin-contenu" className={`sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-black ${FOCUS}`}>Aller au contenu</a>
+      <div className="mx-auto flex min-h-dvh max-w-[1600px]">
+        <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 flex-col overflow-y-auto border-r border-white/10 bg-[#161413] p-5 lg:flex">
+          <div className="border-b border-white/10 pb-5"><Brand size="md" /></div>
+          <AdminNav variant="sidebar" />
+          <div className="mt-auto space-y-3 border-t border-white/10 pt-5 text-sm">
+            <div>
+              <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">Session admin</p>
+              <p className="mt-1 truncate text-stone-200" title={user.email ?? undefined}>{user.email}</p>
+            </div>
+            <AdminSignOut />
+          </div>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="border-b border-white/10 bg-[#161413] px-5 py-4 lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0"><Brand size="sm" /><p className="mt-1 max-w-[14rem] truncate text-xs text-stone-400">{user.email}</p></div>
+              <AdminSignOut />
+            </div>
+            <AdminNav variant="bar" />
+          </header>
+          <main id="admin-contenu" tabIndex={-1} className="min-w-0 flex-1 p-5 outline-none sm:p-8 lg:p-12">{children}</main>
+        </div>
+      </div>
+    </div>
+  )
 }

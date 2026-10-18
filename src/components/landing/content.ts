@@ -31,7 +31,7 @@ export const STEPS = [
     n: '04',
     tag: 'Décision',
     title: 'Votre équipe accepte, reporte ou écarte chaque recommandation.',
-    body: 'Rien n’est appliqué automatiquement.',
+    body: 'Rien n’est appliqué automatiquement. Avec Pro, Qualio mesure l’évolution des avis 14 jours après votre décision.',
   },
 ] as const
 
@@ -64,7 +64,8 @@ export const COMPARISON = [
   ['Rappel chaque semaine', 'Non', 'Oui, par email (Pro et Agence)'],
   ['Alerte quand un thème négatif augmente', 'Non', 'Oui (Pro et Agence)'],
   ['Effet de vos décisions sur les avis', 'Non', 'Oui, sur 14 jours (Pro et Agence)'],
-  ['Suivi de ce que vous avez accepté ou écarté', 'Non', 'Oui'],
+  ['Suivi de ce que vous avez accepté ou écarté', 'Non', 'Oui (Pro et Agence)'],
+  ['Partage d’une tâche avec ses avis à l’appui', 'À recopier à la main', 'Oui : copie, e-mail, CSV ; lien et PDF avec Pro'],
 ] as const
 
 export const FAQ = [

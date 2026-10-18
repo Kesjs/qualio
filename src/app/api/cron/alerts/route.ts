@@ -4,7 +4,7 @@ import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
 import { writableSiteIds } from '@/lib/billing/writable'
 import { pickNegativeSpike } from '@/lib/feedback/alerts'
 import { alertEmail } from '@/lib/email/templates'
-import { appOrigin, resolveRecipient, sendQualioEmail } from '@/lib/email/send'
+import { appOrigin, resolveRecipient, sendQualioEmail, isEmailConfigured } from '@/lib/email/send'
 import { isoWeekKey } from '@/lib/email/policy'
 
 /** Tous les jours : une alerte au plus par utilisateur et par semaine, si un thème négatif monte nettement. */
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const expected = process.env.CRON_SECRET
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || request.headers.get('x-cron-secret')
   if (!expected || supplied !== expected) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!process.env.RESEND_API_KEY || !process.env.FEEDBACK_FROM_EMAIL) return NextResponse.json({ processed: 0, skipped: 'email_not_configured' })
+  if (!isEmailConfigured()) return NextResponse.json({ processed: 0, skipped: 'email_not_configured' })
   const admin = getSupabaseAdminClient() as any
   const origin = appOrigin(request.nextUrl.origin)
   const weekKey = isoWeekKey()

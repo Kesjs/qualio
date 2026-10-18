@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
+import { LIFECYCLE_EMAIL_TYPES } from '@/lib/email/policy'
 import { requireAdminApi } from '@/lib/admin/auth'
 
 export async function GET() {
@@ -11,9 +12,9 @@ export async function GET() {
     admin.from('sites').select('id', { count: 'exact', head: true }),
     admin.from('product_feedback').select('id', { count: 'exact', head: true }),
     admin.from('product_feedback').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-    admin.from('email_log').select('id', { count: 'exact', head: true }).in('event_type', ['welcome', 'activation_nudge', 'feedback_request']),
+    admin.from('email_log').select('id', { count: 'exact', head: true }).in('event_type', [...LIFECYCLE_EMAIL_TYPES]),
     admin.from('product_feedback').select('id, category, message, status, priority, allow_contact, allow_public_testimonial, created_at, user_id').order('created_at', { ascending: false }).limit(50),
-    admin.from('email_log').select('id, event_type, email, status, created_at').order('created_at', { ascending: false }).limit(12),
+    admin.from('email_log').select('id, event_type, email:recipient, status, created_at').order('created_at', { ascending: false }).limit(12),
     admin.from('sites').select('id, name, url, environment, created_at, user_id').order('created_at', { ascending: false }).limit(12),
   ])
   const { data: authUsers } = await admin.auth.admin.listUsers({ page: 1, perPage: 20 })

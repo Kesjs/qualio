@@ -17,11 +17,12 @@ export function freeDigestEmail({ origin, userId, projectName, newCount, lockedC
 }
 
 /** Pro ou Agence sans synthèse cette semaine : version courte, sans conseil inventé. */
-export function calmDigestEmail({ origin, userId, totalNew, lastSynthesisLabel }: Base & { totalNew: number; lastSynthesisLabel: string | null }) {
+export function calmDigestEmail({ origin, userId, totalNew, lastSynthesisLabel, decisions = [] }: Base & { totalNew: number; lastSynthesisLabel: string | null; decisions?: Array<{ title: string; effect: string }> }) {
   const lines = [
     totalNew > 0 ? `${plural(totalNew, 'nouvel avis', 'nouveaux avis')} cette semaine, aucun ne demande de décision urgente.` : 'Aucun nouvel avis cette semaine.',
     lastSynthesisLabel ? `Votre dernière synthèse date du ${lastSynthesisLabel}.` : 'Vous n’avez pas encore de synthèse.',
     'Qualio continue de classer les avis dès leur arrivée. Rien à faire cette semaine.',
+    ...decisions.slice(0, 3).map((item) => `Votre décision « ${item.title} » : ${item.effect}.`),
   ]
   const { html, text } = renderEmail({ heading: 'Semaine calme', lines, cta: { label: 'Voir mes avis', url: `${origin}/dashboard` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
   return { subject: 'Semaine calme : rien d’urgent cette semaine', html, text }
@@ -94,4 +95,14 @@ export function activationNudgeEmail({ origin, userId }: Base) {
 export function feedbackRequestEmail({ origin, userId }: Base) {
   const { html, text } = renderEmail({ heading: 'Votre retour nous aiderait vraiment', lines: ['Vous avez commencé à utiliser Qualio. Qu’est-ce qui vous a aidé, bloqué ou manqué ?', 'Deux minutes suffisent. Votre réponse restera privée, sauf si vous autorisez séparément un témoignage.'], cta: { label: 'Donner mon retour', url: `${origin}/dashboard/feedback-produit` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
   return { subject: 'Pouvez-vous nous dire ce qu’il faut améliorer ?', html, text }
+}
+
+export function projectNudgeEmail({ origin, userId }: Base) {
+  const { html, text } = renderEmail({ heading: 'Votre projet est prêt, il lui manque des avis', lines: ['Vous avez créé votre projet sur Qualio, mais il n’a pas encore reçu d’avis.', 'Trois avis suffisent pour obtenir une première recommandation sourcée. Vous pouvez importer un CSV, saisir un avis ou installer le widget.'], cta: { label: 'Ajouter des avis', url: `${origin}/dashboard/collection` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
+  return { subject: 'Votre projet attend ses premiers avis', html, text }
+}
+
+export function decisionReminderEmail({ origin, userId }: Base) {
+  const { html, text } = renderEmail({ heading: 'Votre synthèse attend une décision', lines: ['Votre dernière synthèse est prête, avec des recommandations sourcées.', 'Une minute suffit pour en accepter une ou l’écarter.'], cta: { label: 'Voir les recommandations', url: `${origin}/dashboard` }, unsubscribeUrl: unsubscribeUrl(origin, userId) })
+  return { subject: 'Une décision vous attend dans Qualio', html, text }
 }

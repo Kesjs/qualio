@@ -7,12 +7,20 @@ import { formatDate, sourceLabels, type ActionItem } from '@/lib/feedback/types'
 import { PRIORITY, priorityOf } from './priority'
 import { btnPrimary, btnQuiet, btnSecondary, surface } from './bricks'
 import { useCitedFeedback } from './useCitedFeedback'
+import { ConfidenceChip } from './ConfidenceChip'
+import { ShareMenu } from './ShareMenu'
+import type { PlanId } from '@/lib/billing/plans'
 
 export type Decision = { onAccept: (action: ActionItem) => void; onLater: (action: ActionItem) => void; onDismiss: (action: ActionItem) => void }
 
-function PriorityChip({ priority }: { priority: ActionItem['priority'] }) {
+function PriorityChip({ priority, confidence }: { priority: ActionItem['priority']; confidence?: ActionItem['confidence'] }) {
   const style = PRIORITY[priorityOf(priority)]
-  return <span className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold ${style.chip}`}>{style.label}</span>
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className={`inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold ${style.chip}`}>{style.label}</span>
+      <ConfidenceChip confidence={confidence} />
+    </span>
+  )
 }
 
 /** Avis cités (3 au maximum) avec leur date et leur source, et le lien vers la liste filtrée. */
@@ -38,12 +46,13 @@ export function CitedReviews({ siteId, action }: { siteId: string; action: Actio
   )
 }
 
-function Decisions({ action, decision, busy, large }: { action: ActionItem; decision: Decision; busy: boolean; large: boolean }) {
+function Decisions({ siteId, plan, action, decision, busy, large }: { siteId: string; plan: PlanId | undefined; action: ActionItem; decision: Decision; busy: boolean; large: boolean }) {
   return (
     <div className={`mt-5 flex gap-2 ${large ? 'flex-col sm:flex-row sm:items-center' : 'flex-wrap'}`}>
       <button type="button" disabled={busy} onClick={() => decision.onAccept(action)} className={`${btnPrimary} ${large ? 'sm:min-w-44' : ''}`}>Accepter</button>
       <button type="button" disabled={busy} onClick={() => decision.onLater(action)} className={btnSecondary}>Plus tard</button>
       <button type="button" disabled={busy} onClick={() => decision.onDismiss(action)} className={btnQuiet}>Écarter</button>
+      <ShareMenu siteId={siteId} action={action} plan={plan} />
     </div>
   )
 }
@@ -61,23 +70,23 @@ function Evidence({ action, total }: { action: ActionItem; total: number }) {
 }
 
 /** Forme grande : la recommandation n°1 (doc 3.8). */
-export function LargeRecommendation({ siteId, action, total, decision, busy }: { siteId: string; action: ActionItem; total: number; decision: Decision; busy: boolean }) {
+export function LargeRecommendation({ siteId, action, total, decision, busy, plan }: { siteId: string; action: ActionItem; total: number; decision: Decision; busy: boolean; plan?: PlanId }) {
   return (
     <article className={`${surface} p-6 sm:p-8`} aria-labelledby={`rec-${action.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">Recommandation n°1</p>
-        <PriorityChip priority={action.priority} />
+        <PriorityChip priority={action.priority} confidence={action.confidence} />
       </div>
       <h2 id={`rec-${action.id}`} className="mt-4 text-2xl font-semibold leading-tight tracking-[-0.03em] text-gray-950 dark:text-white sm:text-[32px]">{action.title}</h2>
       <Evidence action={action} total={total} />
       <CitedReviews siteId={siteId} action={action} />
-      <Decisions action={action} decision={decision} busy={busy} large />
+      <Decisions siteId={siteId} plan={plan} action={action} decision={decision} busy={busy} large />
     </article>
   )
 }
 
 /** Forme compacte : une ligne ; un clic déplie la carte complète. */
-export function CompactRecommendation({ siteId, action, rank, total, decision, busy }: { siteId: string; action: ActionItem; rank: number; total: number; decision: Decision; busy: boolean }) {
+export function CompactRecommendation({ siteId, action, rank, total, decision, busy, plan }: { siteId: string; action: ActionItem; rank: number; total: number; decision: Decision; busy: boolean; plan?: PlanId }) {
   const [open, setOpen] = useState(false)
   const count = action.feedback_ids.length
   return (
@@ -90,10 +99,10 @@ export function CompactRecommendation({ siteId, action, rank, total, decision, b
       </button>
       {open && (
         <div className="px-4 pb-5 sm:px-5">
-          <PriorityChip priority={action.priority} />
+          <PriorityChip priority={action.priority} confidence={action.confidence} />
           <Evidence action={action} total={total} />
           <CitedReviews siteId={siteId} action={action} />
-          <Decisions action={action} decision={decision} busy={busy} large={false} />
+          <Decisions siteId={siteId} plan={plan} action={action} decision={decision} busy={busy} large={false} />
         </div>
       )}
     </li>

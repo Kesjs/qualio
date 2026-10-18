@@ -7,6 +7,10 @@ import { SparklesIcon } from '@heroicons/react/24/outline'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import { ApiError, useActions, useDashboardMutations, useSyntheses } from '@/lib/hooks/useDashboard'
 import { formatDate, type ActionItem } from '@/lib/feedback/types'
+import { ConfidenceChip } from '@/components/dashboard/weekly/ConfidenceChip'
+import { EffectLine } from '@/components/dashboard/weekly/DecisionsInProgress'
+import { ShareMenu } from '@/components/dashboard/weekly/ShareMenu'
+import { useBillingStatus } from '@/components/dashboard/useBillingStatus'
 import { card, EmptyState, ErrorState, PageHeader, primaryButton, PriorityBadge, secondaryButton, Skeleton } from '@/components/dashboard/ui'
 
 type Tab = 'open' | 'accepted' | 'done' | 'dismissed' | 'history'
@@ -84,6 +88,8 @@ const emptyBody: Record<Exclude<Tab, 'history'>, string> = {
 function ActionCard({ action, siteId }: { action: ActionItem; siteId: string }) {
   const { mutate, isPending } = useDashboardMutations().setActionStatus
   const [copied, setCopied] = useState(false)
+  const { data: billing } = useBillingStatus(siteId || undefined)
+  const plan = billing?.plan
   const set = (status: ActionItem['status']) => mutate({ id: action.id, siteId, status })
   const detail = action.action ?? action.description
 
@@ -96,12 +102,12 @@ function ActionCard({ action, siteId }: { action: ActionItem; siteId: string }) 
     <article className={`${card} p-5`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="text-base font-semibold leading-6 text-gray-950 dark:text-white">{action.title}</h3>
-        {action.priority && <PriorityBadge priority={action.priority} />}
+        <div className="flex flex-wrap items-center gap-3">{action.priority && <PriorityBadge priority={action.priority} />}<ConfidenceChip confidence={action.confidence} /></div>
       </div>
       {detail && <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700 dark:text-zinc-300">{detail}</p>}
       {action.rationale && <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-zinc-400"><span className="font-semibold text-gray-700 dark:text-zinc-300">Pourquoi : </span>{action.rationale}</p>}
       {action.uncertainty && <p className="mt-2 text-xs leading-5 text-amber-800 dark:text-amber-300">À vérifier : {action.uncertainty}</p>}
-      {action.effect && <p className="mt-3 inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-white/[0.06] dark:text-zinc-300">Effet : {action.effect.label}</p>}
+      {(action.status === 'accepted' || action.status === 'done') && <EffectLine action={action} plan={plan} />}
       <p className="mt-3 text-xs text-gray-500 dark:text-zinc-400">
         {action.feedback_ids.length} {action.feedback_ids.length > 1 ? 'avis sources' : 'avis source'}
         {action.theme && <> · <Link href={`/dashboard/feedback?theme=${encodeURIComponent(action.theme)}`} className="font-semibold text-[#c95720] hover:underline dark:text-orange-300">{action.theme}</Link></>}
@@ -115,6 +121,7 @@ function ActionCard({ action, siteId }: { action: ActionItem; siteId: string }) 
         {action.status === 'accepted' && <>
           <button type="button" disabled={isPending} onClick={() => set('done')} className={primaryButton}>Marquer comme faite</button>
           <button type="button" onClick={copyMarkdown} className={secondaryButton}>{copied ? 'Copié ✓' : 'Copier en Markdown'}</button>
+          <ShareMenu siteId={siteId} action={action} plan={plan} />
           <button type="button" disabled={isPending} onClick={() => set('open')} className={secondaryButton}>Remettre à décider</button>
         </>}
         {action.status === 'done' && <button type="button" disabled={isPending} onClick={() => set('accepted')} className={secondaryButton}>Rouvrir</button>}

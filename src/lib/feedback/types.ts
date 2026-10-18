@@ -78,6 +78,8 @@ export const sourceLabels: Record<string, string> = {
   csv: 'Import CSV',
 }
 
+export const PRIORITY_LABELS = { high: 'Haute', medium: 'Moyenne', low: 'Basse' } as const
+
 export const sentimentLabels: Record<Sentiment, string> = { positive: 'Positif', neutral: 'Neutre', negative: 'Négatif' }
 
 export function formatDate(value: string) {

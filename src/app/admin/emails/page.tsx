@@ -1,8 +1,54 @@
+import type { Metadata } from 'next'
 import { getAdminContext } from '@/lib/admin/auth'
-import { getAdminData } from '@/lib/admin/overview'
+import { getEmailsPage } from '@/lib/admin/data'
+import { EMAIL_STATUSES, EMAIL_STATUS_LABELS, EMAIL_TYPE_LABELS, formatDateTime, labelOf, listHref, optionsOf, parseFilter, parsePage } from '@/lib/admin/format'
+import { Badge, EmptyState, FilterBar, Notice, PageHeader, Pagination, SelectField, TD, TH, TableRegion, emailTone } from '@/components/admin/ui'
 
-export default async function AdminEmailsPage() {
+export const metadata: Metadata = { title: 'Emails & relances' }
+
+const TYPES = Object.keys(EMAIL_TYPE_LABELS)
+
+export default async function AdminEmailsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await getAdminContext()
-  const data = await getAdminData()
-  return <div className="mx-auto max-w-7xl space-y-8"><header><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ee6018]">Emails & relances</p><h1 className="mt-3 text-4xl font-semibold">Historique des envois</h1><p className="mt-3 text-sm text-zinc-400">Suivi réel des emails transactionnels et des relances.</p></header><section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111216]"><div className="grid grid-cols-[1fr_180px_140px] gap-4 border-b border-white/[0.08] p-5 text-xs font-bold uppercase tracking-[0.12em] text-zinc-500"><span>Destinataire</span><span>Événement</span><span>Statut</span></div>{data.emailLog.map((email) => <div key={email.id} className="grid grid-cols-[1fr_180px_140px] gap-4 border-b border-white/[0.06] p-5 text-sm last:border-0"><span className="truncate text-zinc-200">{email.email}</span><span className="text-zinc-400">{email.event_type}</span><span className="text-zinc-500">{email.status}</span></div>)}</section></div>
+  const params = await searchParams
+  const status = parseFilter(params.status, EMAIL_STATUSES)
+  const type = parseFilter(params.type, TYPES)
+  const result = await getEmailsPage({ page: parsePage(params.page), status, type })
+  const filtered = Boolean(status || type)
+  return (
+    <div className="mx-auto max-w-7xl space-y-6">
+      <PageHeader eyebrow="Emails & relances" title="Historique des envois" description="Suivi réel des emails transactionnels et des relances, du plus récent au plus ancien." />
+      {result.failed && <Notice tone="warning">L’historique n’a pas pu être lu en entier. Rechargez la page dans un instant.</Notice>}
+      <FilterBar label="Filtrer les emails" resetHref="/admin/emails">
+        <SelectField label="Statut" name="status" value={status} allLabel="Tous les statuts" options={optionsOf(EMAIL_STATUS_LABELS, EMAIL_STATUSES)} />
+        <SelectField label="Type d’email" name="type" value={type} allLabel="Tous les types" options={optionsOf(EMAIL_TYPE_LABELS, TYPES)} />
+      </FilterBar>
+      {result.rows.length === 0 ? (
+        <EmptyState title={filtered ? 'Aucun email ne correspond' : 'Aucun email envoyé pour le moment'} description={filtered ? 'Retirez un filtre pour élargir la liste.' : undefined} />
+      ) : (
+        <TableRegion label="Historique des emails">
+          <table className="w-full min-w-[760px] text-sm">
+            <caption className="sr-only">Emails envoyés, page {result.page}</caption>
+            <thead className="border-b border-white/10 bg-[#161413]">
+              <tr><th scope="col" className={TH}>Date</th><th scope="col" className={TH}>Destinataire</th><th scope="col" className={TH}>Type</th><th scope="col" className={TH}>Statut</th></tr>
+            </thead>
+            <tbody className="divide-y divide-white/10 bg-[#1d1a18]">
+              {result.rows.map((email) => (
+                <tr key={email.id}>
+                  <td className={`${TD} whitespace-nowrap font-mono text-stone-300`}><time dateTime={email.created_at}>{formatDateTime(email.created_at)}</time></td>
+                  <th scope="row" className={`${TD} max-w-[20rem] text-left font-normal`}><span className="block truncate text-stone-100" title={email.recipient}>{email.recipient}</span></th>
+                  <td className={`${TD} text-stone-300`}>{labelOf(EMAIL_TYPE_LABELS, email.event_type)}</td>
+                  <td className={TD}>
+                    <Badge tone={emailTone(email.status)}>{labelOf(EMAIL_STATUS_LABELS, email.status)}</Badge>
+                    {email.status === 'failed' && email.last_error && <p className="mt-1 max-w-xs break-words font-mono text-xs text-red-300">{email.last_error}</p>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableRegion>
+      )}
+      <Pagination page={result.page} pageSize={result.pageSize} total={result.total} hrefFor={(page) => listHref('/admin/emails', { status, type, page })} />
+    </div>
+  )
 }

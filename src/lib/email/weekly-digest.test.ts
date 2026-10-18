@@ -29,4 +29,11 @@ describe('buildWeeklyDigestEmail', () => {
     expect(email.html).not.toContain('<script>')
     expect(email.html).toContain('&lt;script&gt;')
   })
+
+  it('affiche les décisions et leur effet', () => {
+    const email = buildWeeklyDigestEmail({ ...base, projects: [{ name: 'Boutique', newCount: 5, recommendation: { title: 'Clarifier la livraison' }, topTheme: null, decisions: [{ title: 'Raccourcir le formulaire', effect: 'effet mesuré dans 9 jours' }] }] })
+    expect(email.html).toContain('Vos décisions')
+    expect(email.html).toContain('effet mesuré dans 9 jours')
+    expect(email.text).toContain('- Raccourcir le formulaire : effet mesuré dans 9 jours')
+  })
 })

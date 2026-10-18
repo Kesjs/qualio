@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { getUserPlan, isSiteWritable } from '@/lib/billing/limits'
-import { computeEffect, EFFECT_WINDOW_MS, lockedEffect } from '@/lib/feedback/effect'
+import { attachEffects } from '@/lib/feedback/decision-effects'
 
 const ALLOWED_STATUSES = new Set(['open', 'accepted', 'dismissed', 'done'])
 
@@ -28,28 +28,7 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Impossible de charger les recommandations.' }, { status: 500 })
 
   const plan = await getUserPlan(supabase as any, user.id)
-  const countTheme = async (theme: string, from: string, to: string) => {
-    const { count } = await (supabase as any)
-      .from('feedback_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('site_id', siteId)
-      .eq('theme', theme)
-      .not('status', 'in', '(archived,locked)')
-      .gte('created_at', from)
-      .lt('created_at', to)
-    return count ?? 0
-  }
-  const recommendations = await Promise.all((data ?? []).map(async (recommendation: { status: string; theme?: string | null; decided_at?: string | null }) => {
-    if (!['accepted', 'done'].includes(recommendation.status) || !recommendation.theme || !recommendation.decided_at) return recommendation
-    // L'effet est réservé à Pro et Agence : Gratuit voit seulement qu'il existe.
-    if (plan === 'free') return { ...recommendation, effect: lockedEffect() }
-    const decidedAt = recommendation.decided_at
-    const decided = Date.parse(decidedAt)
-    const beforeCount = await countTheme(recommendation.theme, new Date(decided - EFFECT_WINDOW_MS).toISOString(), decidedAt)
-    const afterCount = await countTheme(recommendation.theme, decidedAt, new Date(Math.min(decided + EFFECT_WINDOW_MS, Date.now())).toISOString())
-    return { ...recommendation, effect: computeEffect({ beforeCount, afterCount, decidedAt }) }
-  }))
+  const recommendations = await attachEffects(supabase as any, { userId: user.id, siteId, plan, recommendations: data ?? [] })
   return NextResponse.json(recommendations)
 }
 

@@ -1,6 +1,10 @@
 /** Règles d'envoi pures : elles n'appellent aucune base, donc elles se testent directement. */
 
-export const MARKETING_TYPES = ['weekly_digest', 'calm_digest', 'free_digest', 'alert', 'welcome', 'activation_nudge', 'feedback_request'] as const
+export const MARKETING_TYPES = ['weekly_digest', 'calm_digest', 'free_digest', 'alert', 'welcome', 'activation_nudge', 'project_nudge', 'feedback_request', 'decision_reminder'] as const
+/** Types comptés dans le plafond hebdomadaire : tous les envois marketing, sauf l'email de bienvenue (email de service). */
+export const WEEKLY_CAP_COUNTED_TYPES = MARKETING_TYPES.filter((type) => type !== 'welcome')
+/** Relances de cycle de vie, pour les compteurs de l'admin. */
+export const LIFECYCLE_EMAIL_TYPES = ['welcome', 'activation_nudge', 'project_nudge', 'feedback_request', 'decision_reminder'] as const
 export const WEEKLY_MARKETING_CAP = 3
 export const FREE_DIGEST_MONTHLY_CAP = 2
 export const FREE_DIGEST_MIN_NEW = 3
