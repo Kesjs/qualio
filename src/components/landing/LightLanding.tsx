@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ArrowRight, Check } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
@@ -8,7 +8,6 @@ import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section, UnderlineWor
 import { SiteShell } from './SiteShell'
 import { AudienceCards, BetaBand, ComparisonTable, FaqSection, FinalCta, ProblemSection } from './sections'
 import { DecisionAnimation } from './StepDemos'
-import { HeroScene } from './HeroScene'
 import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
 import { WidgetLiveDemo } from './WidgetLiveDemo'
@@ -20,11 +19,16 @@ import { WidgetLiveDemo } from './WidgetLiveDemo'
 
 export function LightLanding() {
   const [demoOpen, setDemoOpen] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     const onOpen = () => setDemoOpen(true)
     window.addEventListener('qualio:open-demo', onOpen)
     return () => window.removeEventListener('qualio:open-demo', onOpen)
+  }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = 1.5
   }, [])
 
   return (
@@ -71,10 +75,22 @@ export function LightLanding() {
               <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Qualio en 20 secondes
+            Qualio en 30 secondes
           </p>
           <div className="qualio-hero-frame">
-            <HeroScene />
+            <div className="qualio-hero-video-wrap">
+              <video
+                ref={videoRef}
+                className="qualio-hero-video"
+                src="/qualio-final.mp4"
+                autoPlay
+                muted
+                playsInline
+                controls
+                preload="metadata"
+                aria-label="Démonstration de Qualio"
+              />
+            </div>
           </div>
         </div>
       </section>

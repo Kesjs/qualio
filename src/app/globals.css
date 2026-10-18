@@ -489,6 +489,8 @@ input[type='password']::-ms-clear {
 }
 .qualio-hero-note { display: flex; align-items: flex-end; justify-content: flex-end; gap: .45rem; margin: 0 1.1rem .7rem auto; width: fit-content; color: rgba(11,11,12,.8); font-family: 'Caveat', 'Segoe Print', cursive; font-size: 1.35rem; line-height: 1; }
 .qualio-hero-frame > .hs-stage { overflow: hidden; border: 1px solid #e6e6ea; border-radius: 12px; background: #fff; }
+.qualio-hero-video-wrap { position: relative; overflow: hidden; border: 1px solid #e6e6ea; border-radius: 12px; background: #fff; }
+.qualio-hero-video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #fff; object-fit: cover; }
 @media (max-width: 767px) { .qualio-hero-note { margin-right: .2rem; font-size: 1.1rem; } .qualio-hero-frame { padding: 5px; border-radius: 16px; } }
 
 .hs-stage:not(.hs-play) .hs-a { animation-play-state: paused; }
