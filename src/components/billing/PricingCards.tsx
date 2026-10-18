@@ -1,47 +1,47 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Check, ChevronDown } from 'lucide-react'
 import type { PaidPlan } from '@/lib/billing/plans'
-import { BILLING_PLANS } from '@/lib/billing/plans'
+import { BILLING_PLANS, isPaidPlan } from '@/lib/billing/plans'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP } from '@/components/landing/tokens'
 
 type Interval = 'month' | 'year'
 
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || '$'
-
-/**
- * Le paiement n'est proposé que lorsque NEXT_PUBLIC_BILLING_ENABLED=true (Stripe branché).
- * Sinon les cartes payantes gardent un bouton « Me prévenir » vers la page Contact (doc 9.1).
- */
-const BILLING_ENABLED = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true'
+const CURRENCY = '€'
 
 /** Carte de tarif partagée par la landing, la page tarifs et les réglages. */
 export function PricingCards() {
+  const searchParams = useSearchParams()
   const [interval, setInterval] = useState<Interval>('month')
   const [loadingPlan, setLoadingPlan] = useState<PaidPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const checkoutStarted = useRef(false)
 
-  async function checkoutPlan(plan: PaidPlan) {
+  async function checkoutPlan(plan: PaidPlan, requestedInterval: Interval = interval) {
     setLoadingPlan(plan)
     setError(null)
     try {
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, interval }),
+        body: JSON.stringify({ plan, interval: requestedInterval }),
       })
       const result = await response.json().catch(() => ({}))
       if (response.status === 401) {
-        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}`)}`)
+        window.location.assign(`/login?mode=register&plan=${plan}&redirectTo=${encodeURIComponent(`/pricing?plan=${plan}&interval=${requestedInterval}&checkout=1`)}`)
         return
       }
       if (!response.ok || !result.url) {
         setError(result.error ?? 'Le paiement n’est pas encore disponible.')
         return
       }
-      window.location.assign(result.url)
+      // Keep Qualio available while the hosted GeniusPay checkout is open.
+      // If the browser blocks a new tab, fall back to the current tab.
+      const paymentWindow = window.open(result.url, '_blank', 'noopener,noreferrer')
+      if (!paymentWindow) window.location.assign(result.url)
     } catch {
       setError('Impossible d’ouvrir le paiement. Réessayez dans un instant.')
     } finally {
@@ -50,13 +50,22 @@ export function PricingCards() {
   }
 
   async function choosePlan(plan: PaidPlan) {
-    if (BILLING_ENABLED) {
-      await checkoutPlan(plan)
-      return
-    }
-
-    window.location.assign(`/contact?interest=${plan}&interval=${interval}`)
+    // Le bouton doit toujours suivre le vrai parcours d’abonnement :
+    // authentification si nécessaire, puis Checkout Stripe.
+    await checkoutPlan(plan)
   }
+
+  // Après l’authentification, reprendre automatiquement l’intention payante
+  // au lieu de renvoyer l’utilisateur vers un dashboard Gratuit.
+  useEffect(() => {
+    const requestedPlan = searchParams.get('plan')
+    const requestedInterval = searchParams.get('interval')
+    if (searchParams.get('checkout') !== '1' || !isPaidPlan(requestedPlan) || checkoutStarted.current) return
+    const nextInterval = requestedInterval === 'month' || requestedInterval === 'year' ? requestedInterval : 'month'
+    if (requestedInterval === 'month' || requestedInterval === 'year') setInterval(requestedInterval)
+    checkoutStarted.current = true
+    void checkoutPlan(requestedPlan, nextInterval)
+  }, [searchParams])
 
   const free = BILLING_PLANS.free
   const pro = BILLING_PLANS.pro
@@ -66,13 +75,15 @@ export function PricingCards() {
   const comparisonRows = [
     ['Projets actifs', '1', '5', '15'],
     ['Avis par projet', '50', '2 000', '10 000'],
-    ['Synthèses manuelles', '2 par mois', '1 par jour', '2 par semaine'],
+    ['Synthèses manuelles', '2 par mois', '1 par jour', '1 par jour'],
     ['Synthèse automatique', '—', 'Chaque semaine', 'Chaque semaine'],
-    ['Widget de collecte', '—', 'Oui', 'Oui, sur 15 sites'],
-    ['Email du lundi', '—', 'Oui', 'Oui'],
-    ['Historique des décisions', '—', 'Oui', 'Oui'],
+    ['Widget de collecte', 'Oui (50 avis analysés)', 'Oui', 'Oui, sur 15 sites'],
+    ['Avis reçus au-delà de la limite', 'Conservés en attente, jusqu’à 100', 'Analysés', 'Analysés'],
+    ['Email du lundi', 'Court, 2 par mois max', 'Complet', 'Complet, tous projets'],
+    ['Alerte thème négatif', '—', 'Oui', 'Oui'],
+    ['Historique et effet des décisions', '—', 'Oui', 'Oui'],
     ['Rapport client partageable', '—', '—', 'Oui'],
-    ['Export des synthèses et avis', '—', '—', 'Oui'],
+    ['Export CSV des avis', '—', '—', 'Oui'],
   ] as const
 
   return (

@@ -11,6 +11,16 @@ const PREVIEW_ROWS = 5
 const MAX_LISTED_ERRORS = 5
 const dateFormat = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
+const columnLabels: Record<string, string> = {
+  content: 'Contenu de l’avis',
+  author_name: 'Nom de l’auteur',
+  created_at: 'Date de l’avis',
+}
+
+function displayColumnLabel(header: string, index: number) {
+  return columnLabels[header.trim().toLowerCase()] ?? (header.trim() || `Colonne ${index + 1}`)
+}
+
 function formatDate(value: string | undefined) {
   if (!value) return null
   const timestamp = Date.parse(value)
@@ -35,7 +45,7 @@ function ColumnSelect({ label, value, headers, onChange, allowNone, noneLabel = 
   return (
     <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
       {label}
-      <Select value={String(value)} onChange={(next) => onChange(Number(next))} label={label} className="mt-2" buttonClassName={`${selectClass} w-full`} options={[...(allowNone ? [{ value: '-1', label: noneLabel }] : []), ...(value < 0 && !allowNone ? [{ value: '-1', label: 'Choisir une colonne' }] : []), ...headers.map((header, index) => ({ value: String(index), label: header || `Colonne ${index + 1}` }))]} />
+      <Select value={String(value)} onChange={(next) => onChange(Number(next))} label={label} className="mt-2" buttonClassName={`${selectClass} w-full`} options={[...(allowNone ? [{ value: '-1', label: noneLabel }] : []), ...(value < 0 && !allowNone ? [{ value: '-1', label: 'Choisir une colonne' }] : []), ...headers.map((header, index) => ({ value: String(index), label: displayColumnLabel(header, index) }))]} />
     </label>
   )
 }

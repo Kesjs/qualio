@@ -1,27 +1,16 @@
 import type { Metadata } from 'next'
 import { SiteShell } from '@/components/landing/SiteShell'
-import { Eyebrow, PrimaryButton } from '@/components/landing/primitives'
-import { H2, MUTED } from '@/components/landing/tokens'
-import { LEGAL } from '@/components/landing/legal'
+import { ContactClient } from './ContactClient'
 
 export const metadata: Metadata = {
-  title: 'Contact — Qualio',
-  description: 'Une question sur la collecte, l’import de vos avis ou leur transformation en décisions ? Écrivez-nous.',
+  title: 'Contact & Support — Qualio',
+  description: 'Une question sur la collecte d’avis, le widget ou les plans Qualio ? Écrivez à l’équipe. Réponse sous 24h ouvrées.',
 }
 
 export default function ContactPage() {
   return (
     <SiteShell>
-      <div className="mx-auto max-w-3xl px-5 py-24">
-        <Eyebrow>Contact</Eyebrow>
-        <h1 className={`mt-5 ${H2}`}>Parler de vos avis clients</h1>
-        <p className="mt-6 max-w-2xl text-base leading-7" style={{ color: MUTED }}>
-          Une question sur la collecte, l’import de vos avis ou leur transformation en décisions ? Écrivez-nous. Vous voulez être prévenu quand le plan Pro ouvre ? Dites-le-nous aussi.
-        </p>
-        <div className="mt-8">
-          <PrimaryButton href={`mailto:${LEGAL.email}`}>Écrire à l’équipe</PrimaryButton>
-        </div>
-      </div>
+      <ContactClient />
     </SiteShell>
   )
 }

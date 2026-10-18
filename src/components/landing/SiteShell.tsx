@@ -7,13 +7,13 @@ import type { ReactNode } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
-import { ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, SIGNUP } from './tokens'
+import { FOCUS, INK, LINE, MUTED, R_BUTTON, SIGNUP } from './tokens'
 
 /** Les trois destinations de la barre (section 4.8) : comprendre, voir, acheter. */
 const NAV_LINKS = [
-  { href: '/produit', anchor: '#produit', label: 'Produit' },
-  { href: '/exemple', anchor: '#exemple', label: 'Exemple' },
-  { href: '/pricing', anchor: '#tarifs', label: 'Tarifs' },
+  { href: '/produit', label: 'Produit' },
+  { href: '/exemple', label: 'Exemple' },
+  { href: '/pricing', label: 'Tarifs' },
 ] as const
 
 function Navbar() {
@@ -46,19 +46,19 @@ function Navbar() {
       style={{ borderBottom: `1px solid ${scrolled || open ? LINE : 'transparent'}` }}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5" aria-label="Navigation principale">
-        <Link href="/" className={`flex items-center ${R_BUTTON} ${FOCUS}`} aria-label="Qualio, accueil">
+        <Link href="/" className={`flex items-center gap-2.5 ${R_BUTTON} ${FOCUS}`} aria-label="Qualio, accueil">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/qualio-logo/export/lockup/lockup-light.svg" alt="Qualio" className="h-7" />
+          <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-7 w-7 shrink-0" />
+          <span className="text-[18px] font-bold tracking-tight text-zinc-900">Qualio</span>
         </Link>
 
         <div className="hidden items-center gap-1 text-[14px] md:flex">
-          {NAV_LINKS.map(({ href, anchor, label }) => {
+          {NAV_LINKS.map(({ href, label }) => {
             const active = isActive(href)
-            const destination = pathname === '/' ? anchor : href
             return (
               <Link
                 key={href}
-                href={destination}
+                href={href}
                 aria-current={active ? 'page' : undefined}
                 className={`px-3.5 py-2 transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS} ${active ? 'bg-[#f4f4f5] font-semibold' : ''}`}
                 style={{ color: active ? INK : MUTED }}
@@ -69,11 +69,33 @@ function Navbar() {
           })}
         </div>
 
-        <div className="flex items-center gap-1">
-          {isAuthenticated ? <Link href="/dashboard" className={`px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: ACCENT_INK }}>Mon espace</Link> : <>
-            <Link href="/login" className={`hidden px-3.5 py-2 text-[14px] transition hover:bg-[#f4f4f5] sm:inline ${R_BUTTON} ${FOCUS}`} style={{ color: MUTED }}>Se connecter</Link>
-            <Link href={SIGNUP} className={`px-4 py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`} style={{ background: ACCENT_INK }}><span className="sm:hidden">Commencer</span><span className="hidden sm:inline">Commencer gratuitement</span></Link>
-          </>}
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className={`rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-black ${FOCUS}`}
+              style={{ background: '#18181b' }}
+            >
+              Mon espace
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className={`hidden px-3.5 py-2 text-[13px] font-medium transition hover:text-black sm:inline ${FOCUS}`}
+                style={{ color: MUTED }}
+              >
+                Se connecter
+              </Link>
+              <Link
+                href={SIGNUP}
+                className={`rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-black ${FOCUS}`}
+                style={{ background: '#18181b' }}
+              >
+                Démarrer
+              </Link>
+            </>
+          )}
           <button
             type="button"
             className={`ml-1 flex h-10 w-10 items-center justify-center md:hidden ${R_BUTTON} ${FOCUS}`}
@@ -89,7 +111,7 @@ function Navbar() {
 
       {open && (
         <div id="mobile-menu" className="border-t bg-white px-5 py-3 md:hidden" style={{ borderColor: LINE }}>
-          {[...NAV_LINKS.map(({ href, anchor, label }) => ({ href: pathname === '/' ? anchor : href, label })), ...(isAuthenticated ? [{ href: '/dashboard', label: 'Mon espace' }] : [{ href: '/login', label: 'Se connecter' }])].map(({ href, label }) => (
+          {[...NAV_LINKS, ...(isAuthenticated ? [{ href: '/dashboard', label: 'Mon espace' }] : [{ href: '/login', label: 'Se connecter' }])].map(({ href, label }) => (
             <Link
               key={href}
               href={href}
@@ -132,8 +154,11 @@ function Footer() {
     <footer className="border-t" style={{ borderColor: LINE }}>
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/qualio-logo/export/lockup/lockup-light.svg" alt="Qualio" className="h-7" />
+          <Link href="/" aria-label="Qualio, accueil" className={`inline-flex items-center gap-2.5 ${FOCUS}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-7 w-7 shrink-0" />
+            <span className="text-[18px] font-bold tracking-tight text-zinc-900">Qualio</span>
+          </Link>
           <p className="mt-3 max-w-xs text-sm" style={{ color: MUTED }}>Une vue fiable des avis qui comptent.</p>
         </div>
         {groups.map((g) => (
@@ -169,6 +194,24 @@ export function SiteShell({ children }: { children: ReactNode }) {
     const previous = root.style.backgroundColor
     root.style.backgroundColor = '#fff'
     return () => { root.style.backgroundColor = previous }
+  }, [])
+
+  // Widget Qualio officiel pour recueillir les avis des visiteurs sur notre propre site (dogfooding)
+  useEffect(() => {
+    const widgetKey = process.env.NEXT_PUBLIC_QUALIO_WIDGET_KEY || 'guWs9U6tKOXoeCnxVN_M1um9QqxgIhhm'
+    if (!widgetKey || document.querySelector('script[data-qualio-site-widget]')) return
+    const script = document.createElement('script')
+    script.src = '/widget.js'
+    script.setAttribute('data-key', widgetKey)
+    script.setAttribute('data-accent', '#c2410c')
+    script.setAttribute('data-label', 'Donner votre avis')
+    script.setAttribute('data-title', 'Votre avis sur Qualio')
+    script.setAttribute('data-intro', 'Une idée, une question ou un retour ? Votre avis aide directement l’équipe Qualio.')
+    script.setAttribute('data-thank-you', 'Merci beaucoup ! Votre avis a bien été transmis à l’équipe Qualio.')
+    script.setAttribute('data-hidden', 'true')
+    script.setAttribute('data-qualio-site-widget', 'true')
+    script.defer = true
+    document.body.appendChild(script)
   }, [])
 
   return (

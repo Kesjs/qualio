@@ -28,7 +28,7 @@ export default function DashboardLayout({
         {/* En-tête mobile : logo, projet, plan, thème, compte. Le menu est dans la barre du bas. */}
         <div className="flex md:hidden h-14 w-full shrink-0 items-center justify-between gap-2 border-b border-gray-200/80 bg-white px-3 dark:border-white/[0.08] dark:bg-[#0B0C0E]">
           <div className="flex min-w-0 items-center gap-2">
-            <Link href="/dashboard" aria-label="Qualio, Cette semaine" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1 dark:border-white/[0.1] dark:bg-black">
+            <Link href="/dashboard" aria-label="Qualio, Cette semaine" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black">
               <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="" className="h-full w-full object-contain" />
             </Link>
             <ProjectSwitcher compact />

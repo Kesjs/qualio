@@ -97,6 +97,11 @@
   --foreground: 245 245 245;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
 html.dark, body.dark {
   background-color: #000000;
   color: rgb(var(--foreground));
@@ -473,6 +478,19 @@ input[type='password']::-ms-clear {
 @property --hs-n { syntax: '<integer>'; inherits: false; initial-value: 14; }
 
 .hs-stage { container-type: inline-size; }
+
+.qualio-hero-frame {
+  overflow: hidden;
+  padding: 8px;
+  border: 1px solid #e6e6ea;
+  border-radius: 20px;
+  background: #f6f6f7;
+  box-shadow: 0 1px 2px rgba(11,11,12,.04), 0 24px 48px -24px rgba(11,11,12,.18);
+}
+.qualio-hero-note { display: flex; align-items: flex-end; justify-content: flex-end; gap: .45rem; margin: 0 1.1rem .7rem auto; width: fit-content; color: rgba(11,11,12,.8); font-family: 'Caveat', 'Segoe Print', cursive; font-size: 1.35rem; line-height: 1; }
+.qualio-hero-frame > .hs-stage { overflow: hidden; border: 1px solid #e6e6ea; border-radius: 12px; background: #fff; }
+@media (max-width: 767px) { .qualio-hero-note { margin-right: .2rem; font-size: 1.1rem; } .qualio-hero-frame { padding: 5px; border-radius: 16px; } }
+
 .hs-stage:not(.hs-play) .hs-a { animation-play-state: paused; }
 
 .hs-a {
@@ -551,4 +569,19 @@ input[type='password']::-ms-clear {
 @keyframes qualio-slide-in {
   from { opacity: 0; transform: translateX(16px); }
   to { opacity: 1; transform: none; }
+}
+
+/* Micro-interactions de la navigation : chaque pictogramme garde son propre geste. */
+@keyframes sidebar-calendar { 0%, 100% { transform: rotate(0); } 35% { transform: rotate(-8deg); } 70% { transform: rotate(6deg); } }
+@keyframes sidebar-chat { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.08); } 70% { transform: scale(.98); } }
+@keyframes sidebar-plus { 0%, 100% { transform: rotate(0) scale(1); } 45% { transform: rotate(90deg) scale(1.08); } 75% { transform: rotate(90deg) scale(1); } }
+@keyframes sidebar-sparkles { 0%, 100% { opacity: 1; filter: brightness(1); } 45% { opacity: .68; filter: brightness(1.35); } 70% { opacity: 1; filter: brightness(1); } }
+@keyframes sidebar-settings { 0%, 100% { transform: rotate(0); } 65% { transform: rotate(28deg); } }
+.group:hover .sidebar-icon-calendar { animation: sidebar-calendar 520ms ease-in-out; }
+.group:hover .sidebar-icon-chat { animation: sidebar-chat 420ms ease-in-out; }
+.group:hover .sidebar-icon-plus { animation: sidebar-plus 480ms ease-in-out; }
+.group:hover .sidebar-icon-sparkles { animation: sidebar-sparkles 520ms ease-in-out; }
+.group:hover .sidebar-icon-settings { animation: sidebar-settings 520ms ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-icon-calendar, .sidebar-icon-chat, .sidebar-icon-plus, .sidebar-icon-sparkles, .sidebar-icon-settings { animation: none !important; }
 }

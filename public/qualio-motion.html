@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<title>Qualio — Motion Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Canvas ─────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; overflow: hidden; background: #FFFFFF; }
+body { font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── Tokens ──────────────────────────────────────── */
+:root {
+  --accent:     #EE6018;
+  --accent-ink: #C2410C;
+  --accent-soft:#FFF1E9;
+  --ink:        #0B0B0C;
+  --muted:      #62626B;
+  --line:       #E6E6EA;
+  --soft:       #F6F6F7;
+  --sage:       #8A9A82;
+  --green:      #A0CA92;
+  --red:        #EF4444;
+  --white:      #FFFFFF;
+}
+
+/* ── Stage ───────────────────────────────────────── */
+.stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+/* ── Shared animation tokens ─────────────────────── */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes drawLine { from { stroke-dashoffset: 200; } to { stroke-dashoffset: 0; } }
+@keyframes cursorMove { from { left: 800px; top: 500px; } to { left: 590px; top: 508px; } }
+@keyframes checkPop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+/* ── Act Container ───────────────────────────────── */
+.act { position: absolute; inset: 0; opacity: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.act.active { pointer-events: auto; }
+
+/* ── Easings ─────────────────────────────────────── */
+.ease-expo { animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── ACT 1: Chaos ────────────────────────────────── */
+.act1-title {
+  position: absolute;
+  bottom: 80px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 42px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  z-index: 10;
+}
+.act1-title .highlight {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-style: italic;
+}
+.review-card {
+  position: absolute;
+  width: 220px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  opacity: 0;
+}
+.review-card .line-placeholder {
+  height: 8px;
+  border-radius: 4px;
+  background: #E8E8EC;
+  margin-bottom: 6px;
+}
+.review-card .line-placeholder:last-child { margin-bottom: 0; }
+.review-card .line-short { width: 60%; }
+.review-card .source-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--soft);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ── ACT 2: Organisation ──────────────────────────── */
+.theme-bubble {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+}
+.theme-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.theme-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.theme-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+.act2-title {
+  position: absolute;
+  bottom: 80px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 38px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  opacity: 0;
+  z-index: 10;
+}
+
+/* ── ACT 3: Recommandation ────────────────────────── */
+.reco-card {
+  position: relative;
+  width: 560px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 32px;
+  opacity: 0;
+}
+.reco-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.reco-badge::before {
+  content: '✦';
+  font-size: 10px;
+}
+.reco-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.reco-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.reco-quote {
+  padding: 12px 16px;
+  border-left: 3px solid var(--accent);
+  background: var(--soft);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.reco-quote .author {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.act3-title {
+  position: absolute;
+  bottom: 60px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 38px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  opacity: 0;
+  z-index: 10;
+}
+
+/* ── ACT 4: Décision ──────────────────────────────── */
+.decision-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  opacity: 0;
+}
+.decision-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: 2px solid;
+  background: transparent;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-accept { border-color: var(--green); color: var(--green); }
+.btn-accept.clicked {
+  background: var(--green);
+  color: var(--white);
+  border-color: var(--green);
+}
+.btn-later { border-color: var(--muted); color: var(--muted); }
+.btn-reject { border-color: var(--red); color: var(--red); }
+.check-icon {
+  display: inline-block;
+  opacity: 0;
+  transform: scale(0);
+}
+.cursor-dot {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 0 4px rgba(238, 96, 24, 0.2);
+}
+.act4-title {
+  position: absolute;
+  bottom: 60px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 38px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  opacity: 0;
+  z-index: 10;
+}
+
+/* ── ACT 5: CTA ──────────────────────────────────── */
+.act5-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  opacity: 0;
+}
+.act5-logo {
+  width: 72px;
+  height: 72px;
+}
+.act5-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.act5-name {
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.04em;
+}
+.act5-tagline {
+  display: inline-block;
+  transform: skewX(-2deg);
+  background: var(--accent-soft);
+  padding: 6px 16px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.act5-tagline span {
+  display: inline-block;
+  transform: skewX(2deg);
+  color: var(--accent);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.act5-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: var(--accent-ink);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  margin-top: 8px;
+}
+.act5-cta:hover { transform: scale(1.03); }
+.act5-cta svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+.act5-cta:hover svg { transform: translateX(3px); }
+.act5-sub {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+/* ── Progress bar ────────────────────────────────── */
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  z-index: 200;
+}
+
+/* ── Dot grid background ─────────────────────────── */
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.5;
+  z-index: 0;
+}
+
+/* ── Corner markers ──────────────────────────────── */
+.corner-mark {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  z-index: 5;
+  opacity: 0.3;
+}
+.corner-mark::before, .corner-mark::after {
+  content: '';
+  position: absolute;
+  background: var(--line);
+}
+.corner-mark.tl::before { top: 0; left: 0; width: 20px; height: 1px; }
+.corner-mark.tl::after { top: 0; left: 0; width: 1px; height: 20px; }
+.corner-mark.tr { right: 40px; }
+.corner-mark.tr::before { top: 0; right: 0; width: 20px; height: 1px; }
+.corner-mark.tr::after { top: 0; right: 0; width: 1px; height: 20px; }
+.corner-mark.bl { bottom: 40px; }
+.corner-mark.bl::before { bottom: 0; left: 0; width: 20px; height: 1px; }
+.corner-mark.bl::after { bottom: 0; left: 0; width: 1px; height: 20px; }
+.corner-mark.br { right: 40px; bottom: 40px; }
+.corner-mark.br::before { bottom: 0; right: 0; width: 20px; height: 1px; }
+.corner-mark.br::after { bottom: 0; right: 0; width: 1px; height: 20px; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <!-- Dot grid background -->
+  <div class="dot-grid"></div>
+
+  <!-- Corner marks -->
+  <div class="corner-mark tl" style="left:40px;top:40px"></div>
+  <div class="corner-mark tr" style="top:40px"></div>
+  <div class="corner-mark bl" style="left:40px"></div>
+  <div class="corner-mark br"></div>
+
+  <!-- ═══ ACT 1: Le chaos ═══ -->
+  <div class="act act1" id="act1">
+    <!-- Logo pulse -->
+    <img src="/qualio-logo/export/mark/monogram-orange-128.png" alt="Qualio"
+         id="logo-pulse"
+         style="position:absolute;top:48px;left:50%;transform:translateX(-50%);width:48px;height:48px;opacity:0;">
+
+    <!-- Review cards scattered -->
+    <div class="review-card" id="rc1" style="left:80px;top:120px;">
+      <div class="line-placeholder" style="width:85%"></div>
+      <div class="line-placeholder" style="width:70%"></div>
+      <div class="line-placeholder line-short"></div>
+      <span class="source-badge mono">CSV</span>
+    </div>
+    <div class="review-card" id="rc2" style="left:340px;top:80px;">
+      <div class="line-placeholder" style="width:90%"></div>
+      <div class="line-placeholder" style="width:65%"></div>
+      <span class="source-badge mono">Widget</span>
+    </div>
+    <div class="review-card" id="rc3" style="left:600px;top:140px;">
+      <div class="line-placeholder" style="width:75%"></div>
+      <div class="line-placeholder" style="width:80%"></div>
+      <div class="line-placeholder line-short"></div>
+      <span class="source-badge mono">Manuel</span>
+    </div>
+    <div class="review-card" id="rc4" style="left:860px;top:90px;">
+      <div class="line-placeholder" style="width:80%"></div>
+      <div class="line-placeholder" style="width:55%"></div>
+      <span class="source-badge mono">CSV</span>
+    </div>
+    <div class="review-card" id="rc5" style="left:160px;top:310px;width:200px;">
+      <div class="line-placeholder" style="width:70%"></div>
+      <div class="line-placeholder" style="width:90%"></div>
+      <span class="source-badge mono">Widget</span>
+    </div>
+    <div class="review-card" id="rc6" style="left:420px;top:280px;width:200px;">
+      <div class="line-placeholder" style="width:85%"></div>
+      <div class="line-placeholder" style="width:60%"></div>
+      <div class="line-placeholder line-short"></div>
+      <span class="source-badge mono">CSV</span>
+    </div>
+    <div class="review-card" id="rc7" style="left:680px;top:320px;width:210px;">
+      <div class="line-placeholder" style="width:65%"></div>
+      <div class="line-placeholder" style="width:80%"></div>
+      <span class="source-badge mono">Manuel</span>
+    </div>
+    <div class="review-card" id="rc8" style="left:940px;top:260px;width:200px;">
+      <div class="line-placeholder" style="width:75%"></div>
+      <div class="line-placeholder" style="width:85%"></div>
+      <span class="source-badge mono">Widget</span>
+    </div>
+    <div class="review-card" id="rc9" style="left:260px;top:470px;width:190px;">
+      <div class="line-placeholder" style="width:80%"></div>
+      <div class="line-placeholder line-short"></div>
+      <span class="source-badge mono">CSV</span>
+    </div>
+    <div class="review-card" id="rc10" style="left:520px;top:450px;width:200px;">
+      <div class="line-placeholder" style="width:90%"></div>
+      <div class="line-placeholder" style="width:50%"></div>
+      <span class="source-badge mono">Widget</span>
+    </div>
+    <div class="review-card" id="rc11" style="left:780px;top:440px;width:210px;">
+      <div class="line-placeholder" style="width:70%"></div>
+      <div class="line-placeholder" style="width:85%"></div>
+      <div class="line-placeholder line-short"></div>
+      <span class="source-badge mono">Manuel</span>
+    </div>
+    <div class="review-card" id="rc12" style="left:1020px;top:420px;width:190px;">
+      <div class="line-placeholder" style="width:65%"></div>
+      <div class="line-placeholder" style="width:75%"></div>
+      <span class="source-badge mono">CSV</span>
+    </div>
+
+    <div class="act1-title" id="act1-title">
+      Des centaines d'avis
+      <span class="highlight">Aucune direction.</span>
+    </div>
+  </div>
+
+  <!-- ═══ ACT 2: Organisation ═══ -->
+  <div class="act act2" id="act2">
+    <div class="theme-bubble" id="tb1" style="left: 280px; top: 220px;">
+      <div class="theme-icon">💳</div>
+      <span class="theme-label">Facturation</span>
+      <span class="theme-count mono">14 avis</span>
+    </div>
+    <div class="theme-bubble" id="tb2" style="left: 560px; top: 180px;">
+      <div class="theme-icon">📦</div>
+      <span class="theme-label">Livraison</span>
+      <span class="theme-count mono">9 avis</span>
+    </div>
+    <div class="theme-bubble" id="tb3" style="left: 840px; top: 240px;">
+      <div class="theme-icon">🎧</div>
+      <span class="theme-label">Support</span>
+      <span class="theme-count mono">6 avis</span>
+    </div>
+
+    <!-- Connector lines SVG -->
+    <svg style="position:absolute;inset:0;width:1280px;height:720px;z-index:1;pointer-events:none;" id="connectors">
+      <line x1="200" y1="200" x2="308" y2="250" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+      <line x1="440" y1="180" x2="588" y2="210" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+      <line x1="700" y1="220" x2="868" y2="270" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+      <line x1="320" y1="380" x2="308" y2="300" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+      <line x1="560" y1="370" x2="588" y2="260" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+      <line x1="820" y1="360" x2="868" y2="320" stroke="#E6E6EA" stroke-width="1.5" stroke-dasharray="200" stroke-dashoffset="200" class="connector-line"/>
+    </svg>
+
+    <!-- Small review cards (condensed) -->
+    <div class="review-card" style="left:120px;top:160px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);">
+      <div class="line-placeholder" style="width:80%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+    <div class="review-card" style="left:370px;top:130px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);opacity:0.5;">
+      <div class="line-placeholder" style="width:70%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+    <div class="review-card" style="left:640px;top:170px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);opacity:0.5;">
+      <div class="line-placeholder" style="width:90%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+    <div class="review-card" style="left:240px;top:340px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);opacity:0.5;">
+      <div class="line-placeholder" style="width:75%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+    <div class="review-card" style="left:490px;top:330px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);opacity:0.5;">
+      <div class="line-placeholder" style="width:85%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+    <div class="review-card" style="left:740px;top:320px;width:160px;padding:10px;border-radius:10px;transform:scale(0.75);opacity:0.5;">
+      <div class="line-placeholder" style="width:65%"></div>
+      <div class="line-placeholder line-short"></div>
+    </div>
+
+    <div class="act2-title" id="act2-title">Regroupés par thème</div>
+  </div>
+
+  <!-- ═══ ACT 3: Recommandation ═══ -->
+  <div class="act act3" id="act3">
+    <div class="reco-card" id="reco-card">
+      <div class="reco-badge">Recommandation sourcée</div>
+      <h2 class="reco-title">Simplifier le processus de facturation</h2>
+      <p class="reco-sub">14 avis mentionnent des difficultés de paiement</p>
+      <div class="reco-quote" id="quote1" style="opacity:0;">
+        « Le processus de paiement est confus, j'ai failli abandonner mon panier. »
+        <span class="author mono">— Client #42 · Widget · 12 oct.</span>
+      </div>
+      <div class="reco-quote" id="quote2" style="opacity:0;">
+        « Impossible de modifier ma facture après l'achat. Frustrant. »
+        <span class="author mono">— Client #78 · CSV · 8 oct.</span>
+      </div>
+
+      <!-- Decision buttons (Act 4) -->
+      <div class="decision-buttons" id="decision-buttons">
+        <button class="decision-btn btn-accept" id="btn-accept">
+          <span class="check-icon" id="check-icon">✓</span>
+          Accepter
+        </button>
+        <button class="decision-btn btn-later">Reporter</button>
+        <button class="decision-btn btn-reject">Écarter</button>
+      </div>
+    </div>
+
+    <div class="act3-title" id="act3-title">Recommandations sourcées</div>
+  </div>
+
+  <!-- ═══ ACT 4: Décision (shares act3 card) ═══ -->
+  <div class="cursor-dot" id="cursor-dot"></div>
+
+  <!-- ACT 4 title -->
+  <div class="act4-title" id="act4-title">Vous décidez</div>
+
+  <!-- ═══ ACT 5: CTA ═══ -->
+  <div class="act act5" id="act5">
+    <div class="act5-content" id="act5-content">
+      <div class="act5-brand">
+        <img src="/qualio-logo/export/mark/monogram-orange-128.png" alt="Qualio" class="act5-logo">
+        <span class="act5-name">Qualio</span>
+      </div>
+      <div class="act5-tagline">
+        <span>Une direction plus claire.</span>
+      </div>
+      <button class="act5-cta">
+        Commencer — Gratuit
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <p class="act5-sub mono">Sans carte bancaire · 50 avis analysés</p>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-bar" id="progress-bar"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const TOTAL_DURATION = 20000; // 20s
+  const ACTS = [
+    { start: 0,     end: 3800  },  // Act 1: 0 → 3.8s
+    { start: 3800,  end: 7600  },  // Act 2: 3.8 → 7.6s
+    { start: 7600,  end: 12000 },  // Act 3: 7.6 → 12s
+    { start: 12000, end: 16000 },  // Act 4: 12 → 16s
+    { start: 16000, end: 20000 },  // Act 5: 16 → 20s
+  ];
+
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  // ── Animation helpers ──
+  function anim(el, keyframes, opts) {
+    if (typeof el === 'string') el = $(el);
+    if (!el) return null;
+    return el.animate(keyframes, {
+      duration: opts.duration || 500,
+      delay: opts.delay || 0,
+      easing: opts.easing || 'cubic-bezier(0.16, 1, 0.3, 1)',
+      fill: 'forwards',
+      ...opts,
+    });
+  }
+
+  function fadeIn(el, delay = 0, dur = 500) {
+    return anim(el, [
+      { opacity: 0, transform: 'translateY(20px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ], { delay, duration: dur });
+  }
+
+  function fadeOut(el, delay = 0, dur = 400) {
+    return anim(el, [
+      { opacity: 1 },
+      { opacity: 0 },
+    ], { delay, duration: dur });
+  }
+
+  function scaleIn(el, delay = 0, dur = 600) {
+    return anim(el, [
+      { opacity: 0, transform: 'scale(0.7)' },
+      { opacity: 1, transform: 'scale(1)' },
+    ], { delay, duration: dur });
+  }
+
+  // ── Progress bar ──
+  const progressBar = $('#progress-bar');
+  const startTime = performance.now();
+
+  function updateProgress() {
+    const elapsed = performance.now() - startTime;
+    const pct = Math.min(elapsed / TOTAL_DURATION, 1);
+    progressBar.style.width = (pct * 100) + '%';
+    if (pct < 1) requestAnimationFrame(updateProgress);
+  }
+  requestAnimationFrame(updateProgress);
+
+  // ═══ ACT 1: LE CHAOS ═══
+  function playAct1() {
+    const act = $('#act1');
+    act.classList.add('active');
+    act.style.opacity = '1';
+
+    // Logo pulse
+    const logo = $('#logo-pulse');
+    anim(logo, [
+      { opacity: 0, transform: 'translateX(-50%) scale(0.5)' },
+      { opacity: 1, transform: 'translateX(-50%) scale(1.1)' },
+      { opacity: 1, transform: 'translateX(-50%) scale(1)' },
+    ], { duration: 600, delay: 100 });
+
+    // Cascade review cards from top with stagger
+    const cards = act.querySelectorAll('.review-card');
+    cards.forEach((card, i) => {
+      const baseDelay = 200 + i * 80;
+      anim(card, [
+        { opacity: 0, transform: 'translateY(-60px) rotate(' + (Math.random() * 6 - 3) + 'deg)' },
+        { opacity: 0.85, transform: 'translateY(0) rotate(' + (Math.random() * 3 - 1.5) + 'deg)' },
+      ], { delay: baseDelay, duration: 500 });
+    });
+
+    // Title
+    fadeIn('#act1-title', 800, 600);
+
+    // Fade out at end
+    setTimeout(() => {
+      fadeOut(act, 0, 500);
+    }, 3300);
+  }
+
+  // ═══ ACT 2: ORGANISATION ═══
+  function playAct2() {
+    const act = $('#act2');
+    act.classList.add('active');
+    anim(act, [{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
+
+    // Small review cards appear
+    const smallCards = act.querySelectorAll('.review-card');
+    smallCards.forEach((card, i) => {
+      anim(card, [
+        { opacity: 0, transform: 'scale(0.5)' },
+        { opacity: 0.5, transform: 'scale(0.75)' },
+      ], { delay: 200 + i * 80, duration: 400 });
+    });
+
+    // Theme bubbles scale in
+    scaleIn('#tb1', 600, 500);
+    scaleIn('#tb2', 750, 500);
+    scaleIn('#tb3', 900, 500);
+
+    // Float animation after appearing
+    setTimeout(() => {
+      ['#tb1', '#tb2', '#tb3'].forEach((id, i) => {
+        const el = $(id);
+        if (el) {
+          anim(el, [
+            { transform: 'translateY(0)' },
+            { transform: 'translateY(-8px)' },
+            { transform: 'translateY(0)' },
+          ], { delay: i * 200, duration: 2000, iterations: Infinity });
+        }
+      });
+    }, 1400);
+
+    // Connector lines draw
+    const lines = $$('.connector-line');
+    lines.forEach((line, i) => {
+      anim(line, [
+        { strokeDashoffset: 200 },
+        { strokeDashoffset: 0 },
+      ], { delay: 800 + i * 100, duration: 600 });
+    });
+
+    // Title
+    fadeIn('#act2-title', 1200, 500);
+
+    // Fade out
+    setTimeout(() => {
+      fadeOut(act, 0, 500);
+    }, 3300);
+  }
+
+  // ═══ ACT 3: RECOMMANDATION ═══
+  function playAct3() {
+    const act = $('#act3');
+    act.classList.add('active');
+    anim(act, [{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
+
+    // Reco card slides up
+    anim('#reco-card', [
+      { opacity: 0, transform: 'translateY(60px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ], { delay: 300, duration: 700 });
+
+    // Quotes appear
+    fadeIn('#quote1', 1200, 500);
+    fadeIn('#quote2', 1600, 500);
+
+    // Title
+    fadeIn('#act3-title', 2000, 500);
+  }
+
+  // ═══ ACT 4: DÉCISION ═══
+  function playAct4() {
+    // Keep act3 visible, show buttons
+    anim('#decision-buttons', [
+      { opacity: 0, transform: 'translateY(12px)' },
+      { opacity: 1, transform: 'translateY(0)' },
+    ], { delay: 200, duration: 500 });
+
+    // Change title
+    fadeOut('#act3-title', 0, 300);
+    setTimeout(() => {
+      fadeIn('#act4-title', 0, 400);
+    }, 400);
+
+    // Cursor appears and moves to Accept button
+    const cursor = $('#cursor-dot');
+    setTimeout(() => {
+      cursor.style.opacity = '1';
+      anim(cursor, [
+        { left: '780px', top: '500px', opacity: 0.8 },
+        { left: '520px', top: '518px', opacity: 1 },
+      ], { delay: 0, duration: 800 });
+    }, 1000);
+
+    // Click
+    setTimeout(() => {
+      const btn = $('#btn-accept');
+      btn.classList.add('clicked');
+      
+      // Pulse the cursor
+      anim(cursor, [
+        { transform: 'scale(1)' },
+        { transform: 'scale(0.7)' },
+        { transform: 'scale(1)' },
+      ], { duration: 200 });
+
+      // Check icon pops
+      const check = $('#check-icon');
+      anim(check, [
+        { opacity: 0, transform: 'scale(0)' },
+        { opacity: 1, transform: 'scale(1.3)' },
+        { opacity: 1, transform: 'scale(1)' },
+      ], { duration: 400 });
+
+      // Hide cursor
+      setTimeout(() => {
+        fadeOut(cursor, 200, 300);
+      }, 400);
+    }, 2200);
+
+    // Fade out whole act 3+4
+    setTimeout(() => {
+      fadeOut('#act3', 0, 600);
+      fadeOut('#act4-title', 0, 600);
+    }, 3500);
+  }
+
+  // ═══ ACT 5: CTA ═══
+  function playAct5() {
+    const act = $('#act5');
+    act.classList.add('active');
+    anim(act, [{ opacity: 0 }, { opacity: 1 }], { duration: 400 });
+
+    anim('#act5-content', [
+      { opacity: 0, transform: 'scale(0.9)' },
+      { opacity: 1, transform: 'scale(1)' },
+    ], { delay: 300, duration: 700 });
+
+    // Subtle pulse on CTA
+    setTimeout(() => {
+      const cta = act.querySelector('.act5-cta');
+      if (cta) {
+        anim(cta, [
+          { transform: 'scale(1)' },
+          { transform: 'scale(1.04)' },
+          { transform: 'scale(1)' },
+        ], { delay: 0, duration: 1200, iterations: Infinity });
+      }
+    }, 1200);
+  }
+
+  // ═══ TIMELINE ═══
+  setTimeout(playAct1, ACTS[0].start);
+  setTimeout(playAct2, ACTS[1].start);
+  setTimeout(playAct3, ACTS[2].start);
+  setTimeout(playAct4, ACTS[3].start);
+  setTimeout(playAct5, ACTS[4].start);
+})();
+</script>
+</body>
+</html>

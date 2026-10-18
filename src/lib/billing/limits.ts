@@ -10,9 +10,15 @@ export async function getUserPlan(client: any, userId: string): Promise<PlanId> 
 /** Avis conservés (non archivés) dans un projet, comparés à la limite du plan. */
 export async function getFeedbackCapacity(client: any, siteId: string, plan: PlanId) {
   const limit = BILLING_PLANS[plan].feedbackPerProject
-  const { count } = await client.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', siteId).neq('status', 'archived')
+  const { count } = await client.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', siteId).not('status', 'in', '(archived,locked)')
   const used = count ?? 0
   return { limit, used, remaining: Math.max(0, limit - used) }
+}
+
+/** Avis reçus mais en attente d'analyse (au-delà de la limite du plan). */
+export async function getLockedCount(client: any, siteId: string) {
+  const { count } = await client.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', siteId).eq('status', 'locked')
+  return count ?? 0
 }
 
 /** Dernière synthèse manuelle d'un projet (les synthèses hebdomadaires automatiques ne comptent pas). */

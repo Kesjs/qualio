@@ -151,9 +151,10 @@ const BUBBLE_X = ((BUBBLE_LEFT + BUBBLE_W) / 100) * VB_W
 /* Calendrier de la scène large (secondes) */
 const T = { bubble: (i: number) => 0.15 + i * 0.28, line: (i: number) => 1.2 + i * 0.12, theme: 1.9, arrow: 2.8, reco: 3.1 }
 
-export function HeroScene() {
+export function HeroScene({ replayKey }: { replayKey?: number }) {
   const rootRef = useRef<HTMLDivElement>(null)
-  const playing = useInView(rootRef, { once: true, amount: 0.3 })
+  const inViewPlaying = useInView(rootRef, { once: true, amount: 0.3 })
+  const playing = replayKey ? true : inViewPlaying
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll({ target: rootRef, offset: ['start end', 'end start'] })
   const decorY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [36, -36])
@@ -162,6 +163,7 @@ export function HeroScene() {
 
   return (
     <div
+      key={replayKey ?? 'default'}
       ref={rootRef}
       role="img"
       aria-label="Animation : des avis clients arrivent, Qualio en tire le thème « Facturation » (14 avis concernés), puis propose la recommandation « Rendre la facturation visible dans le menu »."

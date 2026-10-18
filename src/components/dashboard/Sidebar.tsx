@@ -45,7 +45,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       <div>
         <div className="flex h-16 items-center border-b border-gray-200/60 px-3 dark:border-white/[0.08]">
           <Link href="/dashboard" className="group flex w-full items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1.5 shadow-2xs dark:border-white/[0.1] dark:bg-black">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black">
               <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" />
             </div>
             {!isCollapsed && <div className="flex min-w-0 flex-col"><span className="truncate text-sm font-bold tracking-tight text-gray-900 dark:text-white">Qualio</span></div>}
@@ -56,9 +56,18 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
           {NAV_ITEMS.map((item) => {
             const active = isNavActive(pathname, item)
             const Icon = item.icon
+            const iconMotion = item.href === '/dashboard'
+              ? 'sidebar-icon-calendar'
+              : item.href === '/dashboard/feedback'
+                ? 'sidebar-icon-chat'
+                : item.href === '/dashboard/collection'
+                  ? 'sidebar-icon-plus'
+                  : item.href === '/dashboard/feedback-produit'
+                    ? 'sidebar-icon-sparkles'
+                    : 'sidebar-icon-settings'
             return (
-              <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} title={isCollapsed ? item.label : undefined} className={`group relative flex min-h-11 items-center rounded-md transition-colors ${isCollapsed ? 'justify-center px-2.5' : 'gap-3.5 px-3'} ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
-                <Icon className="h-5 w-5 shrink-0" />
+              <Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} title={isCollapsed ? item.label : undefined} className={`group relative flex min-h-11 items-center rounded-md transition-colors ${isCollapsed ? 'justify-center px-2.5' : 'gap-3.5 px-3'} ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
+                <Icon className={`h-5 w-5 shrink-0 ${iconMotion}`} />
                 {!isCollapsed && <span className="truncate text-sm">{item.label}</span>}
                 {isCollapsed && <span className="sr-only">{item.label}</span>}
                 {active && <span className={`absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018] ${isCollapsed ? 'right-1.5' : ''}`} />}

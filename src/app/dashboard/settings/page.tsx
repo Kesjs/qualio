@@ -7,7 +7,7 @@ import { ArrowTopRightOnSquareIcon, CheckCircleIcon } from '@heroicons/react/24/
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
-import { Banner, LockedFeature, surface } from '@/components/dashboard/weekly/bricks'
+import { Banner, surface } from '@/components/dashboard/weekly/bricks'
 import { PROJECT_SECTORS } from '@/lib/projects/sectors'
 import { dangerButton, EmptyState, focusRing, inputClass, PageHeader, primaryButton, secondaryButton, selectClass, Skeleton, Tabs, UsageMeter } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
@@ -140,7 +140,6 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (access.isFree) { setLoaded(true); return }
     let cancelled = false
     void fetch('/api/settings/notifications').then(async (response) => {
       if (!response.ok || cancelled) return
@@ -148,7 +147,7 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
       setEnabled(preferences.weekly_digest); setConsent(preferences.consent_source)
     }).finally(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
-  }, [access.isFree])
+  }, [])
 
   async function save() {
     setBusy(true)
@@ -161,17 +160,16 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
   }
 
   if (!loaded) return <Skeleton className="h-48" />
-  if (access.isFree) return <LockedFeature title="Email du lundi">Un résumé court chaque lundi avec les évolutions de vos avis et une recommandation à décider.</LockedFeature>
 
   return (
     <section className={`${surface} max-w-2xl p-5 sm:p-6`} aria-labelledby="digest-title">
-      <h2 id="digest-title" className="text-lg font-semibold text-gray-950 dark:text-white">Email du lundi</h2>
+      <h2 id="digest-title" className="text-lg font-semibold text-gray-950 dark:text-white">{access.isFree ? 'Emails de suivi' : 'Email du lundi et alertes'}</h2>
       <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">Vous gardez le contrôle : désinscription possible à tout moment.</p>
       <label className={`mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition-colors duration-150 hover:border-gray-400 dark:border-white/10 dark:hover:border-white/30 ${focusRing}`}>
         <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} className="mt-1 h-5 w-5 accent-gray-950 dark:accent-white" />
         <span>
-          <strong className="block text-sm text-gray-950 dark:text-white">Recevoir le résumé hebdomadaire</strong>
-          <span className="mt-1 block text-sm leading-6 text-gray-500 dark:text-zinc-400">Un email court le lundi avec les évolutions de vos avis.</span>
+          <strong className="block text-sm text-gray-950 dark:text-white">{access.isFree ? 'Être prévenu quand de nouveaux avis arrivent' : 'Recevoir le résumé hebdomadaire et les alertes'}</strong>
+          <span className="mt-1 block text-sm leading-6 text-gray-500 dark:text-zinc-400">{access.isFree ? '2 emails par mois au maximum, seulement s’il y a de nouveaux avis et une synthèse disponible.' : 'Un email le lundi avec les évolutions de vos avis, et une alerte (une par semaine au plus) quand un thème négatif augmente.'}</span>
         </span>
       </label>
       {consent && <p className="mt-3 text-xs text-gray-500 dark:text-zinc-500">Dernier consentement enregistré depuis {consent === 'signup' ? 'l’inscription' : 'les réglages'}.</p>}
@@ -212,7 +210,7 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
             <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
               {isPaid
                 ? `${billing.limits.projects} projets · ${billing.limits.feedbackPerProject.toLocaleString('fr-FR')} avis par projet · synthèse automatique chaque semaine${billing.interval ? ` · facturation ${billing.interval === 'year' ? 'annuelle' : 'mensuelle'}` : ''}`
-                : '1 projet · 50 avis · 2 synthèses par mois. Vos avis et vos données restent conservés.'}
+                : '1 projet · 50 avis · 2 synthèses manuelles sur 30 jours. Vos avis et vos données restent conservés.'}
             </p>
           </div>
           <span className={`inline-flex w-fit rounded-md px-2.5 py-1 text-xs font-semibold ${isPaid ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-zinc-200'}`}>{isPaid ? 'Actif' : 'Gratuit'}</span>
@@ -239,7 +237,15 @@ function BillingSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
             <button type="button" onClick={() => void openPortal()} disabled={busy} className={`${secondaryButton} mt-5`}>{busy ? 'Ouverture…' : 'Gérer la facturation'}</button>
           </>
         )}
-        {isPaid && billing.source !== 'stripe' && <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>}
+        {isPaid && (billing.provider === 'geniuspay' || billing.source === 'geniuspay') && (
+          <>
+            <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Votre abonnement est géré via GeniusPay (Mobile Money & Carte). Pour modifier votre formule ou renouveler votre accès, accédez aux tarifs.</p>
+            <Link href="/pricing" className={`${primaryButton} mt-5`}>Changer ou renouveler mon offre<ArrowTopRightOnSquareIcon className="h-4 w-4" aria-hidden /></Link>
+          </>
+        )}
+        {isPaid && billing.source !== 'stripe' && billing.provider !== 'geniuspay' && billing.source !== 'geniuspay' && (
+          <p className="mt-2 text-sm text-gray-600 dark:text-zinc-400">Accès offert : il n’y a pas d’abonnement à gérer.</p>
+        )}
       </section>
     </div>
   )
@@ -251,9 +257,8 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
   const router = useRouter()
   const supabase = getSupabaseBrowserClient()
   const [email, setEmail] = useState('')
+  const [newEmail, setNewEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
   const [deleteText, setDeleteText] = useState('')
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -273,15 +278,15 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
     onFlash(error ? { tone: 'error', text: 'Impossible d’enregistrer votre profil.' } : { tone: 'ok', text: 'Profil enregistré.' })
   }
 
-  async function changePassword() {
-    if (password !== confirmation) return onFlash({ tone: 'error', text: 'Les mots de passe ne correspondent pas.' })
-    if (password.length < 8) return onFlash({ tone: 'error', text: 'Le mot de passe doit contenir au moins 8 caractères.' })
+  async function changeEmail() {
+    const nextEmail = newEmail.trim().toLowerCase()
+    if (!nextEmail || nextEmail === email.toLowerCase()) return onFlash({ tone: 'error', text: 'Saisissez une nouvelle adresse email.' })
     setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password })
+    const { error } = await supabase.auth.updateUser({ email: nextEmail })
     setBusy(false)
-    if (error) return onFlash({ tone: 'error', text: 'Impossible de modifier le mot de passe.' })
-    setPassword(''); setConfirmation('')
-    onFlash({ tone: 'ok', text: 'Mot de passe modifié.' })
+    if (error) return onFlash({ tone: 'error', text: 'Impossible de demander le changement d’email.' })
+    setNewEmail('')
+    onFlash({ tone: 'ok', text: 'Vérifiez les emails de confirmation pour terminer le changement.' })
   }
 
   async function deleteAccount() {
@@ -306,17 +311,13 @@ function AccountSection({ onFlash }: { onFlash: (flash: Flash) => void }) {
           <input value={email} readOnly className={`${inputClass} mt-2 cursor-default bg-gray-50 text-gray-600 dark:bg-white/[0.02] dark:text-zinc-400`} />
         </label>
         <button type="button" onClick={() => void saveProfile()} disabled={busy} className={`${primaryButton} mt-6`}>Enregistrer le profil</button>
-      </section>
-
-      <section className={`${surface} p-5 sm:p-6`} aria-labelledby="password-title">
-        <h2 id="password-title" className="text-lg font-semibold text-gray-950 dark:text-white">Mot de passe</h2>
-        <label className="mt-5 block text-sm font-semibold text-gray-800 dark:text-zinc-200">Nouveau mot de passe
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} autoComplete="new-password" className={`${inputClass} mt-2`} />
-        </label>
-        <label className="mt-4 block text-sm font-semibold text-gray-800 dark:text-zinc-200">Confirmer
-          <input type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="new-password" className={`${inputClass} mt-2`} />
-        </label>
-        <button type="button" onClick={() => void changePassword()} disabled={busy || !password} className={`${primaryButton} mt-6`}>Modifier le mot de passe</button>
+        <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/[0.08]">
+          <label className="block text-sm font-semibold text-gray-800 dark:text-zinc-200">Nouvelle adresse email
+            <input value={newEmail} onChange={(event) => setNewEmail(event.target.value)} type="email" autoComplete="email" placeholder="nouvelle-adresse@exemple.com" className={`${inputClass} mt-2`} />
+          </label>
+          <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-zinc-400">Une confirmation de sécurité sera demandée avant le remplacement de l’adresse.</p>
+          <button type="button" onClick={() => void changeEmail()} disabled={busy || !newEmail} className={`${secondaryButton} mt-4`}>Demander le changement d’email</button>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-red-200 p-5 sm:p-6 dark:border-red-500/25" aria-labelledby="account-danger">

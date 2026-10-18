@@ -13,11 +13,16 @@ export const metadata: Metadata = {
   keywords: ["avis clients", "feedback", "synthèse", "recommandations"],
   icons: {
     icon: [
-      { url: "/qualio-logo/export/favicon/favicon.ico", sizes: "any" },
-      { url: "/qualio-logo/export/favicon/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/qualio-logo/export/favicon/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian.svg", type: "image/svg+xml" },
     ],
-    apple: "/qualio-logo/export/app-icons/apple-touch-icon.png",
+    shortcut: "/qualio-logo/export/icon/icon-orange-obsidian-512.png",
+    apple: [
+      { url: "/qualio-logo/export/icon/icon-orange-obsidian-512.png", sizes: "512x512", type: "image/png" },
+    ],
   },
   openGraph: {
     title: "Qualio — Transformer les avis en décisions",

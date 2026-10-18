@@ -3,6 +3,10 @@
 export const CSV_MAX_BYTES = 5 * 1024 * 1024
 export const CSV_MAX_ROWS = 5000
 
+export function isCsvFileName(name: string) {
+  return /\.csv$/i.test(name.trim())
+}
+
 export function detectDelimiter(text: string): ',' | ';' {
   const firstLine = text.replace(/^\uFEFF/, '').split(/\r?\n/)[0] ?? ''
   const semicolons = (firstLine.match(/;/g) ?? []).length
@@ -80,7 +84,7 @@ export function normalizeHeader(value: string) {
 
 /** Synonymes reconnus par l'import serveur (routes /api/feedback/import). */
 export const COLUMN_HINTS = {
-  text: ['content', 'feedback', 'avis', 'review', 'review_text', 'reviewtext', 'comment', 'commentaire', 'message', 'texte_avis', 'texte_du_commentaire'],
+  text: ['content', 'text', 'texte', 'feedback', 'avis', 'review', 'review_text', 'reviewtext', 'comment', 'commentaire', 'message', 'texte_avis', 'texte_du_commentaire'],
   author: ['author_name', 'name', 'nom', 'auteur'],
   date: ['created_at', 'date', 'created', 'date_creation'],
 } as const
@@ -88,6 +92,22 @@ export const COLUMN_HINTS = {
 /** Index de la première colonne dont le nom figure dans `hints`, ou -1. */
 export function detectColumn(headers: string[], hints: readonly string[]) {
   return headers.map(normalizeHeader).findIndex((header) => hints.includes(header))
+}
+
+/**
+ * Fallback for real-world exports whose text column has a product-specific name.
+ * Long, populated cells are much more likely to be review text than author/date fields.
+ */
+export function guessTextColumn(headers: string[], rows: string[][]) {
+  if (!headers.length || !rows.length) return -1
+  const scores = headers.map((_, index) => {
+    const values = rows.map((row) => row[index]?.trim() ?? '').filter(Boolean)
+    if (!values.length) return -1
+    const averageLength = values.reduce((total, value) => total + value.length, 0) / values.length
+    const coverage = values.length / rows.length
+    return averageLength * coverage
+  })
+  return scores.reduce((best, score, index) => score > scores[best] ? index : best, 0)
 }
 
 /* ------------------------------------------------------------ Validation */
@@ -111,17 +131,15 @@ export function analyzeCsv(text: string): CsvAnalysis {
   const [head, ...body] = records
   const errors: CsvIssue[] = []
   const headers = head?.cells ?? []
+  const detectedText = detectColumn(headers, COLUMN_HINTS.text)
   const detected = {
-    text: detectColumn(headers, COLUMN_HINTS.text),
+    text: detectedText >= 0 ? detectedText : guessTextColumn(headers, body.map((record) => record.cells)),
     author: detectColumn(headers, COLUMN_HINTS.author),
     date: detectColumn(headers, COLUMN_HINTS.date),
   }
 
   if (!head || !body.length) {
     return { headers, rows: [], errors: [{ line: null, message: 'Le fichier doit contenir un en-tête et au moins une ligne.' }], detected }
-  }
-  if (detected.text < 0) {
-    errors.push({ line: 1, message: 'Ce fichier ne ressemble pas à un fichier d’avis : ajoutez une colonne nommée content, feedback, review, avis, comment ou commentaire.' })
   }
   if (unclosedQuoteLine !== null) {
     errors.push({ line: unclosedQuoteLine, message: `Guillemet ouvert à la ligne ${unclosedQuoteLine} et jamais refermé : les lignes suivantes sont fusionnées dans la même cellule.` })

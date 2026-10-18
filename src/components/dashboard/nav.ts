@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { CalendarDaysIcon, ChatBubbleLeftRightIcon, Cog6ToothIcon, PlusCircleIcon } from '@heroicons/react/24/outline'
+import { CalendarDaysIcon, ChatBubbleLeftRightIcon, Cog6ToothIcon, PlusCircleIcon, SparklesIcon } from '@heroicons/react/24/outline'
 
 export interface NavItem {
   label: string
@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Cette semaine', href: '/dashboard', icon: CalendarDaysIcon, exact: true },
   { label: 'Avis', href: '/dashboard/feedback', icon: ChatBubbleLeftRightIcon },
   { label: 'Ajouter des avis', href: '/dashboard/collection', icon: PlusCircleIcon },
+  { label: 'Améliorer Qualio', href: '/dashboard/feedback-produit', icon: SparklesIcon },
   { label: 'Réglages', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ]
 

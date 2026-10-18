@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClipboardDocumentIcon, DocumentArrowUpIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
-import { analyzeCsv, CSV_MAX_BYTES, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, ClipboardDocumentIcon, DocumentArrowUpIcon, LockClosedIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
+import { analyzeCsv, CSV_MAX_BYTES, isCsvFileName, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
+import type { PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
+import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { Banner, btnQuiet, surface } from '@/components/dashboard/weekly/bricks'
 import { focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton } from '@/components/dashboard/ui'
 
@@ -14,6 +17,7 @@ type Choice = 'import' | 'widget'
 type Status = { tone: 'info' | 'alert'; text: string }
 type CopyState = 'idle' | 'copying' | 'copied' | 'error'
 type WidgetSource = { id: string; public_key: string }
+type OnboardingBilling = { plan: PlanId; label: string; limits: { widget: boolean; projects: number; feedbackPerProject: number } }
 
 /**
  * La progression vit sur le serveur : projet créé → étape 2, méthode choisie → étape 3,
@@ -42,6 +46,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyState>('idle')
   const [promptCopyStatus, setPromptCopyStatus] = useState<CopyState>('idle')
+  const [createdSite, setCreatedSite] = useState<Site | null>(null)
 
   const sitesQuery = useQuery({
     queryKey: ['sites'],
@@ -55,9 +60,22 @@ export default function OnboardingPage() {
   })
   const sites = sitesQuery.data
   // Le projet à terminer : le plus récent dont l'onboarding n'est pas fini. Aucun → nouveau projet.
-  const activeSite = sites?.find((item) => !item.onboarding_completed_at) ?? null
+  const activeSite = createdSite ?? sites?.find((item) => !item.onboarding_completed_at) ?? null
   const choice: Choice | null = activeSite?.onboarding_method ?? null
   const step = !activeSite ? 1 : !choice ? 2 : 3
+
+  const billingQuery = useQuery({
+    queryKey: ['onboarding-billing', activeSite?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/billing/status?siteId=${encodeURIComponent(activeSite!.id)}`)
+      if (!response.ok) throw new Error('Impossible de charger votre plan.')
+      return response.json() as Promise<OnboardingBilling>
+    },
+    enabled: Boolean(activeSite),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+  const widgetAvailable = billingQuery.data?.limits.widget ?? false
 
   const widgetQuery = useQuery({
     queryKey: ['feedback-sources', activeSite?.id],
@@ -125,13 +143,22 @@ export default function OnboardingPage() {
       const response = await fetch('/api/sites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: projectUrl, name: projectName || undefined }) })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible de créer le projet.')
-      saveSite(result as Site)
+      const site = result as Site
+      saveSite(site)
+      setCreatedSite(site)
+      // Revalider la source serveur garantit que `activeSite` passe bien à l’étape 2,
+      // y compris lorsque la query n’avait pas encore de cache exploitable.
+      await sitesQuery.refetch()
       window.localStorage.removeItem(DRAFT_KEY)
       setProjectName(''); setProjectUrl('')
     } catch (error) { fail(error, 'Impossible de créer le projet.') } finally { setBusy(false) }
   }
 
   async function chooseMethod(target: Site, next: Choice) {
+    if (next === 'widget' && !widgetAvailable) {
+      fail(null, 'La collecte par widget n’est pas disponible pour ce plan. Passez à Pro pour continuer.')
+      return
+    }
     setStatus(null); setBusy(true)
     try { await patchSite(target, { onboarding_method: next }) } catch (error) { fail(error, 'Impossible d’enregistrer votre méthode de collecte.') } finally { setBusy(false) }
   }
@@ -151,6 +178,7 @@ export default function OnboardingPage() {
   function selectCsvFile(file: File | null | undefined) {
     setStatus(null)
     if (!file) return
+    if (!isCsvFileName(file.name)) { resetCsv(); return setStatus({ tone: 'alert', text: 'Seuls les fichiers .csv sont acceptés.' }) }
     if (file.size > CSV_MAX_BYTES) { resetCsv(); return setStatus({ tone: 'alert', text: 'Le fichier CSV ne doit pas dépasser 5 Mo.' }) }
     void file.text().then((text) => {
       const result = analyzeCsv(text)
@@ -209,6 +237,34 @@ export default function OnboardingPage() {
       window.localStorage.removeItem(DRAFT_KEY)
       router.push('/dashboard')
     } catch (error) { fail(error, 'Impossible de terminer la configuration.'); setBusy(false) }
+  }
+
+  async function skipOnboarding() {
+    setStatus(null)
+    setBusy(true)
+    try {
+      if (activeSite) {
+        await patchSite(activeSite, { onboarding_completed: true })
+      } else {
+        // Le dashboard nécessite un projet : créer un espace minimal permet de
+        // réellement quitter l'onboarding même depuis la toute première étape.
+        const response = await fetch('/api/sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'Mon espace' }),
+        })
+        const result = await readJson(response)
+        if (!response.ok) throw new Error(result.error ?? 'Impossible de créer votre espace.')
+        const site = await patchSite(result as Site, { onboarding_completed: true })
+        saveSite(site)
+      }
+      window.localStorage.removeItem(DRAFT_KEY)
+      router.push('/dashboard')
+    } catch (error) {
+      fail(error, 'Impossible de passer cette étape.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function generateFirstSynthesis(target: Site) {
@@ -305,10 +361,13 @@ Consignes :
       <div className="mx-auto max-w-5xl">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/80 bg-gray-950 p-1.5 dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black"><img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" /></div>
             <div><strong className="block text-sm">Qualio</strong><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-400">Première configuration</span></div>
           </div>
-          <button type="button" onClick={() => router.push('/dashboard')} className={btnQuiet}>Passer pour l’instant</button>
+          <div className="flex items-center gap-2">
+            <AnimatedThemeToggle className="h-9 w-9" />
+            <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>Passer pour l’instant</button>
+          </div>
         </header>
 
         <div className="mx-auto mt-10 max-w-3xl space-y-6">
@@ -339,13 +398,29 @@ Consignes :
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <ChoiceCard icon={<DocumentArrowUpIcon className="h-5 w-5" aria-hidden />} title="Importer un CSV" body="Retrouvez votre historique et obtenez votre première synthèse en quelques minutes." disabled={busy} onClick={() => void chooseMethod(activeSite, 'import')} />
-                <ChoiceCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden />} title="Installer le widget" body="Recevez les prochains avis directement dans Qualio." disabled={busy} onClick={() => void chooseMethod(activeSite, 'widget')} />
+                {widgetAvailable
+                  ? <ChoiceCard icon={<WrenchScrewdriverIcon className="h-5 w-5" aria-hidden />} title="Installer le widget" body="Recevez les prochains avis directement dans Qualio." disabled={busy} onClick={() => void chooseMethod(activeSite, 'widget')} />
+                  : <LockedChoiceCard title="Installer le widget" body="Passez à Pro pour recevoir les prochains avis directement dans Qualio." />}
               </div>
               <p className="text-sm text-gray-600 dark:text-zinc-400">Pas d’avis sous la main ? <button type="button" onClick={() => void tryExamples(activeSite)} disabled={busy} className={`font-semibold text-gray-950 underline underline-offset-2 disabled:opacity-50 dark:text-white ${focusRing}`}>Essayer avec des avis d’exemple</button></p>
+              {!billingQuery.isLoading && <p className="max-w-full break-words text-sm text-gray-600 dark:text-zinc-400">Plan actif : <strong className="text-gray-950 dark:text-white">{billingQuery.data?.label ?? 'Gratuit'}</strong>.</p>}
             </>
           )}
 
-          {activeSite && choice === 'widget' && !widgetKey && (
+          {activeSite && choice === 'widget' && !widgetAvailable && (
+            <section className={`${surface} space-y-4 p-5 sm:p-6`}>
+              <div className="flex items-start gap-4">
+                <span className="rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-950 dark:text-white">Widget réservé aux plans payants</h2>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">Le plan actif ne permet pas d’installer le widget. Passez à Pro pour recevoir les prochains avis directement depuis votre site.</p>
+                  <Link href="/pricing" className="mt-4 inline-flex text-sm font-semibold text-[#c2410c] underline underline-offset-2">Voir les offres</Link>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSite && choice === 'widget' && widgetAvailable && !widgetKey && (
             <section className={`${surface} space-y-5 p-5 sm:p-6`}>
               <div className="flex items-start gap-4">
                 <span className="rounded-xl bg-gray-100 p-3 text-gray-700 dark:bg-white/[0.06] dark:text-zinc-200"><SparklesIcon className="h-5 w-5" aria-hidden /></span>
@@ -358,7 +433,7 @@ Consignes :
             </section>
           )}
 
-          {activeSite && choice === 'widget' && widgetKey && (
+          {activeSite && choice === 'widget' && widgetAvailable && widgetKey && (
             <section className={`${surface} space-y-4 p-5 sm:p-6`}>
               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><CheckIcon className="h-5 w-5" aria-hidden />Source widget prête</div>
               <p className="text-sm leading-6 text-gray-600 dark:text-zinc-400">Collez ce script juste avant la balise <code>&lt;/body&gt;</code> de votre site, ou copiez le prompt pour demander à votre agent de code de l’intégrer.</p>
@@ -446,5 +521,19 @@ function ChoiceCard({ icon, title, body, onClick, disabled }: { icon: ReactNode;
       <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">{body}</p>
       <span className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-gray-950 dark:text-white">Commencer<ArrowRightIcon className="h-4 w-4 transition group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden /></span>
     </button>
+  )
+}
+
+function LockedChoiceCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className={`${surface} p-6 opacity-75`} aria-disabled="true">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
+        <h2 className="font-semibold text-gray-950 dark:text-white">{title}</h2>
+        <span className="ml-auto rounded-md bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600 dark:bg-white/10 dark:text-zinc-300">Pro / Agence</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-zinc-400">{body}</p>
+      <Link href="/pricing" className="mt-4 inline-flex text-sm font-semibold text-[#c2410c] underline underline-offset-2">Voir les offres</Link>
+    </div>
   )
 }

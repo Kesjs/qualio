@@ -23,8 +23,18 @@ export function Select({ value, onChange, options, placeholder = 'Choisir…', l
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
+  const [openUpwards, setOpenUpwards] = useState(false)
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === value)))
   const selected = options.find((option) => option.value === value)
+
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      setOpenUpwards(spaceBelow < 240 && spaceAbove > spaceBelow)
+    }
+  }, [open])
 
   useEffect(() => {
     function close(event: MouseEvent) {
@@ -48,25 +58,38 @@ export function Select({ value, onChange, options, placeholder = 'Choisir…', l
 
   function onKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (disabled) return
-    if (event.key === 'Escape') { setOpen(false); return }
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setOpen((current) => !current); return }
+    if (event.key === 'Escape' || event.key === 'Tab') { setOpen(false); return }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); if (open && options[activeIndex]) choose(options[activeIndex]); else setOpen(true); return }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault(); setOpen(true)
+      const enabled = options.map((option, index) => ({ option, index })).filter(({ option }) => !option.disabled)
+      const target = event.key === 'Home' ? enabled[0] : enabled.at(-1)
+      if (target) setActiveIndex(target.index)
+      return
+    }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       if (!open) { setOpen(true); return }
       const direction = event.key === 'ArrowDown' ? 1 : -1
-      setActiveIndex((current) => (current + direction + options.length) % options.length)
+      setActiveIndex((current) => {
+        for (let offset = 1; offset <= options.length; offset++) {
+          const next = (current + direction * offset + options.length) % options.length
+          if (!options[next].disabled) return next
+        }
+        return current
+      })
     }
   }
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div ref={rootRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false) }} className={`relative ${open ? 'z-40' : 'z-auto'} ${className}`}>
       {label && <label id={`${id}-label`} className="sr-only">{label}</label>}
-      <button ref={buttonRef} type="button" disabled={disabled} aria-label={label} aria-labelledby={label ? `${id}-label` : undefined} aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-listbox`} onClick={() => setOpen((current) => !current)} onKeyDown={onKeyDown} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-800 outline-none transition hover:border-gray-300 focus-visible:border-[#ee6018] focus-visible:ring-2 focus-visible:ring-[#ee6018]/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-100 ${compact ? 'min-h-8 px-2 text-xs' : 'min-h-11 px-3'} ${buttonClassName}`}>
+      <button ref={buttonRef} type="button" disabled={disabled} aria-label={label} aria-labelledby={label ? `${id}-label` : undefined} role="combobox" aria-autocomplete="none" aria-activedescendant={open ? `${id}-option-${activeIndex}` : undefined} aria-haspopup="listbox" aria-expanded={open} aria-controls={`${id}-listbox`} onClick={() => setOpen((current) => !current)} onKeyDown={onKeyDown} className={`flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-800 outline-none transition hover:border-gray-300 focus-visible:border-[#ee6018] focus-visible:ring-2 focus-visible:ring-[#ee6018]/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-100 ${compact ? 'min-h-8 px-2 text-xs' : 'min-h-11 px-3'} ${buttonClassName}`}>
         <span className={selected ? 'truncate' : 'truncate text-gray-500 dark:text-zinc-400'}>{selected?.label ?? placeholder}</span>
         <ChevronDownIcon className={`h-4 w-4 shrink-0 text-gray-500 transition-transform dark:text-zinc-400 ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
-      {open && <div id={`${id}-listbox`} role="listbox" aria-label={label ?? placeholder} className={`absolute z-50 mt-2 max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white p-1 shadow-xl shadow-black/10 dark:border-white/[0.12] dark:bg-[#17191f] dark:shadow-black/40 ${listClassName}`}>
-        {options.map((option, index) => <button key={option.value} type="button" role="option" aria-selected={option.value === value} disabled={option.disabled} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option)} className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition ${index === activeIndex ? 'bg-gray-100 dark:bg-white/[0.08]' : ''} ${option.value === value ? 'font-semibold text-gray-950 dark:text-white' : 'text-gray-700 dark:text-zinc-300'} disabled:cursor-not-allowed disabled:opacity-40`}>
+      {open && <div id={`${id}-listbox`} role="listbox" aria-label={label ?? placeholder} className={`absolute z-50 ${openUpwards ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} ${compact ? 'right-0 min-w-[190px]' : 'left-0 min-w-full'} max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white p-1 shadow-xl shadow-black/10 dark:border-white/[0.12] dark:bg-[#17191f] dark:shadow-black/40 ${listClassName}`}>
+        {options.map((option, index) => <button key={option.value} id={`${id}-option-${index}`} tabIndex={-1} type="button" role="option" aria-selected={option.value === value} disabled={option.disabled} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option)} className={`flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm transition ${index === activeIndex ? 'bg-gray-100 dark:bg-white/[0.08]' : ''} ${option.value === value ? 'font-semibold text-gray-950 dark:text-white' : 'text-gray-700 dark:text-zinc-300'} disabled:cursor-not-allowed disabled:opacity-40`}>
           <span className="truncate">{option.label}</span>{option.value === value && <CheckIcon className="h-4 w-4 shrink-0 text-[#ee6018]" aria-hidden />}
         </button>)}
       </div>}

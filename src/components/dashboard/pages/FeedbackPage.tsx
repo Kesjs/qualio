@@ -1,12 +1,14 @@
 'use client'
 
+import { confirmAction, promptText } from '@/components/dashboard/dialogs'
+
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArchiveBoxIcon, ArrowUturnLeftIcon, MagnifyingGlassIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useActions, useDashboardMutations, useFeedbackList, useThemes, type FeedbackFilters } from '@/lib/hooks/useDashboard'
 import { formatDate, sourceLabels, timeAgo, type FeedbackItem } from '@/lib/feedback/types'
-import { useProjectAccess, READ_ONLY_TEXT } from '@/components/dashboard/useProjectAccess'
+import { useProjectAccess } from '@/components/dashboard/useProjectAccess'
 import { Banner } from '@/components/dashboard/weekly/bricks'
 import { card, dangerButton, EmptyState, ErrorState, focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton, SentimentBadge, SentimentDot, selectClass, SidePanel, Skeleton, UsageMeter } from '@/components/dashboard/ui'
 import { Select } from '@/components/dashboard/Select'
@@ -57,9 +59,9 @@ function FeedbackInner() {
     if (status === 'archived') setOpenId(null)
   }, [updateFeedback])
 
-  const remove = useCallback((ids: string[]) => {
+  const remove = useCallback(async (ids: string[]) => {
     const message = ids.length > 1 ? `Supprimer définitivement ${ids.length} avis ? Cette action est irréversible.` : 'Supprimer définitivement cet avis ? Cette action est irréversible.'
-    if (!window.confirm(message)) return
+    if (!(await confirmAction(message))) return
     deleteFeedback.mutate(ids, { onSuccess: () => { setSelectedIds(new Set()); setOpenId(null) } })
   }, [deleteFeedback])
 
@@ -89,7 +91,7 @@ function FeedbackInner() {
         actions={<Link href="/dashboard/collection" className={primaryButton}>Ajouter des avis</Link>}
       />
 
-      {access.readOnly && <Banner tone="info" action={access.isFree ? <Link href="/pricing" className={primaryButton}>Passer à Pro</Link> : undefined}>{READ_ONLY_TEXT}</Banner>}
+      {access.readOnly && <Banner tone="info" action={access.isFree ? <Link href="/pricing" className={primaryButton}>Passer à Pro</Link> : undefined}>{access.readOnlyText}</Banner>}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[220px] flex-1">
@@ -131,14 +133,14 @@ function FeedbackInner() {
             ? <EmptyState title="Aucun avis archivé" body="Les avis que vous archivez apparaissent ici et peuvent être restaurés." />
             : <EmptyState title="Aucun avis pour l’instant" body="Ajoutez vos premiers avis par import CSV, par saisie ou avec le widget." href="/dashboard/collection" label="Ajouter des avis" />
       ) : (
-        <section className={`${card} overflow-hidden transition-opacity duration-150 ${isFetching ? 'opacity-70' : ''}`} aria-label="Liste des avis">
-          <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-2.5 dark:border-white/[0.06]">
+        <section className={`${card} overflow-visible transition-opacity duration-150 ${isFetching ? 'opacity-70' : ''}`} aria-label="Liste des avis">
+          <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-2.5 rounded-t-xl dark:border-white/[0.06]">
             <input type="checkbox" checked={allSelected} onChange={() => setSelectedIds(allSelected ? new Set() : new Set(items.map((item) => item.id)))} aria-label="Tout sélectionner" className="h-4 w-4 accent-gray-950 dark:accent-white" />
             <span className="font-mono text-xs text-gray-500 dark:text-zinc-400">{total} avis · <kbd>j</kbd>/<kbd>k</kbd> naviguer · <kbd>e</kbd> archiver</span>
           </div>
           <ul className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-            {items.map((item) => (
-              <li key={item.id} className={`flex items-start gap-3 px-5 py-3.5 transition-colors duration-150 ${openId === item.id ? 'bg-gray-50 dark:bg-white/[0.05]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.025]'}`}>
+            {items.map((item, index) => (
+              <li key={item.id} className={`flex items-start gap-3 px-5 py-3.5 transition-colors duration-150 ${total <= pageSize && index === items.length - 1 ? 'rounded-b-xl' : ''} ${openId === item.id ? 'bg-gray-50 dark:bg-white/[0.05]' : 'hover:bg-gray-50 dark:hover:bg-white/[0.025]'}`}>
                 <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggle(item.id)} aria-label="Sélectionner cet avis" className="mt-1 h-4 w-4 accent-gray-950 dark:accent-white" />
                 <button type="button" onClick={() => setOpenId(item.id)} className={`min-w-0 flex-1 rounded-md text-left ${pressable} ${focusRing}`}>
                   <span className="line-clamp-2 block text-sm leading-5 text-gray-900 dark:text-zinc-100">{item.content}</span>
@@ -150,7 +152,7 @@ function FeedbackInner() {
             ))}
           </ul>
           {total > pageSize && (
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 font-mono text-xs text-gray-500 dark:border-white/[0.06] dark:text-zinc-400">
+            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 font-mono text-xs text-gray-500 rounded-b-xl dark:border-white/[0.06] dark:text-zinc-400">
               <span>{filters.page * pageSize + 1}–{Math.min(total, (filters.page + 1) * pageSize)} sur {total}</span>
               <div className="flex gap-2">
                 <button type="button" disabled={filters.page === 0} onClick={() => setFilter('page', filters.page - 1)} className={secondaryButton}>Précédent</button>
@@ -199,9 +201,9 @@ function FeedbackInner() {
 function ThemeSelect({ item, themes }: { item: FeedbackItem; themes: string[] }) {
   const { updateFeedback } = useDashboardMutations()
   const options = item.theme && !themes.includes(item.theme) ? [item.theme, ...themes] : themes
-  function change(value: string) {
+  async function change(value: string) {
     if (value === '__new__') {
-      const name = window.prompt('Nom du nouveau thème')?.trim()
+      const name = (await promptText('Nom du nouveau thème'))?.trim()
       if (name) updateFeedback.mutate({ ids: [item.id], theme: name })
       return
     }

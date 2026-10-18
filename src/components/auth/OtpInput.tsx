@@ -4,8 +4,8 @@ import { useRef, useState, useCallback, type KeyboardEvent, type ClipboardEvent 
 import { motion, AnimatePresence } from 'framer-motion'
 
 const C = {
-  canvas: '#000000', carbon: '#0d0d0d', ash: '#222222',
-  bone: '#eeeeee', orange: '#ee6018', green: '#a0ca92', graphite: '#4d4947',
+  canvas: '#ffffff', carbon: '#ffffff', ash: '#d8dce2',
+  bone: '#171a1f', orange: '#ee6018', green: '#17854b', graphite: '#4d4947',
 }
 
 interface OtpInputProps {
@@ -97,7 +97,9 @@ export function OtpInput({
             fontFamily: "'JetBrains Mono', monospace",
             fontSize: 20,
             fontWeight: 400,
-            background: C.carbon,
+            backgroundColor: '#ffffff',
+            colorScheme: 'light',
+            WebkitTextFillColor: C.bone,
             border: `1px solid ${val ? C.orange : borderColor}`,
             borderRadius: 3,
             color: C.bone,

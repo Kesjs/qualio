@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyzeCsv, COLUMN_HINTS, detectColumn, detectDelimiter, parseCsv, splitByContent, toCsv } from './csv'
+import { analyzeCsv, COLUMN_HINTS, detectColumn, detectDelimiter, guessTextColumn, parseCsv, splitByContent, toCsv } from './csv'
 
 describe('parseCsv', () => {
   it('lit les virgules entre guillemets et les guillemets doublés', () => {
@@ -34,8 +34,19 @@ describe('toCsv', () => {
 describe('detectColumn', () => {
   it('trouve la colonne texte, avec ou sans accents et majuscules', () => {
     expect(detectColumn(['Date', 'Commentaire'], COLUMN_HINTS.text)).toBe(1)
+    expect(detectColumn(['text', 'author'], COLUMN_HINTS.text)).toBe(0)
+    expect(detectColumn(['Texte', 'author'], COLUMN_HINTS.text)).toBe(0)
     expect(detectColumn(['Auteur', 'DATE_CRÉATION'], COLUMN_HINTS.date)).toBe(1)
     expect(detectColumn(['Nom', 'Date'], COLUMN_HINTS.date)).toBe(1)
+  })
+})
+
+describe('guessTextColumn', () => {
+  it('choisit une colonne de texte même avec un en-tête métier inconnu', () => {
+    expect(guessTextColumn(['customer_id', 'customer_note', 'status'], [
+      ['42', 'La livraison était rapide et claire', 'open'],
+      ['43', 'Je ne trouve pas ma facture', 'closed'],
+    ])).toBe(1)
   })
 })
 
@@ -56,6 +67,12 @@ describe('analyzeCsv', () => {
     expect(result.rows).toHaveLength(2)
     expect(result.detected).toEqual({ text: 0, author: 1, date: 2 })
     expect(result.rows[0].cells[0]).toBe('Clair, simple')
+  })
+
+  it('accepte une colonne de texte avec un nom métier non prévu', () => {
+    const result = analyzeCsv('customer_id,customer_note,status\n42,"La livraison était rapide",open\n43,"Je ne trouve pas ma facture",closed')
+    expect(result.errors).toEqual([])
+    expect(result.detected.text).toBe(1)
   })
 
   it('signale une ligne dont le texte est coupé à chaque virgule, avec son numéro de ligne', () => {

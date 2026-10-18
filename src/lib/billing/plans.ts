@@ -12,10 +12,10 @@ export const BILLING_PLANS = {
     /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
     synthesisQuota: { count: 2, windowDays: 30 },
     synthesisCooldownHours: 0,
-    /** Widget de collecte en continu. */
-    widget: false,
+    /** Le widget sert de point d'entrée au Gratuit ; l'analyse reste limitée par le quota. */
+    widget: true,
     // Texte affiché sur la landing et la page tarifs (doc 4.2). Les limites réellement appliquées sont les champs ci-dessus.
-    features: ['1 projet', '50 avis', '2 synthèses par mois', 'Import CSV et saisie manuelle', 'Vos avis conservés'],
+    features: ['1 projet', '50 avis analysés', '2 synthèses manuelles sur 30 jours', 'Widget, import CSV et saisie manuelle', 'Avis reçus conservés en attente'],
   },
   pro: {
     label: 'Pro',
@@ -29,7 +29,7 @@ export const BILLING_PLANS = {
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
-    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Widget sur votre site', 'Email du lundi', 'Historique des décisions'],
+    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis après vos décisions'],
   },
   agency: {
     label: 'Agence',
@@ -39,22 +39,25 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_AGENCY_ANNUAL',
     projects: 15,
     feedbackPerProject: 10000,
-    /** Deux synthèses manuelles par semaine et par projet. */
-    synthesisQuota: { count: 2, windowDays: 7 },
-    synthesisCooldownHours: 0,
+    /** L'Agence garde au moins la cadence Pro, avec ses capacités multi-clients. */
+    synthesisQuota: null,
+    synthesisCooldownHours: 24,
     widget: true,
     features: [
       '15 projets clients',
       '10 000 avis par projet',
       'Synthèse automatique chaque semaine',
-      '2 synthèses manuelles par semaine',
+      '1 synthèse manuelle par jour et par projet',
       'Widget sur 15 sites',
-      'Rapport client partageable',
-      'Export des synthèses et avis',
+      'Rapport client partageable par lien',
+      'Export CSV des avis',
       'Support prioritaire',
     ],
   },
 } as const
+
+/** Avis du widget reçus au-delà de la limite du plan, conservés mais non analysés (plafond anti-abus). */
+export const LOCKED_FEEDBACK_MAX = 100
 
 export type PaidPlan = Exclude<keyof typeof BILLING_PLANS, 'free'>
 export type PlanId = keyof typeof BILLING_PLANS

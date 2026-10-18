@@ -1,25 +1,35 @@
 'use client'
 
-import { ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowRight, Check } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
-import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section } from './primitives'
+import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section, UnderlineWord } from './primitives'
 import { SiteShell } from './SiteShell'
 import { AudienceCards, BetaBand, ComparisonTable, FaqSection, FinalCta, ProblemSection } from './sections'
 import { DecisionAnimation } from './StepDemos'
 import { HeroScene } from './HeroScene'
 import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
+import { WidgetLiveDemo } from './WidgetLiveDemo'
 
 /**
- * Landing (`/`) : le hero est inchangé ; les sections qui ont une page dédiée n'affichent
- * qu'un aperçu statique avec « En savoir plus → » (doc 4.1).
+ * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
+ * et la visualisation HeroScene (passage des avis aux décisions).
  */
 
 export function LightLanding() {
+  const [demoOpen, setDemoOpen] = useState(false)
+
+  useEffect(() => {
+    const onOpen = () => setDemoOpen(true)
+    window.addEventListener('qualio:open-demo', onOpen)
+    return () => window.removeEventListener('qualio:open-demo', onOpen)
+  }, [])
+
   return (
     <SiteShell>
-      {/* 1. Hero (inchangé) : une visualisation fixe explique le passage des avis aux décisions */}
+      {/* 1. Hero : une visualisation fixe explique le passage des avis aux décisions */}
       <section className="mx-auto max-w-6xl px-5 pb-10 text-center">
         <div className="flex min-h-[min(calc(100svh-4.5rem-7rem),46rem)] flex-col items-center justify-center py-12">
           <div className="hs-rise-now w-full">
@@ -28,30 +38,44 @@ export function LightLanding() {
               <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" style={{ color: ACCENT }} />
             </div>
             <h1 className="mx-auto text-[clamp(2.25rem,5.8vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.055em] [text-wrap:balance]">
-              <span className="block lg:whitespace-nowrap">Transformez vos avis clients</span>
+              <span className="block lg:whitespace-nowrap">Des centaines d’avis</span>
               <span className="mt-2 block text-[#ee6018]">
                 <span className="inline-block -skew-x-2 bg-[#fff1e9] px-3 py-1">
-                  <span className="inline-block skew-x-2">en décisions claires.</span>
+                  <span className="inline-block skew-x-2">Une direction plus claire</span>
                 </span>
               </span>
             </h1>
-            <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED }}>
-              Fini les centaines d’avis relus à la main. Qualio regroupe les thèmes qui reviennent
-              et cite les avis qui les justifient.
+            <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED }}>
+              Retrouvez les thèmes qui reviennent, les retours qui les expliquent et les pistes à examiner pour améliorer votre produit ou votre service.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <PrimaryButton href={SIGNUP}>Commencer gratuitement</PrimaryButton>
-              <SecondaryButton href="/exemple">Voir un exemple</SecondaryButton>
+              <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
+              <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
             </div>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: MUTED }}>
-              {['Import CSV', 'Widget de collecte', 'Recommandations sourcées', 'Décisions humaines'].map((x) => (
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED }}>
+              <Check size={14} className="text-emerald-600" aria-hidden="true" />
+              <span>Sans carte bancaire</span>
+              <span aria-hidden="true">·</span>
+              <span>50 avis analysés gratuitement</span>
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: MUTED }}>
+              {['Import CSV', 'Widget sur votre site', 'Recommandations sourcées', 'Décisions humaines'].map((x) => (
                 <span key={x} className="rounded-md border px-2.5 py-1" style={{ borderColor: LINE }}>{x}</span>
               ))}
             </div>
           </div>
         </div>
         <div className="mx-auto max-w-6xl text-left">
-          <HeroScene />
+          <p className="qualio-hero-note" aria-hidden="true">
+            <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
+              <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Qualio en 20 secondes
+          </p>
+          <div className="qualio-hero-frame">
+            <HeroScene />
+          </div>
         </div>
       </section>
 
@@ -107,14 +131,14 @@ export function LightLanding() {
         </Reveal>
         <Reveal delay={0.1} className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <PrimaryButton href={SIGNUP}>Commencer gratuitement</PrimaryButton>
-          <SecondaryButton href="/exemple">Voir un exemple</SecondaryButton>
+          <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
         </Reveal>
       </Section>
 
       {/* 6. Pourquoi pas un chat IA gratuit ? : aperçu (version complète sur /produit) */}
       <Section tone="soft">
         <Reveal className="mx-auto max-w-3xl text-center">
-          <h2 className={H2}>Pourquoi pas un chat IA gratuit ?</h2>
+          <h2 className={H2}>Pourquoi pas un <UnderlineWord>chat IA gratuit</UnderlineWord> ?</h2>
           <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>
             Coller vos avis dans un chat marche une fois. Le suivi d’une semaine à l’autre, c’est ce que Qualio ajoute.
           </p>
@@ -128,7 +152,7 @@ export function LightLanding() {
       {/* 7. Pour qui : aperçu (version complète sur /produit) */}
       <Section>
         <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-          <h2 className={H2}>Pensé pour ceux qui reçoivent des avis.</h2>
+          <h2 className={H2}>Pensé pour ceux qui reçoivent des <UnderlineWord>avis</UnderlineWord>.</h2>
         </Reveal>
         <AudienceCards compact />
         <div className="mt-8 text-center"><MoreLink href="/produit#pour-qui">En savoir plus</MoreLink></div>
@@ -166,6 +190,9 @@ export function LightLanding() {
 
       {/* 11. Appel final */}
       <FinalCta />
+
+      {/* 12. Démo interactive du widget */}
+      <WidgetLiveDemo isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
     </SiteShell>
   )
 }

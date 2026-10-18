@@ -18,7 +18,7 @@ export const translations = {
       errors: {
         fillAll: 'Fill in all fields.', incorrect: 'Incorrect email or password.', signinFailed: 'Unable to sign in.', registerFailed: 'Unable to create your account.', accountExists: 'An account already exists with this email.',
         tooManyAttempts: 'Too many sign-up attempts. Please try again in a few minutes.', enterEmail: 'Enter your email address.', resetFailed: 'Unable to send the reset email.', passwordTooShort: 'Your password must contain at least 8 characters.', passwordMismatch: 'The passwords do not match.', passwordUpdateFailed: 'Unable to update your password.',
-        authCallbackFailed: 'The authentication link could not be completed.', githubFailed: 'GitHub sign-in failed', otpFailed: 'Unable to send the code.', missingCode: 'Enter the code you received.', invalidCode: 'This code is invalid or expired.', otpVerifyFailed: 'Unable to verify the code.',
+        authCallbackFailed: 'The authentication link could not be completed.', oauthStateExpired: 'This Google sign-in attempt has expired. Please start again.', githubFailed: 'GitHub sign-in failed', otpFailed: 'Unable to send the code.', missingCode: 'Enter the code you received.', invalidCode: 'This code is invalid or expired.', otpVerifyFailed: 'Unable to verify the code.',
       },
       success: { signedIn: 'Signed in.', accountCreated: 'Account created.', passwordUpdated: 'Password updated.', resetSent: 'Check your email.', otpSent: 'Code sent.', otpVerified: 'Signed in.' },
     },
@@ -42,7 +42,7 @@ export const translations = {
       errors: {
         fillAll: 'Remplissez tous les champs.', incorrect: 'Email ou mot de passe incorrect.', signinFailed: 'Connexion impossible.', registerFailed: 'Création du compte impossible.', accountExists: 'Un compte existe déjà avec cet email.',
         tooManyAttempts: 'Trop de tentatives d’inscription. Réessayez dans quelques minutes.', enterEmail: 'Saisissez votre email.', resetFailed: 'Envoi de l’email impossible.', passwordTooShort: 'Le mot de passe doit contenir au moins 8 caractères.', passwordMismatch: 'Les mots de passe ne correspondent pas.', passwordUpdateFailed: 'Mise à jour du mot de passe impossible.',
-        authCallbackFailed: 'Le lien d’authentification n’a pas pu être validé.', githubFailed: 'Échec de la connexion via GitHub', otpFailed: 'Envoi du code impossible.', missingCode: 'Saisissez le code reçu.', invalidCode: 'Ce code est invalide ou expiré.', otpVerifyFailed: 'Vérification du code impossible.',
+        authCallbackFailed: 'Le lien d’authentification n’a pas pu être validé.', oauthStateExpired: 'Cette tentative de connexion Google a expiré. Recommencez la connexion.', githubFailed: 'Échec de la connexion via GitHub', otpFailed: 'Envoi du code impossible.', missingCode: 'Saisissez le code reçu.', invalidCode: 'Ce code est invalide ou expiré.', otpVerifyFailed: 'Vérification du code impossible.',
       },
       success: { signedIn: 'Connexion réussie.', accountCreated: 'Compte créé.', passwordUpdated: 'Mot de passe mis à jour.', resetSent: 'Consultez votre email.', otpSent: 'Code envoyé.', otpVerified: 'Connexion réussie.' },
     },

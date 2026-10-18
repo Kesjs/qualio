@@ -2,8 +2,8 @@
 
 ## 5.0 Accès des testeurs et quota
 
-- [ ] Créer 3 comptes de cohorte A. Ils reçoivent automatiquement 14 jours Pro ; ne pas interpréter leur usage gratuit comme une preuve de disposition à payer.
-- [ ] Garder 1 à 2 comptes de cohorte B en Gratuit après expiration pour observer la compréhension du quota.
+- [ ] Créer 3 comptes de cohorte A en Gratuit ; ne pas simuler un essai Pro qui n’existe pas dans l’offre.
+- [ ] Garder 1 à 2 comptes de cohorte B en Gratuit pour observer la compréhension du quota et des avis en attente.
 - [ ] Pour prolonger un accès, exécuter manuellement `scripts/grant-tester-access.sql` avec la clé de service ; ne jamais l’exécuter depuis l’application.
 - [ ] Pour le retirer, exécuter `scripts/revoke-tester-access.sql`.
 - [ ] Vérifier « Pro (accès test) », la date de fin et le message « Accès offert, pas d’abonnement à gérer ».
@@ -11,9 +11,9 @@
 
 ## 5.1 Parcours, dans l’ordre
 
-1. [ ] Compte neuf : inscription sans question QA → vérification email → connexion → `/dashboard` → `/onboarding`.
+1. [ ] Compte neuf : email/OTP ou OAuth (Google/GitHub) → `/dashboard` → `/onboarding`.
    Résultat attendu : aucune question sur site, scan, audit, formulaire ou régression.
-2. [ ] Tester mot de passe oublié, OTP, déconnexion et OAuth si activé.
+2. [ ] Tester OTP, déconnexion et OAuth Google/GitHub.
    Résultat attendu : session correcte, erreurs lisibles, redirection externe refusée.
 3. [ ] Vérifier `redirectTo=https://example.com` et `redirectTo=//example.com`.
    Résultat attendu : `/dashboard`.
@@ -54,13 +54,29 @@
 21. [ ] Avec un second compte, appeler `/api/feedback?siteId=...` du premier compte.
     Résultat attendu : `401`, `403` ou réponse vide ; aucune donnée lisible.
 22. [ ] Rejouer `docs/UI_CHECKLIST.md` sur iPhone Safari 375 px clair/sombre.
-23. [ ] Checkout Stripe test, webhook, portail, annulation.
-    Résultat attendu : seul le webhook signé donne l’accès ; un accès manuel ne lance pas de portail Stripe.
+23. [ ] Checkout GeniusPay de test, webhook signé, double paiement, retour et annulation.
+    Résultat attendu : seul le webhook GeniusPay signé donne l’accès ; un abonné GeniusPay ne peut pas créer un second checkout ; une annulation revient sur une page Qualio ; aucun accès manuel ne lance un portail.
 24. [ ] Production : `/`, `/login`, `/widget.js` en 200 ; routes protégées redirigent ou répondent 401.
 25. [ ] Ouvrir `/dashboard/sites`, `/dashboard/scans`, `/dashboard/bugs`, `/api/scan/run`.
     Résultat attendu : 404 et aucune erreur Vercel.
 
 ## Fiche d’observation MVP (3 à 5 testeurs)
+
+## Test de valeur en 3 tâches
+
+Faire le test en direct, sans guider le testeur. Utiliser un compte Gratuit et le CSV d’exemple. Noter les mots exacts et le temps, sans corriger l’utilisateur pendant la tâche.
+
+1. [ ] **Compréhension** — « Sans cliquer partout, dites-moi ce que fait Qualio et pour qui c’est utile. »
+2. [ ] **Première valeur** — « Importez les avis d’exemple, obtenez une recommandation, puis ouvrez un avis qui la prouve. »
+3. [ ] **Continuité** — « Après avoir vu la limite ou les avis en attente, dites-moi ce que vous feriez pour continuer. »
+
+### Seuils de réussite avant le test
+
+- [ ] Au moins 4 testeurs sur 5 décrivent correctement le produit et sa cible.
+- [ ] Au moins 4 testeurs sur 5 atteignent une première recommandation en moins de 5 minutes, sans aide.
+- [ ] Au moins 4 testeurs sur 5 ouvrent au moins une source de recommandation.
+- [ ] Au moins 3 testeurs sur 5 identifient correctement le chemin pour continuer après la limite.
+- [ ] Chaque objection au paiement est classée : prix, valeur, confiance, besoin de projets ou autre.
 
 | Testeur | Temps inscription → première synthèse | Recommandations utiles (oui/non) | Pourquoi / confusion observée | Paieriez-vous ? combien ? |
 | --- | --- | --- | --- | --- |

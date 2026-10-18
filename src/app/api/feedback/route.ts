@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
-import { getFeedbackCapacity, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
+import { getFeedbackCapacity, getUserPlan, getWritableSiteIds, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 
 type FeedbackPayload = {
   siteId?: string
@@ -140,7 +140,7 @@ export async function PATCH(request: NextRequest) {
 
   if (ids.length) {
     // Mise à jour groupée (archiver / restaurer / reclasser plusieurs avis).
-    const { data: updated, error: bulkError } = await (supabase as any).from('feedback_items').update(updates).in('id', ids).eq('user_id', user.id).select('id')
+    const { data: updated, error: bulkError } = await (supabase as any).from('feedback_items').update(updates).in('id', ids).eq('user_id', user.id).neq('status', 'locked').select('id')
     if (bulkError) return NextResponse.json({ error: bulkError.message }, { status: 500 })
     return NextResponse.json({ updated: updated?.length ?? 0 })
   }
@@ -150,6 +150,7 @@ export async function PATCH(request: NextRequest) {
     .update(updates)
     .eq('id', id)
     .eq('user_id', user.id)
+    .neq('status', 'locked')
     .select('*')
     .maybeSingle()
 
@@ -167,7 +168,14 @@ export async function DELETE(request: NextRequest) {
   const ids = Array.isArray(body?.ids) ? body.ids.filter((value): value is string => typeof value === 'string').slice(0, 200) : []
   if (!ids.length) return NextResponse.json({ error: 'Sélectionnez au moins un avis.' }, { status: 400 })
 
-  const { data, error } = await (supabase as any).from('feedback_items').delete().in('id', ids).eq('user_id', user.id).select('id')
+  // Projets en lecture seule : on ne supprime rien dedans (les avis restent visibles).
+  const { data: owned } = await (supabase as any).from('feedback_items').select('id, site_id').in('id', ids).eq('user_id', user.id)
+  const plan = await getUserPlan(supabase as any, user.id)
+  const writable = new Set(await getWritableSiteIds(supabase as any, user.id, plan))
+  const allowed = (owned ?? []).filter((row: { site_id: string }) => writable.has(row.site_id)).map((row: { id: string }) => row.id)
+  const blocked = (owned?.length ?? 0) - allowed.length
+  if (!allowed.length) return NextResponse.json({ error: blocked ? READ_ONLY_MESSAGE : 'Aucun avis à supprimer.' }, { status: blocked ? 403 : 400 })
+  const { data, error } = await (supabase as any).from('feedback_items').delete().in('id', allowed).eq('user_id', user.id).select('id')
   if (error) return NextResponse.json({ error: 'Impossible de supprimer ces avis.' }, { status: 500 })
-  return NextResponse.json({ deleted: data?.length ?? 0 })
+  return NextResponse.json({ deleted: data?.length ?? 0, blocked })
 }

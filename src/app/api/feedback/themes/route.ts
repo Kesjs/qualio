@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await (supabase as any)
     .from('feedback_items')
     .select('theme, sentiment, created_at, content')
-    .eq('user_id', userId).eq('site_id', siteId).neq('status', 'archived')
+    .eq('user_id', userId).eq('site_id', siteId).not('status', 'in', '(archived,locked)')
     .gte('created_at', since).order('created_at', { ascending: false }).limit(2000)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ days, themes: buildThemeStats(data ?? [], days) })

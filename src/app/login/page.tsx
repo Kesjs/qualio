@@ -19,8 +19,6 @@ const C = {
 
 type AuthMode = 'password' | 'register' | 'forgot' | 'otp' | 'otp-verify' | 'verify-email' | 'reset-password'
 
-const AUTH_MODES: AuthMode[] = ['password', 'register', 'forgot', 'otp', 'otp-verify', 'verify-email', 'reset-password']
-
 // Bouton Google SSO
 function GoogleButton({ onClick, loading, label }: { onClick: () => void; loading: boolean, label: string }) {
   return (
@@ -72,15 +70,15 @@ function GithubButton({ onClick, loading }: { onClick: () => void; loading: bool
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const requestedMode = searchParams.get('mode')
-  const initialMode: AuthMode = requestedMode && AUTH_MODES.includes(requestedMode as AuthMode)
-    ? requestedMode as AuthMode
-    : 'password'
+  const initialMode: AuthMode = requestedMode === 'otp' || requestedMode === 'otp-verify'
+    ? requestedMode
+    : 'otp'
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
   const { language } = useLanguage()
   const t = translations[language].auth
 
-  const { isLoading: otpLoading, requestOtp, verifyOtp } = useOtpAuth()
+  const { isLoading: otpLoading, error: otpRequestError, requestOtp, verifyOtp } = useOtpAuth()
 
   const redirectPath = (() => {
     const requestedPath = searchParams.get('redirectTo')
@@ -115,7 +113,10 @@ export default function LoginPage() {
     if (searchParams.get('error') === 'auth_callback_failed') {
       toast.error(t.errors.authCallbackFailed)
     }
-  }, [searchParams, t.errors.authCallbackFailed])
+    if (searchParams.get('error') === 'oauth_state_expired') {
+      toast.error(t.errors.oauthStateExpired)
+    }
+  }, [searchParams, t.errors.authCallbackFailed, t.errors.oauthStateExpired])
 
   const planParam = searchParams.get('plan')
   const [email, setEmail] = useState('')
@@ -180,7 +181,11 @@ export default function LoginPage() {
       toast.success(t.success.accountCreated)
       if (data.session) {
         await fetch('/api/auth/sync-preferences', { method: 'POST' }).catch((syncError) => console.error('[signup] preference sync failed:', syncError))
-        window.location.replace('/onboarding')
+        const paidPlan = intendedPlan === 'pro' || intendedPlan === 'agency'
+        const next = paidPlan
+          ? `/pricing?plan=${encodeURIComponent(intendedPlan)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}&checkout=1`
+          : '/onboarding'
+        window.location.replace(next)
       } else setMode('verify-email')
     } catch (err: any) {
       toast.error(err?.message || t.errors.registerFailed)
@@ -223,7 +228,7 @@ export default function LoginPage() {
     try {
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery&next=${encodeURIComponent(redirectPath)}`,
       })
       if (error) throw error
       toast.success(t.success.resetSent)
@@ -264,7 +269,7 @@ export default function LoginPage() {
   async function handleGoogle() {
     setGoogleLoading(true)
     try {
-      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -282,7 +287,7 @@ export default function LoginPage() {
   async function handleGithub() {
     setGithubLoading(true)
     try {
-      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}` : ''
+      const planSuffix = planParam ? `&plan=${encodeURIComponent(planParam)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}` : ''
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
@@ -372,10 +377,10 @@ export default function LoginPage() {
                   >
                     <div>
                       <div style={{ color: planParam === 'agency' ? '#f4f4f5' : planParam === 'pro' ? '#9a3412' : '#3f3f46', fontWeight: 600 }}>
-                        {planParam === 'agency' ? 'Plan Agence sélectionné (49 $/mois)' : planParam === 'pro' ? 'Plan Pro sélectionné (19 $/mois)' : 'Plan Gratuit sélectionné (0 $)'}
+                        {planParam === 'agency' ? 'Plan Agence sélectionné (49 €/mois)' : planParam === 'pro' ? 'Plan Pro sélectionné (19 €/mois)' : 'Plan Gratuit sélectionné (0 €)'}
                       </div>
                       <div style={{ fontSize: 11, color: planParam === 'agency' ? '#a1a1aa' : planParam === 'pro' ? '#ea580c' : '#71717a' }}>
-                        {planParam === 'agency' ? '15 projets · 10 000 avis par projet · 2 synthèses par semaine' : planParam === 'pro' ? '5 projets · 2 000 avis · Synthèse hebdo' : '1 projet · 50 avis · 2 synthèses par mois'}
+                        {planParam === 'agency' ? '15 projets · 10 000 avis par projet · 1 synthèse par jour et par projet' : planParam === 'pro' ? '5 projets · 2 000 avis · Synthèse hebdo' : '1 projet · 50 avis · 2 synthèses manuelles sur 30 jours'}
                       </div>
                     </div>
                     <a href="/pricing" style={{ color: C.orange, textDecoration: 'underline', fontSize: 11, marginLeft: 8, whiteSpace: 'nowrap' }}>
@@ -490,7 +495,7 @@ export default function LoginPage() {
                   required
                 />
                 <AuthButton loading={otpLoading} type="submit">{t.labels.sendCode}</AuthButton>
-                <AuthButton variant="ghost" type="button" onClick={() => setMode('password')}>{t.labels.signInPasswordInstead}</AuthButton>
+                {otpRequestError && <p role="alert" style={{ fontFamily: "'Manrope',sans-serif", fontSize: 12, color: '#b42318', margin: 0 }}>{otpRequestError}</p>}
               </form>
             )}
 
@@ -501,6 +506,7 @@ export default function LoginPage() {
                   {t.labels.codeSentTo} <span style={{ color: C.stone }}>{otpEmail}</span>
                 </p>
                 <OtpInput
+                  length={6}
                   onComplete={handleOtpVerify}
                   error={otpError}
                   disabled={otpLoading}

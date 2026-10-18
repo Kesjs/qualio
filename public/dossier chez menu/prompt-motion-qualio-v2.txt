@@ -1,0 +1,258 @@
+# Prompt créatif — Vidéo Motion Design Qualio (v2)
+
+> **Objectif** : Animation motion design HTML/CSS/JS de **~20 secondes**, destinée au hero de la landing page. Ton marketing mais crédible — on montre le produit, pas des promesses. Le fichier est autonome, jouable dans un navigateur, et sera enregistré en WebP via l'outil browser pour être intégré à la landing.
+
+---
+
+## 0. Inspiration directe : Lumail.io
+
+Après analyse du code source de [lumail.io](https://lumail.io/), voici les patterns de référence à transposer dans l'ADN Qualio :
+
+| Pattern Lumail | Transposition Qualio |
+|---|---|
+| **Conteneur vidéo encadré** : `rounded-[20px]`, fond `bg-muted` (#F6F6F7), bordure `border-border`, padding 8px, double ombre (`0_1px_2px` + `0_24px_48px_-24px`) | Même structure d'encadrement. En Qualio : fond `SOFT` (#F6F6F7), bordure `LINE` (#E6E6EA), coins 20px, padding 8px, ombre `0 1px 2px rgba(11,11,12,0.04), 0 24px 48px -24px rgba(11,11,12,0.18)` |
+| **Annotation manuscrite** : police `Caveat` (handwriting), texte « Lumail in under a minute » + petite flèche SVG dessinée à la main, positionnée au-dessus à droite du conteneur | En Qualio : « Qualio en 20 secondes » en Caveat 500, couleur `INK`/80%, flèche SVG identique, position au-dessus à droite |
+| **Canvas en fond** : `<canvas>` avec un motif pixelisé et un masque gradient linéaire qui s'estompe vers le bas | En Qualio : grille de points subtile (`radial-gradient`, 32px spacing, couleur `LINE` à 50% opacité) comme texture de fond |
+| **Conteneur intérieur** : `aspect-video` (16:9), `rounded-xl` (12px), bordure `border-border`, fond `bg-card` (blanc) | Identique : ratio 16:9 (1280×720), coins 12px, bordure `LINE`, fond blanc |
+| **Pas de glassmorphism** : ombres subtiles uniquement, bordures fines, clean et aéré | Respect strict du DESIGN.md : flat by default, couleur = état |
+
+---
+
+## 1. Identité visuelle stricte
+
+### Palette
+
+| Jeton | Valeur | Usage dans la vidéo |
+|---|---|---|
+| **Signal Orange** | `#EE6018` | Logo, accents décoratifs, barre de progression |
+| **Accent Ink** | `#C2410C` | Texte orange foncé, bouton CTA final (contraste AA sur blanc) |
+| **Accent Soft** | `#FFF1E9` | Fonds de badges, halo tagline, hauts de carte |
+| **Ink** | `#0B0B0C` | Titres, texte principal, nom de marque |
+| **Muted** | `#62626B` | Sous-titres, métadonnées, bordures de boutons secondaires |
+| **Line** | `#E6E6EA` | Bordures de cartes, séparateurs, grille de points |
+| **Soft** | `#F6F6F7` | Fond du conteneur externe, fond de sections alternées |
+| **Sage** | `#8A9A82` | Inutilisé dans la vidéo (cohérence si ajouté plus tard) |
+| **Metric Green** | `#A0CA92` | Bouton « Accepter », état validé |
+| **Danger Red** | `#EF4444` | Bouton « Écarter » (usage minimal) |
+| **Blanc** | `#FFFFFF` | Fond principal de la scène |
+
+### Typographie
+
+| Usage | Police | Graisse | Notes |
+|---|---|---|---|
+| Titres de scène | Manrope | 600 | Tracking -0.03em, taille ~38-42px |
+| Sous-titres / corps | Manrope | 400 | 14-17px |
+| Compteurs, sources, dates | JetBrains Mono | 400 | 10-12px, toujours pour les données techniques |
+| Annotation manuscrite | Caveat | 500 | ~21px, couleur `INK` à 80% opacité |
+
+### Règles absolues
+
+- ❌ Aucun gradient lourd, aucune glassmorphism, aucune box-shadow structurelle
+- ❌ Aucune couleur hors palette
+- ❌ Aucun faux témoignage ni faux chiffre (PRODUCT.md, principe 5)
+- ❌ Aucune police système générique — Manrope, JetBrains Mono, Caveat uniquement
+- ✅ Les cartes sont délimitées par des bordures `LINE` de 1px, jamais par des ombres
+- ✅ Les coins suivent l'échelle : 6px (pastilles), 8px (boutons), 12px (cartes intérieures), 16px (cartes de recommandation), 20px (conteneur externe)
+
+---
+
+## 2. Structure de la scène
+
+La vidéo est **encapsulée** dans un cadre identique à Lumail, posé sur la landing :
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│  ↗ « Qualio en 20 secondes » (Caveat + flèche SVG)     │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │    │  ← fond SOFT, 20px radius
+│  │ ▓  ┌─────────────────────────────────────┐  ▓ │    │
+│  │ ▓  │                                     │  ▓ │    │  ← fond blanc, 12px radius, 16:9
+│  │ ▓  │       LA VIDÉO MOTION (1280×720)    │  ▓ │    │
+│  │ ▓  │                                     │  ▓ │    │
+│  │ ▓  └─────────────────────────────────────┘  ▓ │    │
+│  │ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+L'encadrement (annotation + conteneur) sera intégré à la landing **séparément**. Le fichier HTML ne contient que la scène de 1280×720.
+
+---
+
+## 3. Narration visuelle — 5 actes
+
+### Acte 1 — « Le chaos » (0 s → 3,8 s)
+
+**Intention** : Montrer le problème. Des avis arrivent de partout, aucune lisibilité.
+
+| Timing | Élément | Animation |
+|---|---|---|
+| 0,1 s | **Logo monogramme orange** (48px) | Apparaît au centre-haut avec un scale-in rebond (0.5 → 1.1 → 1.0), dur. 600ms |
+| 0,2 s → 1,2 s | **12 cartes d'avis** | Tombent en cascade staggerée (80ms entre chaque) depuis le haut. Chaque carte a une rotation aléatoire légère (-3° à +3°). Opacité finale 0.85. |
+| — | Contenu des cartes | 2-3 barres grises (#E8E8EC) simulant du texte + pastille source en JetBrains Mono (« CSV », « Widget », « Manuel ») sur fond `SOFT`. |
+| — | Disposition | 4 colonnes × 3 rangées, décalées, occupant toute la scène (120px→1060px horizontal, 80px→470px vertical). Tailles variées (190-220px). |
+| 0,8 s | **Titre de scène** | « Des centaines d'avis » en Manrope 600, 42px, couleur `INK`. Retour à la ligne : « Aucune direction. » en `ACCENT` (#EE6018), italique. Apparaît en slide-up + fade, dur. 600ms. Position : centré en bas (bottom: 80px). |
+| 3,3 s | **Tout l'acte** | Fade-out global, dur. 500ms |
+
+### Acte 2 — « L'organisation » (3,8 s → 7,6 s)
+
+**Intention** : Qualio regroupe les avis par thème. Les cartes se condensent, des bulles thématiques émergent.
+
+| Timing (relatif à 3,8 s) | Élément | Animation |
+|---|---|---|
+| 0,0 s | **Fond de l'acte** | Fade-in, dur. 400ms |
+| 0,2 s → 0,7 s | **6 mini-cartes d'avis** (condensées, scale 0.75) | Scale-in staggeré (80ms), opacité 0.5. Disposées en 2 rangées de 3. |
+| 0,6 s → 0,9 s | **3 bulles thématiques** | Scale-in staggeré (150ms entre chaque). Chaque bulle : icône emoji sur cercle `ACCENT_SOFT` (56px) + label Manrope 600 15px + compteur JetBrains Mono 12px. |
+| — | Thèmes | 💳 Facturation (14 avis) · 📦 Livraison (9 avis) · 🎧 Support (6 avis) |
+| — | Position | 3 bulles espacées horizontalement (x: 280, 560, 840 ; y: ~200) |
+| 0,8 s → 1,4 s | **6 lignes de connexion** (SVG) | Tracé progressif (stroke-dasharray), reliant les mini-cartes aux bulles thématiques. Couleur `LINE`, épaisseur 1.5px. Stagger 100ms. |
+| 1,4 s | **Flottement des bulles** | Animation infinie douce, translateY(0 → -8px → 0), dur. 2s, stagger 200ms entre bulles. |
+| 1,2 s | **Titre** | « Regroupés par thème » en Manrope 600, 38px, `INK`. Slide-up + fade, 500ms. Position : centré en bas. |
+| 3,3 s | **Fade-out** | 500ms |
+
+### Acte 3 — « La recommandation » (7,6 s → 12 s)
+
+**Intention** : Une recommandation sourcée apparaît. Chaque conseil est étayé par de vrais avis.
+
+| Timing (relatif à 7,6 s) | Élément | Animation |
+|---|---|---|
+| 0,0 s | **Fond** | Fade-in, 400ms |
+| 0,3 s | **Carte de recommandation** (560px large) | Slide-up de 60px + fade, dur. 700ms. Structure : |
+| — | Badge | « ✦ Recommandation sourcée » sur fond `ACCENT_SOFT`, texte `ACCENT_INK`, coins 6px |
+| — | Titre | « Simplifier le processus de facturation » en Manrope 600, 22px, `INK` |
+| — | Sous-titre | « 14 avis mentionnent des difficultés de paiement » en Manrope 400, 14px, `MUTED` |
+| 1,2 s | **Citation 1** | Apparition slide-up + fade. Barre latérale `ACCENT` 3px, fond `SOFT`, coins droits 8px. Texte 13px, auteur en JetBrains Mono 11px `MUTED`. |
+| 1,6 s | **Citation 2** | Idem avec 400ms de décalage. |
+| 2,0 s | **Titre de scène** | « Recommandations sourcées », Manrope 600, 38px. Slide-up, 500ms. |
+| — | **Pas de fade-out** : l'acte 3 reste visible pendant l'acte 4 (la carte reste, les boutons s'ajoutent). |
+
+### Acte 4 — « La décision » (12 s → 16 s)
+
+**Intention** : L'utilisateur décide. L'IA ne décide jamais.
+
+| Timing (relatif à 12 s) | Élément | Animation |
+|---|---|---|
+| 0,2 s | **3 boutons d'action** | Slide-up + fade sous la carte de recommandation, dur. 500ms. |
+| — | Boutons | « Accepter » (bordure + texte `GREEN`), « Reporter » (bordure + texte `MUTED`), « Écarter » (bordure + texte `RED`). Coins 8px, padding 10px 24px, Manrope 600, 14px. |
+| 0,4 s | **Titre de scène** | Transition : « Recommandations sourcées » fade-out 300ms → « Vous décidez » fade-in 400ms. |
+| 1,0 s | **Curseur orange** | Cercle `ACCENT` 16px avec halo 4px (rgba 20%). Apparaît à droite (800px, 500px), se déplace vers le bouton « Accepter » (590px, 518px) en 800ms, easing expo. |
+| 2,2 s | **Clic simulé** | Le curseur pulse (scale 1 → 0.7 → 1, 200ms). Le bouton « Accepter » se remplit en `GREEN` fond + texte blanc. L'icône ✓ apparaît avec un pop (scale 0 → 1.3 → 1, 400ms). |
+| 2,6 s | **Curseur** | Fade-out, 300ms. |
+| 3,5 s | **Toute la scène (actes 3+4)** | Fade-out coordonné, 600ms. |
+
+### Acte 5 — « L'appel » (16 s → 20 s)
+
+**Intention** : Clôture marketing. Logo, tagline, CTA.
+
+| Timing (relatif à 16 s) | Élément | Animation |
+|---|---|---|
+| 0,0 s | **Fond** | Fade-in, 400ms |
+| 0,3 s | **Contenu centré** | Scale-in doux (0.9 → 1) + fade, dur. 700ms. |
+| — | Logo | Monogramme orange 72px + « Qualio » Manrope 700, 44px, `INK`, tracking -0.04em. Côte à côte (flexbox). |
+| — | Tagline | « Une direction plus claire. » en Manrope 600, 24px, `ACCENT`. Fond `ACCENT_SOFT` avec skew -2deg (skew inverse sur le texte), comme sur la landing. |
+| — | Bouton CTA | « Commencer — Gratuit » + flèche →. Fond `ACCENT_INK`, texte blanc, coins 8px, padding 14px 32px, Manrope 600, 17px. |
+| — | Sous-texte | « Sans carte bancaire · 50 avis analysés » en JetBrains Mono 400, 12px, `MUTED`. |
+| 1,2 s | **Pulse CTA** | Animation infinie douce (scale 1 → 1.04 → 1), dur. 1200ms. |
+| — | **Pas de fade-out** : la scène reste figée sur le CTA final. |
+
+---
+
+## 4. Principes d'animation
+
+| Principe | Spécification |
+|---|---|
+| **Easing principal** | `cubic-bezier(0.16, 1, 0.3, 1)` (expo out) — pour toutes les entrées |
+| **Easing de sortie** | `ease-out` classique — pour les fade-out |
+| **Durée des entrées** | 500-700ms pour les éléments principaux |
+| **Durée des sorties** | 400-600ms |
+| **Stagger** | 60-100ms entre éléments d'un même groupe |
+| **Micro-interactions** | 200-300ms (pulse curseur, pop check) |
+| **GPU only** | Animer uniquement `transform` et `opacity` — jamais `width`, `height`, `top`, `left` |
+| **Flat by default** | Aucune ombre structurelle. Les cartes se définissent par leur bordure `LINE` uniquement |
+| **Couleur = état** | Orange = action/attention. Vert = validation/succès. Rouge = rejet. Jamais décoratif. |
+
+---
+
+## 5. Spécifications techniques
+
+| Paramètre | Valeur |
+|---|---|
+| **Format source** | Fichier HTML unique (`public/qualio-motion.html`), CSS + JS inline |
+| **Format livré** | WebP (enregistré via browser recording) |
+| **Résolution** | 1280×720 (16:9) |
+| **Durée** | 20 secondes exactes |
+| **FPS cible** | 60fps (Web Animations API, `transform` + `opacity`) |
+| **Polices** | Google Fonts : Manrope 400/500/600/700, JetBrains Mono 400, Caveat 500 |
+| **Logo** | PNG monogramme orange 128px depuis `/qualio-logo/export/mark/monogram-orange-128.png` |
+| **Fond scène** | Blanc `#FFFFFF` avec grille de points `LINE` à 50% opacité |
+| **Boucle** | Non — joue une fois, reste figée sur l'écran CTA final |
+| **Barre de progression** | Ligne `ACCENT` de 3px en bas, animée linéairement sur 20s |
+
+---
+
+## 6. Textes exacts utilisés (aucun inventé)
+
+Tous issus de la landing (`content.ts`, `LightLanding.tsx`) et du `PRODUCT.md` :
+
+| Texte | Source |
+|---|---|
+| « Des centaines d'avis » | Titre H1 de la landing |
+| « Aucune direction. » | Contraste narratif (problème) |
+| « Regroupés par thème » | Description fonctionnelle, section « Comment ça marche » |
+| « Recommandation sourcée » | Concept central du produit (PRODUCT.md) |
+| « Simplifier le processus de facturation » | Exemple de la HeroScene existante |
+| « 14 avis mentionnent des difficultés de paiement » | Idem HeroScene (thème « Facturation », 14 avis) |
+| « Vous décidez » | PRODUCT.md : « Rien n'est appliqué automatiquement » |
+| « Commencer — Gratuit » | CTA de la landing |
+| « Sans carte bancaire · 50 avis analysés » | Réassurance de la landing |
+| « Une direction plus claire. » | Tagline H1 de la landing |
+| « Qualio en 20 secondes » | Annotation manuscrite (inspirée Lumail) |
+| Sources : CSV, Widget, Manuel | 3 entrées décrites dans PRODUCT.md |
+| Thèmes : Facturation (14), Livraison (9), Support (6) | HeroScene existante |
+| Actions : Accepter, Reporter, Écarter | Nomenclature exacte des recommandations |
+| Citation 1 : « Le processus de paiement est confus… » | Exemple plausible (illustration, pas un vrai avis) |
+| Citation 2 : « Impossible de modifier ma facture… » | Idem |
+
+> ⚠️ Les citations 1 et 2 sont des **illustrations visuelles**, pas de vrais avis clients. Elles ne sont pas présentées comme des témoignages réels (respect du principe 5 du PRODUCT.md).
+
+---
+
+## 7. Intégration dans la landing
+
+Le composant d'intégration (à coder séparément) reproduit le pattern Lumail :
+
+```tsx
+{/* Annotation manuscrite */}
+<p className="font-hand text-foreground/80 mb-3 ml-auto hidden w-fit items-end gap-2 text-[1.35rem] leading-none sm:flex">
+  <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
+    <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+  Qualio en 20 secondes
+</p>
+
+{/* Conteneur vidéo */}
+<div className="rounded-[20px] border border-[#E6E6EA] bg-[#F6F6F7] p-2"
+     style={{ boxShadow: '0 1px 2px rgba(11,11,12,0.04), 0 24px 48px -24px rgba(11,11,12,0.18)' }}>
+  <div className="aspect-video overflow-hidden rounded-xl border border-[#E6E6EA] bg-white">
+    <video src="/qualio-motion.webp" autoPlay muted playsInline />
+  </div>
+</div>
+```
+
+---
+
+## 8. Checklist qualité
+
+- [ ] Chaque couleur utilisée figure dans la palette (section 1)
+- [ ] Chaque texte affiché figure dans le tableau (section 6)
+- [ ] Les données techniques (sources, compteurs) sont en JetBrains Mono
+- [ ] Aucune box-shadow structurelle (flat by default)
+- [ ] La barre de progression avance linéairement sur 20s
+- [ ] La scène se fige sur le CTA final (pas de boucle)
+- [ ] Les animations n'utilisent que `transform` et `opacity` (GPU)
+- [ ] L'easing principal est `cubic-bezier(0.16, 1, 0.3, 1)`
+- [ ] Le logo est le monogramme orange PNG (pas le SVG complexe)
+- [ ] Les coins respectent l'échelle (6/8/12/16/20px)

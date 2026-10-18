@@ -11,10 +11,10 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const STORAGE_KEY = "reachly_lang_preference";
+const STORAGE_KEY = "qualio_lang_preference_v2";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
+  const [language, setLanguageState] = useState<Language>("fr");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

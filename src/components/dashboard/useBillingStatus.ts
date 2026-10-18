@@ -8,7 +8,8 @@ export interface BillingStatus {
   plan: PlanId
   label: string
   status: string
-  source: 'stripe' | 'manual' | null
+  source: 'stripe' | 'manual' | 'geniuspay' | null
+  provider?: 'stripe' | 'geniuspay' | string
   interval: 'month' | 'year' | null
   currentPeriodEnd: string | null
   cancelAtPeriodEnd: boolean
@@ -16,7 +17,7 @@ export interface BillingStatus {
   usage: { projects: number }
   /** Projets modifiables pour le plan (doc 2.3) : les autres sont en lecture seule. */
   writableSiteIds: string[]
-  site: { feedback: number; feedbackLimit: number; lastSynthesisAt: string | null; nextSynthesisAt: string | null } | null
+  site: { feedback: number; feedbackLimit: number; lockedFeedback: number; id: string; lockedPreview: Array<{ excerpt: string; created_at: string }>; lastSynthesisAt: string | null; nextSynthesisAt: string | null } | null
 }
 
 /** Plan et usage du projet actif, pour l'en-tête (doc 3.2). */
