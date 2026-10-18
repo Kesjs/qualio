@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
+import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import { formatDate, type ActionItem, type OverviewReady } from '@/lib/feedback/types'
 import { Delta, PeriodSelect } from '@/components/dashboard/ui'
 import { VolumeChart } from '@/components/dashboard/VolumeChart'
@@ -20,6 +22,7 @@ function Counter({ label, value }: { label: string; value: string | number }) {
 
 /** Onglet « Détails » (vérification) : 4 compteurs, volume, thèmes avec variation, historique des décisions (Pro). */
 export function DetailsTab({ data, actions, billing, days, onDays }: { data: OverviewReady; actions: ActionItem[]; billing: BillingStatus | undefined; days: 7 | 30 | 90; onDays: (days: 7 | 30 | 90) => void }) {
+  const [switching, setSwitching] = useState(false)
   const { counts, topThemes } = data
   const themes = topThemes.filter((theme) => !theme.isUnclassified)
   const decided = actions.filter((action) => action.status !== 'open')
@@ -31,7 +34,7 @@ export function DetailsTab({ data, actions, billing, days, onDays }: { data: Ove
 
   return (
     <div className="space-y-6">
-      {enoughForChart && <div className="flex justify-end"><PeriodSelect days={days} onChange={onDays} /></div>}
+      {enoughForChart && <div className="flex items-center justify-end gap-2">{switching && <ArrowPathIcon className="h-4 w-4 animate-spin text-[#ee6018]" aria-label="Actualisation de la période" />}<PeriodSelect days={days} onChange={(next) => { if (next === days || next === 90 || days === 90) return onDays(next); setSwitching(true); window.setTimeout(() => { onDays(next); setSwitching(false) }, 420) }} /></div>}
 
       <div className={`grid grid-cols-2 gap-3 ${periodAddsInfo ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         <Counter label="Avis analysés" value={counts.total} />

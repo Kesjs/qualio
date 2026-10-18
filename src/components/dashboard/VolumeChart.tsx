@@ -6,6 +6,9 @@ import type { OverviewReady } from '@/lib/feedback/types'
 export function VolumeChart({ series, days }: { series: OverviewReady['series']; days: number }) {
   const max = Math.max(...series.map((point) => point.total), 1)
   const empty = series.every((point) => point.total === 0)
+  const step = series.length > 1 ? 300 / (series.length - 1) : 300
+  const points = series.map((point, index) => `${index * step},${112 - (point.total / max) * 92}`).join(' ')
+  const area = `0,112 ${points} 300,112`
   return (
     <section className={`${card} p-5`}>
       <div className="flex items-center justify-between">
@@ -19,14 +22,9 @@ export function VolumeChart({ series, days }: { series: OverviewReady['series'];
         <p className="py-10 text-center text-sm text-gray-500 dark:text-zinc-400">Aucun avis sur cette période.</p>
       ) : (
         <>
-          <div className="mt-4 flex h-32 items-end gap-[3px]" role="img" aria-label={`Volume quotidien d’avis sur ${days} jours`}>
-            {series.map((point) => (
-              <div key={point.date} className="group relative flex h-full flex-1 flex-col justify-end" title={`${new Date(point.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} : ${point.total} avis, ${point.negative} négatifs`}>
-                <div className="relative w-full overflow-hidden rounded-t-[3px] bg-[#ee6018]/80 transition-colors group-hover:bg-[#ee6018]" style={{ height: `${Math.max((point.total / max) * 100, point.total ? 4 : 0)}%` }}>
-                  {point.negative > 0 && <div className="absolute inset-x-0 bottom-0 bg-rose-400" style={{ height: `${(point.negative / point.total) * 100}%` }} />}
-                </div>
-              </div>
-            ))}
+          <div className="relative mt-4 h-36 overflow-hidden rounded-lg border border-gray-100 bg-gradient-to-b from-orange-50/60 to-white px-3 pt-3 dark:border-white/[0.06] dark:from-orange-500/[0.06] dark:to-[#181B21]" role="img" aria-label={`Volume quotidien d’avis sur ${days} jours`}>
+            <svg viewBox="0 0 300 120" preserveAspectRatio="none" className="h-full w-full"><path d={area} fill="rgba(238,96,24,.10)" /><polyline points={points} fill="none" stroke="#ee6018" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />{series.map((point, index) => <circle key={point.date} cx={index * step} cy={112 - (point.total / max) * 92} r="3.5" fill="white" stroke="#ee6018" strokeWidth="2" vectorEffect="non-scaling-stroke"><title>{`${new Date(point.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} : ${point.total} avis, ${point.negative} négatifs`}</title></circle>)}</svg>
+            <div className="pointer-events-none absolute inset-x-3 bottom-2 flex justify-between text-[10px] text-gray-400 dark:text-zinc-500"><span>{new Date(series[0].date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span><span>Aujourd’hui</span></div>
           </div>
           <div className="mt-2 flex justify-between text-[10px] text-gray-400 dark:text-zinc-500">
             <span>{new Date(series[0].date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
