@@ -66,7 +66,16 @@ export function LightLanding() {
           </div>
         </div>
         <div className="mx-auto max-w-6xl text-left">
-          <HeroScene />
+          <p className="qualio-hero-note" aria-hidden="true">
+            <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
+              <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Qualio en 20 secondes
+          </p>
+          <div className="qualio-hero-frame">
+            <HeroScene />
+          </div>
         </div>
       </section>
 

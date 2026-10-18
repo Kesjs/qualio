@@ -46,6 +46,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyState>('idle')
   const [promptCopyStatus, setPromptCopyStatus] = useState<CopyState>('idle')
+  const [createdSite, setCreatedSite] = useState<Site | null>(null)
 
   const sitesQuery = useQuery({
     queryKey: ['sites'],
@@ -59,7 +60,7 @@ export default function OnboardingPage() {
   })
   const sites = sitesQuery.data
   // Le projet à terminer : le plus récent dont l'onboarding n'est pas fini. Aucun → nouveau projet.
-  const activeSite = sites?.find((item) => !item.onboarding_completed_at) ?? null
+  const activeSite = createdSite ?? sites?.find((item) => !item.onboarding_completed_at) ?? null
   const choice: Choice | null = activeSite?.onboarding_method ?? null
   const step = !activeSite ? 1 : !choice ? 2 : 3
 
@@ -142,7 +143,12 @@ export default function OnboardingPage() {
       const response = await fetch('/api/sites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: projectUrl, name: projectName || undefined }) })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible de créer le projet.')
-      saveSite(result as Site)
+      const site = result as Site
+      saveSite(site)
+      setCreatedSite(site)
+      // Revalider la source serveur garantit que `activeSite` passe bien à l’étape 2,
+      // y compris lorsque la query n’avait pas encore de cache exploitable.
+      await sitesQuery.refetch()
       window.localStorage.removeItem(DRAFT_KEY)
       setProjectName(''); setProjectUrl('')
     } catch (error) { fail(error, 'Impossible de créer le projet.') } finally { setBusy(false) }
