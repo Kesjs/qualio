@@ -19,6 +19,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [userName, setUserName] = useState('Utilisateur')
   const [userEmail, setUserEmail] = useState('')
+  const [needsNotificationSetup, setNeedsNotificationSetup] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -28,6 +29,21 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       const rawName = user.user_metadata?.full_name || user.email.split('@')[0]
       setUserName(String(rawName).charAt(0).toUpperCase() + String(rawName).slice(1))
     }).catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadPreference = () => {
+      void fetch('/api/settings/notifications').then(async (response) => {
+        if (!response.ok || cancelled) return
+        const data = await response.json() as { weekly_digest?: boolean }
+        setNeedsNotificationSetup(data.weekly_digest !== true)
+      }).catch(() => undefined)
+    }
+    loadPreference()
+    const onChanged = () => loadPreference()
+    window.addEventListener('qualio:notification-preferences-changed', onChanged)
+    return () => { cancelled = true; window.removeEventListener('qualio:notification-preferences-changed', onChanged) }
   }, [])
 
   useEffect(() => {
@@ -66,14 +82,17 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                   : item.href === '/dashboard/feedback-produit'
                     ? 'sidebar-icon-sparkles'
                     : 'sidebar-icon-settings'
+            const showSetupDot = item.href === '/dashboard/settings' && needsNotificationSetup
             return (
-              <>{isCollapsed ? <Tooltip label={item.label} side="right"><Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} className={`group relative flex min-h-11 items-center justify-center rounded-md px-2.5 transition-colors ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
+              <>{isCollapsed ? <Tooltip label={showSetupDot ? `${item.label} · notification à configurer` : item.label} side="right"><Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} className={`group relative flex min-h-11 items-center justify-center rounded-md px-2.5 transition-colors ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
                 <Icon className={`h-5 w-5 shrink-0 ${iconMotion}`} />
                 <span className="sr-only">{item.label}</span>
+                {showSetupDot && <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[#F8F9FA] bg-[#ee6018] dark:border-[#111216]" aria-label="Notification à configurer" />}
                 {active && <span className={`absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018] ${isCollapsed ? 'right-1.5' : ''}`} />}
               </Link></Tooltip> : <Link key={item.href} href={item.href} prefetch aria-current={active ? 'page' : undefined} className={`group relative flex min-h-11 items-center gap-3.5 rounded-md px-3 transition-colors ${active ? 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#1B1E26] dark:text-white' : 'border border-transparent font-medium text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-white'}`}>
                 <Icon className={`h-5 w-5 shrink-0 ${iconMotion}`} />
                 <span className="truncate text-sm">{item.label}</span>
+                {showSetupDot && <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-[#ee6018]" aria-label="Notification à configurer" />}
                 {active && <span className="absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018]" />}
               </Link>}</>
             )

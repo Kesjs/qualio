@@ -158,6 +158,7 @@ function NotificationsSection({ onFlash }: { onFlash: (flash: Flash) => void }) 
     setBusy(false)
     if (!response.ok) return onFlash({ tone: 'error', text: result.error ?? 'Impossible d’enregistrer cette préférence.' })
     setConsent(result.consent_source ?? consent)
+    window.dispatchEvent(new CustomEvent('qualio:notification-preferences-changed'))
     onFlash({ tone: 'ok', text: enabled ? 'Email du lundi activé.' : 'Email du lundi désactivé.' })
   }
 
