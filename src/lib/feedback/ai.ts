@@ -82,8 +82,14 @@ Règles strictes :
 6. Ne donne aucune statistique dans rationale : le code la calculera à partir des IDs.
 7. Retourne uniquement le JSON demandé.`
 
-const GEMINI_FALLBACK_MODEL = 'gemini-3.1-flash-lite'
-const GEMINI_SECONDARY_MODEL = 'gemini-2.5-flash-lite'
+// Keep the fallback chain on models supported by the production Gemini API.
+// The previous lite aliases returned 404 for the configured production key.
+export const GEMINI_PRIMARY_FALLBACK = 'gemini-2.5-flash'
+export const GEMINI_SECONDARY_FALLBACK = 'gemini-2.5-flash-lite'
+
+export function getGeminiModelCandidates(configuredModel?: string) {
+  return Array.from(new Set([configuredModel || 'gemini-2.5-flash', GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK]))
+}
 
 function getProviderStatus(error: unknown): number | null {
   if (!error || typeof error !== 'object') return null
@@ -174,7 +180,7 @@ function buildUserPayload(feedback: FeedbackForSynthesis[]) {
 async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configuredModel: string) {
   // Gemini peut renvoyer 404 quand un alias n’est pas disponible pour une clé,
   // ou 503 pendant un pic de demande. On essaie un modèle léger avant d’abandonner.
-  const models = Array.from(new Set([configuredModel, GEMINI_SECONDARY_MODEL, GEMINI_FALLBACK_MODEL]))
+  const models = getGeminiModelCandidates(configuredModel)
   const validIds = new Set(feedback.map((item) => item.id))
   let lastError: unknown = null
 
