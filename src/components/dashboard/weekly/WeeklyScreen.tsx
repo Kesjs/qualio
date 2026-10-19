@@ -189,6 +189,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   }
 
   const refreshDisabled = quotaBlocked || generating
+  const generateLabel = data.synthesis ? 'Régénérer' : 'Générer la synthèse'
 
   return (
     <div className="space-y-5">
@@ -197,7 +198,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       {exampleBanner}
       {generating && <GeneratingPanel />}
       {!generating && counts.unsynthesized > 0 && (
-        <Banner action={<button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>Actualiser</button>}>
+        <Banner action={<button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>{generateLabel}</button>}>
           {counts.unsynthesized} {counts.unsynthesized > 1 ? 'nouveaux avis' : 'nouvel avis'} depuis la dernière synthèse.
         </Banner>
       )}
@@ -266,6 +267,8 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
               Avec Pro, elle est automatique chaque semaine. <Link href="/pricing" className="font-semibold text-gray-950 underline underline-offset-4 dark:text-white">Passer à Pro</Link>
             </p>
           )}
+          <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>{generateLabel}</button>
+          {quotaMessage}
         </div>
       </footer>
     </div>

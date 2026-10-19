@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useActiveSite } from '@/lib/hooks/useActiveSite'
 import { useBillingStatus } from './useBillingStatus'
@@ -38,6 +39,7 @@ export function useFreePlanUpgrade() {
 
 /** Pastille de plan et compteur d'usage. Le bouton « Passer à Pro » vit dans la barre latérale. */
 export function PlanUsage({ compact = false }: { compact?: boolean }) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const { activeSite } = useActiveSite()
   const { data, refetch } = useBillingStatus(activeSite?.id)
 
@@ -66,7 +68,35 @@ export function PlanUsage({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       )}
-      <span className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-700 dark:border-white/[0.08] dark:bg-[#16181E] dark:text-zinc-200">{isFree ? 'Gratuit' : data.label}</span>
+      <button
+        type="button"
+        onClick={() => setDetailsOpen(true)}
+        aria-label="Voir le détail du quota d’avis"
+        className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${TEXT[level]} ${level === 'full' ? 'border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10' : level === 'warn' ? 'border-orange-200 bg-orange-50 dark:border-orange-500/20 dark:bg-orange-500/10' : 'border-gray-200 bg-gray-50 dark:border-white/[0.08] dark:bg-[#16181E]'} hover:border-gray-400 dark:hover:border-white/25`}
+      >
+        {compact && site ? `${isFree ? 'Gratuit' : data.label} · ${site.feedback}/${site.feedbackLimit}` : isFree ? 'Gratuit' : data.label}
+      </button>
+      {detailsOpen && site && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-3 sm:items-center sm:p-6" role="presentation" onClick={() => setDetailsOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="usage-sheet-title" onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-white/[0.1] dark:bg-[#16181E]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-zinc-400">Quota du projet</p>
+                <h2 id="usage-sheet-title" className="mt-1 text-lg font-semibold text-gray-950 dark:text-white">{isFree ? 'Gratuit' : data.label}</h2>
+              </div>
+              <button type="button" onClick={() => setDetailsOpen(false)} className="rounded-lg px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-white/10">Fermer</button>
+            </div>
+            <div className="mt-5 space-y-3 text-sm text-gray-700 dark:text-zinc-300">
+              <div className="flex justify-between gap-4"><span>Avis utilisés</span><strong className={TEXT[level]}>{site.feedback} / {site.feedbackLimit}</strong></div>
+              <div className="flex justify-between gap-4"><span>Avis restants</span><strong>{Math.max(0, site.feedbackLimit - site.feedback)}</strong></div>
+              <div className="flex justify-between gap-4"><span>Renouvellement</span><strong>{data.currentPeriodEnd ? new Date(data.currentPeriodEnd).toLocaleDateString('fr-FR') : 'Selon votre plan'}</strong></div>
+            </div>
+            {!isFree && <Link href="/pricing" onClick={() => setDetailsOpen(false)} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[#c2410c] px-3 text-xs font-semibold text-white hover:opacity-90">Passer au plan supérieur</Link>}
+            {isFree && <Link href="/pricing" onClick={() => setDetailsOpen(false)} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[#c2410c] px-3 text-xs font-semibold text-white hover:opacity-90">Passer à Pro</Link>}
+          </section>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
