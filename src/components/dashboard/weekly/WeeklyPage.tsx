@@ -11,6 +11,7 @@ import { useBillingStatus } from '@/components/dashboard/useBillingStatus'
 import { usePostponed } from './usePostponed'
 import { WeeklyScreen } from './WeeklyScreen'
 import { DetailsTab } from './DetailsTab'
+import { SynthesisRefresh } from './SynthesisRefresh'
 
 type Tab = 'recommendations' | 'details'
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -35,7 +36,16 @@ export function WeeklyPage() {
   const noProject = data?.state === 'no_project'
   useEffect(() => { if (noProject) router.replace('/onboarding') }, [noProject, router])
 
-  const header = <PageHeader title="Cette semaine" description="Les recommandations tirées de vos avis" />
+  const header = (
+    <PageHeader
+      title="Cette semaine"
+      description="Les recommandations tirées de vos avis"
+      actions={data && data.state !== 'no_project' ? (
+        <SynthesisRefresh generateError={generateSynthesis.error} billing={billing} generating={generateSynthesis.isPending}
+          onGenerate={() => generateSynthesis.mutate(data.project.id, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['billing-status-header'] }) } })} />
+      ) : undefined}
+    />
+  )
 
   if (isLoading) return <div className="space-y-6 pb-16">{header}<Skeleton className="h-72" /><Skeleton className="h-32" /></div>
   // Pendant un rafraîchissement, conserver les données déjà affichées : une erreur
