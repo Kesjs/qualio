@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 import { isBillingInterval, isPaidPlan, type PaidPlan } from '@/lib/billing/plans'
 import { createGeniusPayPayment } from '@/lib/billing/geniuspay'
 
@@ -23,6 +23,15 @@ export async function POST(request: NextRequest) {
   const origin = request.nextUrl.origin
   const externalReference = `qualio:${user.id}:${plan}:${interval}:${Date.now()}`
   const amount = PLAN_AMOUNTS[plan][interval]
+  const { error: intentError } = await (getSupabaseAdminClient() as any).from('geniuspay_payment_intents').insert({
+    external_reference: externalReference,
+    user_id: user.id,
+    plan,
+    interval,
+    amount,
+    currency: 'EUR',
+  })
+  if (intentError) return NextResponse.json({ error: 'Impossible de préparer le paiement.' }, { status: 500 })
   const payment = await createGeniusPayPayment({
     amount,
     currency: 'EUR',

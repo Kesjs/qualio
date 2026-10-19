@@ -15,6 +15,8 @@ export async function createGeniusPayPayment(input: { amount: number; currency?:
 }
 
 export function verifyGeniusPaySignature(payload: string, timestamp: string, signature: string, secret: string) {
+  const timestampMs = Number(timestamp) * 1000
+  if (!Number.isFinite(timestampMs) || Math.abs(Date.now() - timestampMs) > 5 * 60_000) return false
   const expected = crypto.createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex')
   return expected.length === signature.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
 }
