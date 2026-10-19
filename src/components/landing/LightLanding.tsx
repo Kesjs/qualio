@@ -6,7 +6,7 @@ import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './toke
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
 import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section, UnderlineWord } from './primitives'
 import { SiteShell } from './SiteShell'
-import { AudienceCards, BetaBand, ComparisonTable, FaqSection, FinalCta, ProblemSection } from './sections'
+import { AudienceCards, BetaBand, ComparisonTable, DecisionLoopSection, FaqSection, FinalCta, ProblemSection, ReportsSection, TrendSection } from './sections'
 import { DecisionAnimation } from './StepDemos'
 import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
@@ -50,15 +50,15 @@ export function LightLanding() {
               <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" style={{ color: ACCENT }} />
             </div>
             <h1 className="mx-auto text-[clamp(2.25rem,5.8vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.055em] [text-wrap:balance]">
-              <span className="block lg:whitespace-nowrap">Des centaines d’avis</span>
+              <span className="block lg:whitespace-nowrap">Des avis dispersés</span>
               <span className="mt-2 block text-[#ee6018]">
                 <span className="inline-block -skew-x-2 bg-[#fff1e9] px-3 py-1">
-                  <span className="inline-block skew-x-2">Une direction plus claire</span>
+                  <span className="inline-block skew-x-2">Une décision suivie</span>
                 </span>
               </span>
             </h1>
             <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED }}>
-              Retrouvez les thèmes qui reviennent, les retours qui les expliquent et les pistes à examiner pour améliorer votre produit ou votre service.
+              Qualio regroupe vos retours, fait émerger les thèmes qui reviennent, propose des recommandations sourcées et vous aide à suivre ce que votre équipe décide ensuite.
             </p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
@@ -106,7 +106,10 @@ export function LightLanding() {
       {/* 3. Le problème */}
       <ProblemSection />
 
-      {/* 4. Comment ça marche : aperçu (version complète sur /produit) */}
+      {/* 4. La boucle produit : collecter, comprendre, décider, suivre */}
+      <DecisionLoopSection />
+
+      {/* 5. Comment ça marche : aperçu (version complète sur /produit) */}
       <Section id="produit" tone="soft">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
@@ -135,7 +138,7 @@ export function LightLanding() {
         <Reveal className="mx-auto max-w-3xl text-center">
           <h2 className={H2}>Ce que vous voyez chaque semaine.</h2>
           <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>
-            Une recommandation, les avis qui la prouvent, et votre décision. Rien de plus.
+            Les nouveaux avis, les thèmes qui montent, les sources qui les expliquent et la prochaine action à examiner.
           </p>
         </Reveal>
         <Reveal delay={0.05} className="mx-auto mt-12 max-w-3xl">
@@ -147,7 +150,13 @@ export function LightLanding() {
         </Reveal>
       </Section>
 
-      {/* 6. Pourquoi pas un chat IA gratuit ? : aperçu (version complète sur /produit) */}
+      {/* 7. Tendances et suivi */}
+      <TrendSection />
+
+      {/* 8. Décision humaine et rapports */}
+      <ReportsSection />
+
+      {/* 9. Pourquoi pas un chat IA gratuit ? : aperçu (version complète sur /produit) */}
       <Section tone="soft">
         <Reveal className="mx-auto max-w-3xl text-center">
           <h2 className={H2}>Pourquoi pas un <UnderlineWord>chat IA gratuit</UnderlineWord> ?</h2>

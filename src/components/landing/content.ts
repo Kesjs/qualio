@@ -1,6 +1,6 @@
 /** Textes de la landing (document de lancement V1, chapitre 4). Rien ici qui ne soit branché. */
 
-export const REASSURANCE = ['Prêt en quelques minutes', 'Dès 3 avis', 'Sans carte bancaire', 'CSV ou widget']
+export const REASSURANCE = ['Prêt en quelques minutes', 'Dès 3 avis', 'Chaque conseil est sourcé', 'CSV, widget ou manuel', 'Sans carte bancaire']
 
 export const PROBLEMS = [
   ['Éparpillés', 'Un CSV ici, un message là, un commentaire dans un outil de support. Personne n’a la vue d’ensemble.'],
@@ -31,7 +31,7 @@ export const STEPS = [
     n: '04',
     tag: 'Décision',
     title: 'Votre équipe accepte, reporte ou écarte chaque recommandation.',
-    body: 'Rien n’est appliqué automatiquement. Avec Pro, Qualio mesure l’évolution des avis 14 jours après votre décision.',
+    body: 'Rien n’est appliqué automatiquement. Votre équipe accepte, reporte ou écarte la piste, puis suit ce qui évolue.',
   },
 ] as const
 
@@ -63,7 +63,7 @@ export const COMPARISON = [
   ['Collecte continue sur votre site', 'Non', 'Oui, avec le widget'],
   ['Rappel chaque semaine', 'Non', 'Oui, par email (Pro et Agence)'],
   ['Alerte quand un thème négatif augmente', 'Non', 'Oui (Pro et Agence)'],
-  ['Effet de vos décisions sur les avis', 'Non', 'Oui, sur 14 jours (Pro et Agence)'],
+  ['Effet de vos décisions sur les avis', 'Non', 'Oui, avec le suivi des tendances'],
   ['Suivi de ce que vous avez accepté ou écarté', 'Non', 'Oui (Pro et Agence)'],
   ['Partage d’une tâche avec ses avis à l’appui', 'À recopier à la main', 'Oui : copie, e-mail, CSV ; lien et PDF avec Pro'],
 ] as const
@@ -91,7 +91,7 @@ export const FAQ = [
   },
   {
     q: 'Que se passe-t-il si je dépasse 50 avis ?',
-    a: 'Les avis reçus par le widget sont conservés, mais pas analysés (jusqu’à 100). Si vous passez à Pro, ils sont analysés automatiquement. Rien n’est perdu.',
+    a: 'Les avis reçus restent conservés. Ce qui dépasse la capacité analysée du plan Gratuit passe en lecture seule jusqu’à votre changement de plan. Rien n’est perdu.',
   },
   {
     // À confirmer avec les conditions du fournisseur d'IA choisi avant publication (doc 4.2), et à répéter dans la page Confidentialité.
