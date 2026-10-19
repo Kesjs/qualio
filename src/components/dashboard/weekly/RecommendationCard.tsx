@@ -108,6 +108,25 @@ export function LargeRecommendation({ siteId, action, total, decision, busy, pla
 export function CompactRecommendation({ siteId, action, rank, total, decision, busy, plan }: { siteId: string; action: ActionItem; rank: number; total: number; decision: Decision; busy: boolean; plan?: PlanId }) {
   const [open, setOpen] = useState(false)
   const count = action.feedback_ids.length
+
+  if (plan === 'free') {
+    return (
+      <li className="border-b border-gray-200/80 last:border-b-0 dark:border-white/[0.08]">
+        <div className="px-4 py-4 sm:px-5">
+          <div className="flex items-center gap-3">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${PRIORITY[priorityOf(action.priority)].dot}`} aria-hidden="true" />
+            <span className="min-w-0 flex-1 text-sm font-medium text-gray-950 dark:text-white"><span className="text-gray-600 dark:text-zinc-400">{rank}.</span> {action.title}</span>
+            <span className="shrink-0 text-xs text-gray-600 dark:text-zinc-400">{count} avis</span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-3 dark:bg-white/[0.04]">
+            <p className="text-xs leading-5 text-gray-600 dark:text-zinc-400">Détails, avis cités et plan d’action disponibles avec Pro.</p>
+            <Link href="/pricing" className="text-sm font-semibold text-gray-900 underline underline-offset-4 dark:text-white">Débloquer avec Pro</Link>
+          </div>
+        </div>
+      </li>
+    )
+  }
+
   return (
     <li className="border-b border-gray-200/80 last:border-b-0 dark:border-white/[0.08]">
       <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#c2410c] sm:px-5">
