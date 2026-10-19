@@ -9,6 +9,7 @@ export const BILLING_PLANS = {
     projects: 1,
     /** Avis conservés (non archivés) par projet. */
     feedbackPerProject: 50,
+    feedbackContinuityBuffer: 0,
     /** Quota de synthèses manuelles par projet sur une fenêtre glissante. */
     synthesisQuota: { count: 2, windowDays: 30 },
     synthesisCooldownHours: 0,
@@ -25,11 +26,13 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_PRO_ANNUAL',
     projects: 5,
     feedbackPerProject: 2000,
+    /** Marge de continuité pour éviter une coupure brutale chez les premiers clients payants. */
+    feedbackContinuityBuffer: 200,
     synthesisQuota: null,
     // 1 synthèse manuelle par jour et par projet, en plus de la synthèse automatique hebdomadaire.
     synthesisCooldownHours: 24,
     widget: true,
-    features: ['5 projets', '2 000 avis par projet', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis 14 jours après vos décisions', 'Partage de tâches par lien et PDF'],
+    features: ['5 projets', '2 000 avis par projet + 200 de marge de continuité', 'Synthèse automatique chaque semaine', 'Analyse des avis reçus en attente', 'Email du lundi', 'Historique des décisions', 'Évolution des avis 14 jours après vos décisions', 'Partage de tâches par lien et PDF'],
   },
   agency: {
     label: 'Agence',
@@ -39,13 +42,15 @@ export const BILLING_PLANS = {
     annualPriceEnv: 'STRIPE_PRICE_AGENCY_ANNUAL',
     projects: 15,
     feedbackPerProject: 10000,
+    /** Marge de continuité équivalente à 10 % de la capacité Agence. */
+    feedbackContinuityBuffer: 1000,
     /** L'Agence garde au moins la cadence Pro, avec ses capacités multi-clients. */
     synthesisQuota: null,
     synthesisCooldownHours: 24,
     widget: true,
     features: [
       '15 projets clients',
-      '10 000 avis par projet',
+      '10 000 avis par projet + 1 000 de marge de continuité',
       'Synthèse automatique chaque semaine',
       '1 synthèse manuelle par jour et par projet',
       'Widget sur 15 sites',

@@ -74,11 +74,11 @@ export function PricingCards() {
   const [comparisonOpen, setComparisonOpen] = useState(false)
   const comparisonRows = [
     ['Projets actifs', '1', '5', '15'],
-    ['Avis par projet', '50', '2 000', '10 000'],
+    ['Avis analysés par projet', '50', '2 000 + 200 de marge', '10 000 + 1 000 de marge'],
     ['Synthèses manuelles', '2 par mois', '1 par jour', '1 par jour'],
     ['Synthèse automatique', '—', 'Chaque semaine', 'Chaque semaine'],
     ['Widget de collecte', 'Oui (50 avis analysés)', 'Oui', 'Oui, sur 15 sites'],
-    ['Avis reçus au-delà de la limite', 'Conservés en attente, jusqu’à 100', 'Analysés', 'Analysés'],
+    ['Avis reçus au-delà de la capacité', 'Conservés en attente, jusqu’à 100', 'Conservés en attente puis analysés après archivage ou upgrade', 'Conservés en attente puis analysés après archivage'],
     ['Email du lundi', 'Court, 2 par mois max', 'Complet', 'Complet, tous projets'],
     ['Alerte thème négatif', '—', 'Oui', 'Oui'],
     ['Historique et effet des décisions (mesuré 14 jours après)', '—', 'Oui', 'Oui'],

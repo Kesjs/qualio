@@ -83,7 +83,10 @@ export async function POST(request: NextRequest) {
   const plan = await getUserPlan(supabase, user.id)
   if (!(await isSiteWritable(supabase, user.id, siteId, plan))) return NextResponse.json({ error: READ_ONLY_MESSAGE, quota: 'read_only', plan }, { status: 403 })
   const capacity = await getFeedbackCapacity(supabase, siteId, plan)
-  if (capacity.remaining < 1) return NextResponse.json({ error: `Vous avez atteint ${capacity.limit.toLocaleString('fr-FR')} avis. Passez à Pro pour en ajouter. Vos avis restent visibles.`, quota: 'feedback', plan, limit: capacity.limit, used: capacity.used }, { status: 403 })
+  if (capacity.remaining < 1) {
+    const nextStep = plan === 'free' ? 'Passez à Pro pour augmenter votre capacité.' : plan === 'pro' ? 'Archivez des avis ou passez à Agence pour augmenter votre capacité.' : 'Archivez des avis ou contactez Qualio pour une capacité adaptée.'
+    return NextResponse.json({ error: `Vous avez atteint la capacité de continuité de ${capacity.limit.toLocaleString('fr-FR')} avis. ${nextStep} Vos avis restent visibles.`, quota: 'feedback', plan, limit: capacity.limit, used: capacity.used }, { status: 403 })
+  }
 
   const source = ['manual', 'widget', 'csv'].includes(body.source ?? '') ? body.source : 'manual'
   const createdAt = parseCreatedAt(body.createdAt)

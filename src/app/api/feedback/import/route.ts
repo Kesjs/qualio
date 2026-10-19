@@ -64,7 +64,10 @@ export async function POST(request: NextRequest) {
     rowsToImport.splice(capacity.remaining)
     reasons.push({ line: 0, reason: `${overflowCount} avis ignoré${overflowCount > 1 ? 's' : ''} : la limite de ${capacity.limit.toLocaleString('fr-FR')} avis par projet de votre plan est atteinte` })
   }
-  if (!rowsToImport.length) return NextResponse.json({ error: overflowCount > 0 ? `Aucun avis importé : vous avez atteint ${capacity.limit.toLocaleString('fr-FR')} avis. Passez à Pro pour en ajouter.` : 'Aucun avis valide dans ce fichier.', imported: 0, skipped: rows.length - 1, reasons, limit: capacity.limit, plan, limitReached: overflowCount > 0 }, { status: 422 })
+  if (!rowsToImport.length) {
+    const nextStep = plan === 'free' ? 'Passez à Pro pour augmenter votre capacité.' : plan === 'pro' ? 'Archivez des avis ou passez à Agence pour augmenter votre capacité.' : 'Archivez des avis ou contactez Qualio pour une capacité adaptée.'
+    return NextResponse.json({ error: overflowCount > 0 ? `Aucun avis importé : vous avez atteint ${capacity.limit.toLocaleString('fr-FR')} avis. ${nextStep}` : 'Aucun avis valide dans ce fichier.', imported: 0, skipped: rows.length - 1, reasons, limit: capacity.limit, plan, limitReached: overflowCount > 0 }, { status: 422 })
+  }
   const { data: inserted, error } = await (supabase as any).from('feedback_items').insert(rowsToImport).select('id, site_id, content')
   if (error) return NextResponse.json({ error: 'Les avis n’ont pas pu être importés. Aucun fichier supplémentaire n’a été créé.' }, { status: 500 })
   if (inserted?.length) after(async () => {
