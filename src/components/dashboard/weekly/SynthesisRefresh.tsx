@@ -49,7 +49,7 @@ export function SynthesisRefresh({ generateError, billing, generating, onGenerat
         <p className="text-sm text-gray-600 dark:text-zinc-400" aria-live="polite">Synthèse {formatCountdown(remaining)}</p>
       )}
       <button type="button" onClick={onGenerate} disabled={blocked || generating} className={btnSecondary}>
-        {generating ? 'Actualisation…' : 'Actualiser'}
+        {generating ? 'Analyse en cours…' : 'Lancer'}
       </button>
     </div>
   )

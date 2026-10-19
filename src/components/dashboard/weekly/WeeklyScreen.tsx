@@ -127,7 +127,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Vous avez {counts.total} avis. Lancez votre première synthèse.</h2>
           <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Qualio lit vos avis, regroupe ce qui revient et cite les avis qui justifient chaque conseil.</p>
-          <button type="button" onClick={onGenerate} disabled={quotaBlocked} className={`${btnPrimary} mt-6`}>Générer ma première synthèse</button>
+          <button type="button" onClick={onGenerate} disabled={quotaBlocked} className={`${btnPrimary} mt-6`}>Analyser les avis</button>
           {quotaMessage && <div className="mt-3">{quotaMessage}</div>}
         </section>
       </div>
@@ -189,7 +189,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   }
 
   const refreshDisabled = quotaBlocked || generating
-  const generateLabel = data.synthesis ? 'Régénérer' : 'Générer la synthèse'
+  const generateLabel = data.synthesis ? 'Analyser les nouveaux avis' : 'Analyser les avis'
 
   return (
     <div className="space-y-5">
