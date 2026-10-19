@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/lib/hooks/useDashboard'
 import type { ActionItem, OverviewReady } from '@/lib/feedback/types'
@@ -30,6 +31,7 @@ export interface WeeklyScreenProps {
 export function WeeklyScreen(props: WeeklyScreenProps) {
   const { data, actions, billing, postponedIds, generating, generateError, onGenerate, onStatus, onPostpone } = props
   const { counts } = data
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null)
   const siteId = data.project.id
   const isFree = billing?.plan === 'free'
 
@@ -138,11 +140,21 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   const busy = generating
 
   const decision: Decision = {
-    onAccept: (action) => {
-      void onStatus(action, 'accepted').then(() => toast.success('Recommandation acceptée', { description: isFree ? 'L’effet sur vos avis est mesuré avec Pro.' : 'Effet mesuré dans 14 jours : retrouvez-le ici et dans l’e-mail du lundi.', action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })).catch((error: Error) => toast.error(error.message))
+    onAccept: async (action) => {
+      setPendingActionId(action.id)
+      try {
+        await onStatus(action, 'accepted')
+        toast.success('Recommandation acceptée', { description: isFree ? 'L’effet sur vos avis est mesuré avec Pro.' : 'Effet mesuré dans 14 jours : retrouvez-le ici et dans l’e-mail du lundi.', action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })
+      } catch (error) { toast.error(error instanceof Error ? error.message : 'Action impossible pour le moment.') }
+      finally { setPendingActionId(null) }
     },
-    onDismiss: (action) => {
-      void onStatus(action, 'dismissed').then(() => toast('Recommandation écartée', { action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })).catch((error: Error) => toast.error(error.message))
+    onDismiss: async (action) => {
+      setPendingActionId(action.id)
+      try {
+        await onStatus(action, 'dismissed')
+        toast('Recommandation écartée', { action: { label: 'Annuler', onClick: () => { void onStatus(action, 'open') } } })
+      } catch (error) { toast.error(error instanceof Error ? error.message : 'Action impossible pour le moment.') }
+      finally { setPendingActionId(null) }
     },
     onLater: (action) => {
       onPostpone(action.id)
@@ -199,7 +211,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       )}
 
       {first ? (
-        <LargeRecommendation siteId={siteId} action={first} total={counts.total} decision={decision} busy={busy} plan={billing?.plan} />
+        <LargeRecommendation siteId={siteId} action={first} total={counts.total} decision={decision} busy={busy || pendingActionId === first.id} plan={billing?.plan} />
       ) : (
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Rien à décider cette semaine</h2>
@@ -217,7 +229,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
           <h3 id="other-recs" className="border-b border-gray-200/80 px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:border-white/[0.08] dark:text-zinc-400 sm:px-5">Autres recommandations</h3>
           <ul>
             {others.map((action, index) => (
-              <CompactRecommendation key={action.id} siteId={siteId} action={action} rank={index + 2} total={counts.total} decision={decision} busy={busy} plan={billing?.plan} />
+              <CompactRecommendation key={action.id} siteId={siteId} action={action} rank={index + 2} total={counts.total} decision={decision} busy={busy || pendingActionId === action.id} plan={billing?.plan} />
             ))}
           </ul>
         </section>

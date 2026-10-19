@@ -7,9 +7,9 @@ import { LockClosedIcon } from '@heroicons/react/24/outline'
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]'
 
 /** Un seul bouton mis en avant à la fois (doc 3.8) : le principal est neutre, la couleur est réservée à la priorité et aux alertes. */
-export const btnPrimary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-zinc-200 ${FOCUS}`
-export const btnSecondary = `inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-800 transition hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:bg-transparent dark:text-zinc-100 dark:hover:border-white/30 ${FOCUS}`
-export const btnQuiet = `inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold text-gray-600 underline-offset-2 hover:text-gray-950 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:text-white ${FOCUS}`
+export const btnPrimary = `inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-zinc-200 ${FOCUS}`
+export const btnSecondary = `inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-800 transition hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:bg-transparent dark:text-zinc-100 dark:hover:border-white/30 ${FOCUS}`
+export const btnQuiet = `inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg px-3 text-sm font-semibold text-gray-600 underline-offset-2 hover:text-gray-950 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:text-white ${FOCUS}`
 export const surface = 'rounded-2xl border border-gray-200/80 bg-white dark:border-white/[0.08] dark:bg-[#181B21]'
 
 const TONES = {

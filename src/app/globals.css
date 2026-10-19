@@ -112,6 +112,35 @@ html:not(.dark), body:not(.dark) {
   color: rgb(var(--foreground));
 }
 
+/* Sonner inherits a dark default action style that becomes unreadable on the light dashboard. */
+[data-sonner-toast].qualio-toast {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+  box-shadow: 0 14px 32px rgba(17, 24, 39, 0.14) !important;
+}
+[data-sonner-toast].qualio-toast [data-description] { color: #4b5563 !important; }
+[data-sonner-toast].qualio-toast [data-button] {
+  cursor: pointer !important;
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border: 1px solid #d1d5db !important;
+}
+[data-sonner-toast].qualio-toast [data-button]:hover { background: #e5e7eb !important; }
+.dark [data-sonner-toast].qualio-toast {
+  background: #181b21 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f5f5f5 !important;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.38) !important;
+}
+.dark [data-sonner-toast].qualio-toast [data-description] { color: #a1a1aa !important; }
+.dark [data-sonner-toast].qualio-toast [data-button] {
+  background: #272a33 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+.dark [data-sonner-toast].qualio-toast [data-button]:hover { background: #343844 !important; }
+
 .landing-page a:focus-visible,
 .landing-page button:focus-visible,
 .landing-page input:focus-visible {

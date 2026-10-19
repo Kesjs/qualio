@@ -56,10 +56,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Toaster
               position="bottom-right"
               toastOptions={{
+                className: 'qualio-toast',
                 style: {
-                  background: '#1d1a18',
-                  border: '1px solid #3d3a39',
-                  color: '#eeeeee',
                   fontFamily: "'Manrope', ui-sans-serif, system-ui, sans-serif",
                   fontSize: 13,
                   borderRadius: 3,

@@ -11,7 +11,7 @@ import { ConfidenceChip } from './ConfidenceChip'
 import { ShareMenu } from './ShareMenu'
 import type { PlanId } from '@/lib/billing/plans'
 
-export type Decision = { onAccept: (action: ActionItem) => void; onLater: (action: ActionItem) => void; onDismiss: (action: ActionItem) => void }
+export type Decision = { onAccept: (action: ActionItem) => void | Promise<void>; onLater: (action: ActionItem) => void | Promise<void>; onDismiss: (action: ActionItem) => void | Promise<void> }
 
 function PriorityChip({ priority, confidence }: { priority: ActionItem['priority']; confidence?: ActionItem['confidence'] }) {
   const style = PRIORITY[priorityOf(priority)]
@@ -50,9 +50,9 @@ export function CitedReviews({ siteId, action }: { siteId: string; action: Actio
 function Decisions({ siteId, plan, action, decision, busy, large }: { siteId: string; plan: PlanId | undefined; action: ActionItem; decision: Decision; busy: boolean; large: boolean }) {
   return (
     <div className={`mt-5 flex gap-2 ${large ? 'flex-col sm:flex-row sm:items-center' : 'flex-wrap'}`}>
-      <button type="button" disabled={busy} onClick={() => decision.onAccept(action)} className={`${btnPrimary} ${large ? 'sm:min-w-44' : ''}`}>Accepter</button>
-      <button type="button" disabled={busy} onClick={() => decision.onLater(action)} className={btnSecondary}>Plus tard</button>
-      <button type="button" disabled={busy} onClick={() => decision.onDismiss(action)} className={btnQuiet}>Écarter</button>
+      <button type="button" disabled={busy} onClick={() => void decision.onAccept(action)} className={`${btnPrimary} ${large ? 'sm:min-w-44' : ''}`}>Accepter</button>
+      <button type="button" disabled={busy} onClick={() => void decision.onLater(action)} className={btnSecondary}>Plus tard</button>
+      <button type="button" disabled={busy} onClick={() => void decision.onDismiss(action)} className={btnQuiet}>Écarter</button>
       <ShareMenu siteId={siteId} action={action} plan={plan} />
     </div>
   )
