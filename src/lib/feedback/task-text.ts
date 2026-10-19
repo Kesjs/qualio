@@ -40,7 +40,7 @@ function csvCell(value: unknown) {
 
 export const TASK_CSV_HEADER = ['titre', 'action', 'raison', 'priorité', 'confiance', 'thème', 'statut', 'nombre_avis', 'avis_cités', 'proposée_le', 'décidée_le'] as const
 
-const STATUS_LABELS: Record<ActionItem['status'], string> = { open: 'À décider', accepted: 'Acceptée', done: 'Faite', dismissed: 'Écartée' }
+const STATUS_LABELS: Record<ActionItem['status'], string> = { open: 'À décider', accepted: 'Acceptée', done: 'Faite', superseded: 'Remplacée', dismissed: 'Écartée' }
 
 export function buildTasksCsv(rows: Array<{ action: ActionItem; reviews: TaskReview[] }>): string {
   const lines = rows.map(({ action, reviews }) => [

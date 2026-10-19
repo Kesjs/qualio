@@ -17,7 +17,7 @@ export async function unlockPendingFeedback(admin: any, userId: string, plan: Pl
     if (capacity.remaining < 1) continue
     const { data: locked } = await admin.from('feedback_items').select('id, content').eq('site_id', siteId).eq('status', 'locked').order('created_at', { ascending: true }).limit(capacity.remaining)
     if (!locked?.length) continue
-    const { error } = await admin.from('feedback_items').update({ status: 'open', metadata: { classification_status: 'pending' } }).in('id', locked.map((item: { id: string }) => item.id))
+    const { error } = await admin.from('feedback_items').update({ status: 'open' }).in('id', locked.map((item: { id: string }) => item.id))
     if (error) { console.error('[Unlock feedback] update failed', error.message); continue }
     unlocked += locked.length
     for (const item of locked as Array<{ id: string; content: string }>) {

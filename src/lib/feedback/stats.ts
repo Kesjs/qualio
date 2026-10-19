@@ -48,21 +48,43 @@ export function buildThemeStats(rows: StatRow[], days: number, now = Date.now())
   })
 }
 
-/** Série quotidienne sur la période (volume + négatifs). */
-export function buildDailySeries(rows: StatRow[], days: number, now = Date.now()) {
-  const start = new Date(now - (days - 1) * DAY)
-  start.setHours(0, 0, 0, 0)
-  const points = Array.from({ length: days }, (_, index) => {
-    const date = new Date(start.getTime() + index * DAY)
-    return { date: date.toISOString().slice(0, 10), total: 0, negative: 0, positive: 0 }
-  })
-  const first = start.getTime()
+/** Décalage horaire du navigateur en minutes (Date#getTimezoneOffset : Paris en été = -120). Borné pour éviter les valeurs absurdes. */
+export function parseTzOffset(value: string | null) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && Math.abs(parsed) <= 14 * 60 ? Math.round(parsed) : 0
+}
+
+const MINUTE = 60_000
+
+/** Début (ms UTC) du premier jour de la période, à minuit heure locale de l'utilisateur. */
+export function periodStart(days: number, now = Date.now(), tzOffset = 0) {
+  const localNow = now - tzOffset * MINUTE
+  return Math.floor(localNow / DAY) * DAY - (days - 1) * DAY + tzOffset * MINUTE
+}
+
+export type DailyPoint = { date: string; total: number; negative: number; positive: number; neutral: number; pending: number }
+
+/**
+ * Série quotidienne sur la période, bornée aux jours calendaires de l'utilisateur
+ * (même fenêtre que les compteurs, donc la somme des barres = « avis sur la période »).
+ * `pending` = avis pas encore classés : leur sentiment est inconnu, on ne les compte ni positifs ni négatifs.
+ */
+export function buildDailySeries(rows: StatRow[], days: number, now = Date.now(), tzOffset = 0): DailyPoint[] {
+  const start = periodStart(days, now, tzOffset)
+  const points: DailyPoint[] = Array.from({ length: days }, (_, index) => ({
+    // Date locale (AAAA-MM-JJ) : on décale vers « l'heure locale » avant de lire les champs UTC.
+    date: new Date(start + index * DAY - tzOffset * MINUTE).toISOString().slice(0, 10),
+    total: 0, negative: 0, positive: 0, neutral: 0, pending: 0,
+  }))
   for (const row of rows) {
-    const index = Math.floor((new Date(row.created_at).getTime() - first) / DAY)
+    const index = Math.floor((new Date(row.created_at).getTime() - start) / DAY)
     if (index < 0 || index >= days) continue
-    points[index].total += 1
-    if (row.sentiment === 'negative') points[index].negative += 1
-    if (row.sentiment === 'positive') points[index].positive += 1
+    const point = points[index]
+    point.total += 1
+    if (row.sentiment === 'negative') point.negative += 1
+    else if (row.sentiment === 'positive') point.positive += 1
+    else if (row.sentiment === 'neutral') point.neutral += 1
+    else point.pending += 1
   }
   return points
 }

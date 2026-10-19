@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthedContext } from '@/lib/supabase/auth'
-import { buildDailySeries, buildThemeStats, parseDays } from '@/lib/feedback/stats'
+import { buildDailySeries, buildThemeStats, parseDays, parseTzOffset, periodStart } from '@/lib/feedback/stats'
 
 const MIN_FOR_SYNTHESIS = 3
 const DAY = 86_400_000
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   const { supabase, userId } = await getAuthedContext()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const days = parseDays(request.nextUrl.searchParams.get('days'))
+  const tzOffset = parseTzOffset(request.nextUrl.searchParams.get('tz'))
   const requestedId = request.nextUrl.searchParams.get('siteId')
   const db = supabase as any
 
@@ -27,7 +28,9 @@ export async function GET(request: NextRequest) {
   const project = projects?.[0]
   if (!project) return NextResponse.json({ state: 'no_project', project: null })
 
-  const since = new Date(Date.now() - days * 2 * DAY).toISOString()
+  // Fenêtres alignées sur les jours calendaires de l'utilisateur : compteurs, thèmes et graphique comptent les mêmes avis.
+  const currentStart = periodStart(days, Date.now(), tzOffset)
+  const since = new Date(currentStart - days * DAY).toISOString()
   const [totalRes, rowsRes, recentRes, actionsRes, synthesisRes, sourceRes, exampleRes] = await Promise.all([
     db.from('feedback_items').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('site_id', project.id).not('status', 'in', '(archived,locked)'),
     db.from('feedback_items').select('theme, sentiment, created_at, content').eq('user_id', userId).eq('site_id', project.id).not('status', 'in', '(archived,locked)').gte('created_at', since).order('created_at', { ascending: false }).limit(2000),
@@ -40,10 +43,13 @@ export async function GET(request: NextRequest) {
 
   const rows: Array<{ theme: string | null; sentiment: string | null; created_at: string; content: string }> = rowsRes.data ?? []
   const total: number = totalRes.count ?? 0
-  const currentStart = Date.now() - days * DAY
   const current = rows.filter((row) => new Date(row.created_at).getTime() >= currentStart)
   const previousRows = rows.filter((row) => new Date(row.created_at).getTime() < currentStart)
-  const share = (list: typeof rows) => (list.length ? Math.round((list.filter((row) => row.sentiment === 'positive').length / list.length) * 100) : null)
+  // Part calculée sur les avis déjà classés seulement : un avis sans sentiment n'est ni positif ni négatif.
+  const share = (list: typeof rows) => {
+    const classified = list.filter((row) => row.sentiment)
+    return classified.length ? Math.round((classified.filter((row) => row.sentiment === 'positive').length / classified.length) * 100) : null
+  }
 
   const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 }
   const actions = [...(actionsRes.data ?? [])].sort((a, b) => (priorityOrder[a.priority ?? 'medium'] ?? 1) - (priorityOrder[b.priority ?? 'medium'] ?? 1))
@@ -68,8 +74,8 @@ export async function GET(request: NextRequest) {
       unsynthesized,
       missingForSynthesis: Math.max(0, MIN_FOR_SYNTHESIS - total),
     },
-    series: buildDailySeries(current, days),
-    topThemes: buildThemeStats(rows, days).filter((theme) => !theme.isUnclassified).slice(0, 5),
+    series: buildDailySeries(current, days, Date.now(), tzOffset),
+    topThemes: buildThemeStats(rows, days, currentStart + days * DAY).filter((theme) => !theme.isUnclassified).slice(0, 5),
     actions: actions.slice(0, 3),
     recent: recentRes.data ?? [],
     synthesis,

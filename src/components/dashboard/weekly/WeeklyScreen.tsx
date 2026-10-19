@@ -190,12 +190,24 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
         </Banner>
       )}
 
+      {data.synthesis?.summary && (
+        <section className={`${surface} p-5 sm:p-6`} aria-labelledby="synthesis-summary">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">L’essentiel{lastSynthesis ? ` · synthèse du ${lastSynthesis}` : ''}</p>
+          <h2 id="synthesis-summary" className="mt-2 text-base font-semibold leading-snug text-gray-950 dark:text-white">{data.synthesis.title}</h2>
+          <p className="mt-1 line-clamp-4 text-sm leading-6 text-gray-700 dark:text-zinc-300">{data.synthesis.summary}</p>
+        </section>
+      )}
+
       {first ? (
         <LargeRecommendation siteId={siteId} action={first} total={counts.total} decision={decision} busy={busy} plan={billing?.plan} />
       ) : (
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Rien à décider cette semaine</h2>
-          <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">Les prochains avis seront classés automatiquement. Vos décisions passées sont dans l’onglet Détails.</p>
+          <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-zinc-400">
+            {actions.some((action) => action.status !== 'open' && action.status !== 'superseded')
+              ? 'Vous avez traité toutes les recommandations. Vos décisions passées sont dans l’onglet Détails.'
+              : 'La synthèse n’a trouvé aucun sujet cité par au moins deux avis, donc elle ne propose rien de fiable pour l’instant. Ajoutez des avis, puis actualisez.'}
+          </p>
           <Link href="/dashboard/feedback" className={`${btnPrimary} mt-6`}>Voir les avis</Link>
         </section>
       )}

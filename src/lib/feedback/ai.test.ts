@@ -29,6 +29,12 @@ describe('feedback synthesis validation', () => {
     expect(result?.recommendations).toHaveLength(0)
   })
 
+  it('keeps a synthesis that has valid recommendations but no theme', () => {
+    const result = cleanSynthesisResult({ ...base, themes: [] }, ids)
+    expect(result?.recommendations).toHaveLength(1)
+    expect(result?.themes).toHaveLength(0)
+  })
+
   it('returns null for invalid JSON-shaped output', () => {
     expect(cleanSynthesisResult({ title: '', summary: '', themes: [], recommendations: [] }, ids)).toBeNull()
   })

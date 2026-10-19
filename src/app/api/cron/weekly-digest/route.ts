@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
+import { classifyPendingFeedback } from '@/lib/feedback/classify'
 import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
 import { writableSiteIds } from '@/lib/billing/writable'
 import { buildWeeklyDigestEmail, type DigestProject } from '@/lib/email/weekly-digest'
@@ -68,6 +69,7 @@ export async function GET(request: NextRequest) {
       if (latest?.created_at && (!lastSynthesisAt || latest.created_at > lastSynthesisAt)) lastSynthesisAt = latest.created_at
       if (existingWeek) continue
       const since = latest?.created_at ?? new Date(Date.now() - 7 * 86400000).toISOString()
+      try { await classifyPendingFeedback(admin, site.id, { limit: 20, budgetMs: 15_000 }) } catch (error) { console.error('[Weekly digest] pending classification failed', error) }
       const { data: feedback } = await admin.from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('site_id', site.id).not('status', 'in', '(archived,locked)').gt('created_at', since).order('created_at', { ascending: false }).limit(301)
       if (!feedback?.length) continue
       totalNew += feedback.length

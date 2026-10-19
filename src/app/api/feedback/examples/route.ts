@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { after, NextRequest, NextResponse } from 'next/server'
+import { classifyPendingFeedback } from '@/lib/feedback/classify'
+import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 
 const EXAMPLES = [
   'La prise en main est simple, mais je ne comprends pas toujours la prochaine étape.',
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
   if (existing?.length) return NextResponse.json({ imported: 0, alreadyPresent: true })
   const { error } = await (supabase as any).from('feedback_items').insert(EXAMPLES.map((content, index) => ({ user_id: user.id, site_id: siteId, source: 'manual', content, author_name: `Exemple ${index + 1}`, theme: null, sentiment: null, confidence: null, metadata: { is_example: true, classification_status: 'pending' } })))
   if (error) return NextResponse.json({ error: 'Impossible de charger les avis d’exemple.' }, { status: 500 })
+  // Les exemples n'étaient jamais classés : ni thème, ni sentiment, donc un écran Détails vide.
+  after(async () => { try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId) } catch (error) { console.error('[Feedback examples] classification failed', error) } })
   return NextResponse.json({ imported: EXAMPLES.length }, { status: 201 })
 }
 

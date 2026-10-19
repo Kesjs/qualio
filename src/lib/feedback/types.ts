@@ -35,7 +35,7 @@ export type ActionItem = {
   rationale?: string | null
   uncertainty?: string | null
   confidence?: 'high' | 'medium' | 'low' | null
-  status: 'open' | 'accepted' | 'dismissed' | 'done'
+  status: 'open' | 'accepted' | 'dismissed' | 'done' | 'superseded'
   priority: 'high' | 'medium' | 'low' | null
   theme: string | null
   feedback_ids: string[]
@@ -63,7 +63,7 @@ export type OverviewReady = {
     unsynthesized: number
     missingForSynthesis: number
   }
-  series: Array<{ date: string; total: number; negative: number; positive: number }>
+  series: Array<{ date: string; total: number; negative: number; positive: number; neutral: number; pending: number }>
   topThemes: ThemeStat[]
   actions: ActionItem[]
   recent: FeedbackItem[]

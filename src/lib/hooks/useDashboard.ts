@@ -25,7 +25,7 @@ export function useOverview() {
   const [days] = usePeriod()
   return useQuery({
     queryKey: ['overview', siteId ?? 'auto', days],
-    queryFn: () => request<Overview>(`/api/dashboard/overview?days=${days}${siteId ? `&siteId=${encodeURIComponent(siteId)}` : ''}`, undefined, 'Impossible de charger la vue d’ensemble.'),
+    queryFn: () => request<Overview>(`/api/dashboard/overview?days=${days}&tz=${new Date().getTimezoneOffset()}${siteId ? `&siteId=${encodeURIComponent(siteId)}` : ''}`, undefined, 'Impossible de charger la vue d’ensemble.'),
     enabled: hydrated,
     staleTime: 30_000,
     placeholderData: (previous) => previous,
@@ -61,7 +61,7 @@ export function useThemes() {
   const siteId = activeSite?.id
   return useQuery({
     queryKey: ['themes', siteId, days],
-    queryFn: () => request<{ themes: ThemeStat[] }>(`/api/feedback/themes?siteId=${siteId}&days=${days}`, undefined, 'Impossible de charger les thèmes.'),
+    queryFn: () => request<{ themes: ThemeStat[] }>(`/api/feedback/themes?siteId=${siteId}&days=${days}&tz=${new Date().getTimezoneOffset()}`, undefined, 'Impossible de charger les thèmes.'),
     enabled: Boolean(siteId),
     placeholderData: (previous) => previous,
   })

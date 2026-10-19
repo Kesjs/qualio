@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDailySeries, buildThemeStats, parseDays, UNCLASSIFIED } from './stats'
+import { buildDailySeries, buildThemeStats, parseDays, periodStart, UNCLASSIFIED } from './stats'
 
 const NOW = new Date('2026-10-12T12:00:00Z').getTime()
 const daysAgo = (days: number) => new Date(NOW - days * 86_400_000).toISOString()
@@ -39,6 +39,22 @@ describe('buildDailySeries', () => {
     expect(series).toHaveLength(7)
     expect(series.reduce((sum, point) => sum + point.total, 0)).toBe(2)
     expect(series.reduce((sum, point) => sum + point.negative, 0)).toBe(1)
+  })
+})
+
+describe('buildDailySeries — fuseau horaire et avis non classés', () => {
+  const PARIS = -120
+  it('range un avis de 00h30 heure de Paris sur le bon jour', () => {
+    const series = buildDailySeries([{ theme: null, sentiment: 'negative', created_at: '2026-10-11T22:30:00Z' }], 7, NOW, PARIS)
+    expect(series.at(-1)).toMatchObject({ date: '2026-10-12', total: 1, negative: 1 })
+    expect(series[0].date).toBe('2026-10-06')
+  })
+  it('compte les avis sans sentiment comme « en attente », jamais comme négatifs', () => {
+    const series = buildDailySeries([{ theme: null, sentiment: null, created_at: daysAgo(0.1) }], 7, NOW)
+    expect(series.at(-1)).toMatchObject({ total: 1, negative: 0, pending: 1 })
+  })
+  it('la fenêtre de période commence à minuit local', () => {
+    expect(new Date(periodStart(7, NOW, PARIS)).toISOString()).toBe('2026-10-05T22:00:00.000Z')
   })
 })
 

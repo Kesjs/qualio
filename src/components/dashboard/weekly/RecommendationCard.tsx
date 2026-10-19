@@ -29,6 +29,7 @@ export function CitedReviews({ siteId, action }: { siteId: string; action: Actio
   const href = `/dashboard/feedback?recommendation=${encodeURIComponent(action.id)}`
   return (
     <div className="mt-5">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">Ce que disent vos clients</p>
       {isLoading && <div aria-hidden="true" className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100 motion-reduce:animate-none dark:bg-white/[0.06]" />)}</div>}
       {isError && <p className="text-sm text-gray-600 dark:text-zinc-400">Les avis cités ne se sont pas chargés. Ils restent consultables dans la liste des avis.</p>}
       {data && data.length > 0 && (
@@ -41,7 +42,7 @@ export function CitedReviews({ siteId, action }: { siteId: string; action: Actio
           ))}
         </ul>
       )}
-      <Link href={href} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-gray-900 underline underline-offset-4 dark:text-white">Voir les {action.feedback_ids.length}</Link>
+      <Link href={href} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-gray-900 underline underline-offset-4 dark:text-white">Voir {action.feedback_ids.length > 3 ? `les ${action.feedback_ids.length} avis` : action.feedback_ids.length > 1 ? 'tous les avis' : 'l’avis'}</Link>
     </div>
   )
 }
@@ -57,14 +58,31 @@ function Decisions({ siteId, plan, action, decision, busy, large }: { siteId: st
   )
 }
 
-function Evidence({ action, total }: { action: ActionItem; total: number }) {
+/** Le serveur ajoute « Signal observé dans N avis sur M (x %). » à la fin du « pourquoi » : on l'affiche une seule fois, dans la ligne de preuve. */
+const withoutSignal = (text: string) => text.replace(/\s*Signal observé dans \d+ avis sur \d+ \(\d+ %\)\.?\s*$/, '').trim()
+
+function Evidence({ action, total, large }: { action: ActionItem; total: number; large: boolean }) {
   const count = action.feedback_ids.length
-  const detail = action.rationale ?? action.description
+  const percent = total > 0 ? Math.round((count / total) * 100) : null
+  const todo = action.action?.trim() || null
+  // Anciennes recommandations : seul `description` existe (« action + Pourquoi : … »).
+  const why = withoutSignal(action.rationale ?? '') || (!todo ? withoutSignal(action.description ?? '') : '')
   return (
     <>
-      <p className="mt-3 text-base leading-7 text-gray-900 dark:text-zinc-100"><span className="font-semibold">{count} avis sur {total}</span> {count > 1 ? 'portent' : 'porte'} sur ce sujet.</p>
-      {detail && <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">{detail}</p>}
-      {action.uncertainty && <p className="mt-2 text-sm leading-6 text-amber-900 dark:text-amber-300">À vérifier : {action.uncertainty}</p>}
+      {todo && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">À faire</p>
+          <p className={`mt-1 whitespace-pre-line text-gray-950 dark:text-white ${large ? 'text-lg leading-7' : 'text-base leading-7'}`}>{todo}</p>
+        </div>
+      )}
+      {why && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">Pourquoi</p>
+          <p className="mt-1 text-sm leading-6 text-gray-700 dark:text-zinc-300">{why}</p>
+        </div>
+      )}
+      <p className="mt-4 text-sm leading-6 text-gray-900 dark:text-zinc-100"><span className="font-semibold">{count} avis sur {total}{percent != null ? ` (${percent} %)` : ''}</span> {count > 1 ? 'vont' : 'va'} dans ce sens.</p>
+      {action.uncertainty && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300"><span className="font-semibold">À vérifier :</span> {action.uncertainty}</p>}
     </>
   )
 }
@@ -74,13 +92,14 @@ export function LargeRecommendation({ siteId, action, total, decision, busy, pla
   return (
     <article className={`${surface} p-6 sm:p-8`} aria-labelledby={`rec-${action.id}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">Recommandation n°1</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-600 dark:text-zinc-400">À décider en premier</p>
         <PriorityChip priority={action.priority} confidence={action.confidence} />
       </div>
-      <h2 id={`rec-${action.id}`} className="mt-4 text-2xl font-semibold leading-tight tracking-[-0.03em] text-gray-950 dark:text-white sm:text-[32px]">{action.title}</h2>
-      <Evidence action={action} total={total} />
+      <h2 id={`rec-${action.id}`} className="mt-4 text-2xl font-semibold leading-tight tracking-[-0.03em] text-gray-950 dark:text-white sm:text-[28px]">{action.title}</h2>
+      <Evidence action={action} total={total} large />
       <CitedReviews siteId={siteId} action={action} />
       <Decisions siteId={siteId} plan={plan} action={action} decision={decision} busy={busy} large />
+      <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-zinc-500"><span className="font-semibold">Accepter</span> l’ajoute à vos tâches en cours et mesure son effet sur 14 jours. <span className="font-semibold">Plus tard</span> la reporte en bas de liste. <span className="font-semibold">Écarter</span> la retire.</p>
     </article>
   )
 }
@@ -100,7 +119,7 @@ export function CompactRecommendation({ siteId, action, rank, total, decision, b
       {open && (
         <div className="px-4 pb-5 sm:px-5">
           <PriorityChip priority={action.priority} confidence={action.confidence} />
-          <Evidence action={action} total={total} />
+          <Evidence action={action} total={total} large={false} />
           <CitedReviews siteId={siteId} action={action} />
           <Decisions siteId={siteId} plan={plan} action={action} decision={decision} busy={busy} large={false} />
         </div>

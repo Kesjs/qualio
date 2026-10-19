@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
+import { classifyPendingFeedback } from '@/lib/feedback/classify'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 import { getSynthesisAvailability, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
@@ -20,15 +21,21 @@ function fingerprint(title: string, action: string) {
   return `${title} ${action}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr-FR').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').slice(0, 18).join('-')
 }
 
-export async function persistRecommendations(supabase: any, userId: string, siteId: string, synthesisId: string, synthesis: Awaited<ReturnType<typeof generateFeedbackSynthesis>>, totalFeedback: number) {
+/**
+ * `supersedeOthers` : une synthèse complète (tous les avis récents) remplace les recommandations encore « à décider » qu'elle ne
+ * reproduit plus. À ne PAS activer pour la synthèse hebdomadaire, qui n'analyse que les nouveaux avis.
+ */
+export async function persistRecommendations(supabase: any, userId: string, siteId: string, synthesisId: string, synthesis: Awaited<ReturnType<typeof generateFeedbackSynthesis>>, totalFeedback: number, options: { supersedeOthers?: boolean } = {}) {
   if (!synthesis?.recommendations.length) return
+  const keptKeys: string[] = []
   for (const recommendation of synthesis.recommendations) {
     const key = fingerprint(recommendation.title, recommendation.action)
+    keptKeys.push(key)
     const rationale = `${recommendation.rationale || 'Signal relevé dans les avis.'} Signal observé dans ${recommendation.feedback_ids.length} avis sur ${totalFeedback} (${Math.round(recommendation.feedback_ids.length / totalFeedback * 100)} %).`
     const { data: existing } = await supabase.from('feedback_recommendations').select('id, status, baseline_count').eq('user_id', userId).eq('site_id', siteId).eq('fingerprint', key).maybeSingle()
     if (existing?.status === 'dismissed' && (existing.baseline_count ?? 0) * 2 > recommendation.feedback_ids.length) continue
     const { count: themeCount } = await supabase.from('feedback_items').select('id', { count: 'exact', head: true }).eq('site_id', siteId).eq('theme', recommendation.theme)
-    const shouldReopen = existing?.status === 'dismissed' && (existing.baseline_count ?? 0) * 2 <= (themeCount ?? recommendation.feedback_ids.length)
+    const shouldReopen = existing?.status === 'superseded' || (existing?.status === 'dismissed' && (existing.baseline_count ?? 0) * 2 <= (themeCount ?? recommendation.feedback_ids.length))
     const payload = {
       user_id: userId,
       site_id: siteId,
@@ -54,6 +61,12 @@ export async function persistRecommendations(supabase: any, userId: string, site
       if (error) throw error
     }
   }
+  const safeKeys = keptKeys.filter((key) => /^[a-z0-9-]+$/.test(key))
+  if (options.supersedeOthers && safeKeys.length > 0) {
+    // Non bloquant : si la migration du statut « superseded » n'est pas appliquée, la synthèse reste valide.
+    const { error } = await supabase.from('feedback_recommendations').update({ status: 'superseded' }).eq('user_id', userId).eq('site_id', siteId).eq('status', 'open').not('fingerprint', 'in', `(${safeKeys.join(',')})`)
+    if (error) console.error('[Feedback synthesis] superseding old recommendations failed', error.message)
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -75,6 +88,9 @@ export async function POST(request: NextRequest) {
 
   const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Projet introuvable.' }, { status: 404 })
+
+  // Les avis jamais classés (échec passé, exemples, avis débloqués) le sont maintenant : la synthèse et l'écran Détails en dépendent.
+  try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: 30, budgetMs: 15_000 }) } catch (error) { console.error('[Feedback synthesis] pending classification failed', error) }
 
   const [plan, { data: feedback, error: feedbackError }] = await Promise.all([
     getUserPlan(supabase, user.id),
@@ -108,7 +124,7 @@ export async function POST(request: NextRequest) {
     }).select('*').single()
     if (saveError || !saved) return NextResponse.json({ error: 'La synthèse n’a pas pu être enregistrée.' }, { status: 500 })
     try {
-      await persistRecommendations(supabase, user.id, siteId, saved.id, synthesis, sampled.length)
+      await persistRecommendations(supabase, user.id, siteId, saved.id, synthesis, sampled.length, { supersedeOthers: true })
     } catch (recommendationError) {
       await (supabase as any).from('feedback_syntheses').delete().eq('id', saved.id).eq('user_id', user.id)
       console.error('[Feedback synthesis] recommendation persistence failed', recommendationError)

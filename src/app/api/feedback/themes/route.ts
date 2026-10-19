@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthedContext } from '@/lib/supabase/auth'
-import { buildThemeStats, parseDays } from '@/lib/feedback/stats'
+import { buildThemeStats, parseDays, parseTzOffset, periodStart } from '@/lib/feedback/stats'
 
 export async function GET(request: NextRequest) {
   const { supabase, userId } = await getAuthedContext()
@@ -9,14 +9,17 @@ export async function GET(request: NextRequest) {
   if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
   const days = parseDays(request.nextUrl.searchParams.get('days'))
 
-  const since = new Date(Date.now() - days * 2 * 86_400_000).toISOString()
+  // Même fenêtre que la vue d'ensemble : jours calendaires de l'utilisateur, donc mêmes chiffres sur les deux écrans.
+  const DAY = 86_400_000
+  const currentStart = periodStart(days, Date.now(), parseTzOffset(request.nextUrl.searchParams.get('tz')))
+  const since = new Date(currentStart - days * DAY).toISOString()
   const { data, error } = await (supabase as any)
     .from('feedback_items')
     .select('theme, sentiment, created_at, content')
     .eq('user_id', userId).eq('site_id', siteId).not('status', 'in', '(archived,locked)')
     .gte('created_at', since).order('created_at', { ascending: false }).limit(2000)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ days, themes: buildThemeStats(data ?? [], days) })
+  return NextResponse.json({ days, themes: buildThemeStats(data ?? [], days, currentStart + days * DAY) })
 }
 
 /** PATCH { siteId, from, to } — renomme un thème ; si "to" existe déjà, les deux fusionnent. to vide = retire le thème. */
