@@ -43,17 +43,17 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   const quotaError = generateError instanceof ApiError && generateError.status === 429 && generateError.body.quota === 'synthesis'
   const nextAt = (quotaError && typeof generateError.body.nextAvailableAt === 'string' ? generateError.body.nextAvailableAt : null) ?? site?.nextSynthesisAt ?? null
   const quotaBlocked = quotaError || Boolean(nextAt && new Date(nextAt).getTime() > Date.now())
+
   const nextLabel = formatDayMonth(nextAt)
-
-  // G : erreur autre que le quota
-  const failed = Boolean(generateError) && !quotaError
-
   const quotaMessage = quotaBlocked && (
     <p className="text-sm text-gray-700 dark:text-zinc-300">
       {nextLabel ? `Prochaine synthèse possible le ${nextLabel}.` : 'Votre prochaine synthèse n’est pas encore disponible.'}
       {isFree && <> Avec Pro, elle est automatique chaque semaine. <Link href="/pricing" className="font-semibold text-gray-950 underline underline-offset-4 dark:text-white">Passer à Pro</Link></>}
     </p>
   )
+
+  // G : erreur autre que le quota
+  const failed = Boolean(generateError) && !quotaError
 
   const errorBanner = failed && (
     <Banner tone="alert" action={<button type="button" onClick={onGenerate} disabled={generating} className={btnSecondary}>Réessayer</button>}>
@@ -261,8 +261,11 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
               )}
             </>
           )}
-          <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>Actualiser</button>
-          {quotaMessage}
+          {isFree && quotaBlocked && (
+            <p className="text-sm text-gray-700 dark:text-zinc-300">
+              Avec Pro, elle est automatique chaque semaine. <Link href="/pricing" className="font-semibold text-gray-950 underline underline-offset-4 dark:text-white">Passer à Pro</Link>
+            </p>
+          )}
         </div>
       </footer>
     </div>
