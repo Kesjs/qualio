@@ -29,6 +29,7 @@ export function HeroVideo() {
   const [duration, setDuration] = useState(0)
   const [reduced, setReduced] = useState(false)
   const [awake, setAwake] = useState(false)
+  const [playbackRate, setPlaybackRate] = useState(1.25)
 
   const wake = useCallback(() => {
     setAwake(true)
@@ -63,6 +64,10 @@ export function HeroVideo() {
   }, [reduced])
 
   useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current) }, [])
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackRate
+  }, [playbackRate])
 
   const toggle = () => {
     const video = videoRef.current
@@ -176,6 +181,20 @@ export function HeroVideo() {
         </div>
 
         <span className="shrink-0 font-mono text-[11px] tabular-nums sm:text-xs">{formatTime(current)} / {formatTime(duration)}</span>
+
+        <label className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold sm:text-xs">
+          <span className="sr-only">Vitesse de lecture</span>
+          <select
+            value={playbackRate}
+            onChange={(event) => setPlaybackRate(Number(event.target.value))}
+            aria-label="Vitesse de lecture"
+            className="rounded-md border border-white/25 bg-black/55 px-1.5 py-1 text-[11px] font-semibold text-white outline-none transition hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-[#ee6018]"
+          >
+            {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
+              <option key={rate} value={rate} className="bg-gray-950 text-white">{rate}×</option>
+            ))}
+          </select>
+        </label>
 
         <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer le son' : 'Couper le son'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
           {muted ? <SpeakerXMarkIcon className="h-5 w-5" /> : <SpeakerWaveIcon className="h-5 w-5" />}
