@@ -21,7 +21,9 @@ export async function POST(request: Request) {
   const payload = await response.json().catch(() => null) as { data?: HunterCompany[]; errors?: unknown } | null
   if (!response.ok) {
     console.error('[Acquisition Discover] Hunter error', { status: response.status, errors: payload?.errors ?? null })
-    const reason = response.status === 401 ? 'La clé Hunter est invalide ou absente.' : response.status === 403 ? 'Ton compte Hunter ne permet pas cette recherche.' : response.status === 429 ? 'La limite Hunter a été atteinte. Réessaie plus tard.' : 'Hunter a refusé la recherche. Vérifie la formulation ou les filtres.'
+    const hunterDetail = Array.isArray(payload?.errors) && payload.errors.length ? String((payload.errors[0] as { id?: unknown; details?: unknown }).details ?? (payload.errors[0] as { id?: unknown }).id ?? '') : ''
+    const safeDetail = hunterDetail.replace(/api[_ -]?key|secret|token/gi, '[masqué]').slice(0, 180)
+    const reason = response.status === 401 ? 'La clé Hunter est invalide ou absente.' : response.status === 403 ? 'Ton compte Hunter ne permet pas cette recherche.' : response.status === 429 ? 'La limite Hunter a été atteinte. Réessaie plus tard.' : `Hunter a refusé la recherche (HTTP ${response.status})${safeDetail ? ` : ${safeDetail}` : '.'}`
     return NextResponse.json({ error: reason }, { status: response.status })
   }
   const companies = (payload?.data ?? []).filter((item) => item.domain && item.organization).map((item) => ({ name: item.organization!, domain: item.domain!, website_url: `https://${item.domain}`, relevance_score: null, status: 'discovered', source_url: 'https://hunter.io', source_notes: `Hunter Discover · ${item.emails_count?.total ?? 0} email(s) recensé(s)` }))
