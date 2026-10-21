@@ -5,6 +5,16 @@ import { useState } from 'react'
 export function AcquisitionAgentForm() {
   const [query, setQuery] = useState('SaaS B2B en France, 11 à 200 employés, actuellement en recrutement produit ou customer success')
   const [state, setState] = useState<{ kind: 'idle' | 'loading' | 'success' | 'error'; message: string }>({ kind: 'idle', message: '' })
-  async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); setState({ kind: 'loading', message: 'Recherche en cours…' }); const response = await fetch('/api/admin/acquisition/discover', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query }) }); const payload = await response.json().catch(() => ({})); setState(response.ok ? { kind: 'success', message: `${payload.count ?? 0} entreprise(s) ajoutée(s) à la liste des prospects.` } : { kind: 'error', message: payload.error ?? 'La recherche a échoué.' }) }
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setState({ kind: 'loading', message: 'Recherche en cours…' })
+    try {
+      const response = await fetch('/api/admin/acquisition/discover', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query }) })
+      const payload = await response.json().catch(() => ({}))
+      setState(response.ok ? { kind: 'success', message: `${payload.count ?? 0} entreprise(s) ajoutée(s) à la liste des prospects.` } : { kind: 'error', message: payload.error ?? `La recherche a échoué (HTTP ${response.status}).` })
+    } catch (error) {
+      setState({ kind: 'error', message: error instanceof TypeError ? 'Qualio ne parvient pas à joindre son serveur. Vérifie la connexion puis réessaie.' : 'La recherche a échoué. Réessaie dans un instant.' })
+    }
+  }
   return <form onSubmit={submit} className="space-y-4 rounded-xl border border-white/10 bg-[#161413] p-5"><div><label htmlFor="acquisition-query" className="block text-sm font-semibold">Décris les entreprises à trouver</label><p className="mt-1 text-sm leading-6 text-stone-400">Hunter Discover transforme cette demande en filtres. Le résultat sera toujours vérifiable depuis la fiche entreprise.</p></div><textarea id="acquisition-query" value={query} onChange={(event) => setQuery(event.target.value)} rows={3} maxLength={300} className="min-h-11 w-full rounded-lg border border-white/20 bg-[#101010] px-3 py-2 text-sm text-[#eeeeee] outline-none focus-visible:ring-2 focus-visible:ring-[#ff8a50]" /><button type="submit" disabled={state.kind === 'loading' || !query.trim()} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white transition hover:bg-[#9a3412] disabled:cursor-wait disabled:opacity-60">{state.kind === 'loading' ? 'Recherche…' : 'Trouver des entreprises'}</button>{state.message && <p role={state.kind === 'error' ? 'alert' : 'status'} className={`text-sm ${state.kind === 'error' ? 'text-red-300' : state.kind === 'success' ? 'text-emerald-300' : 'text-stone-300'}`}>{state.message}</p>}</form>
 }

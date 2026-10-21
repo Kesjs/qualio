@@ -11,7 +11,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as { query?: string }
   const query = String(body.query ?? '').trim().slice(0, 300)
   if (!query) return NextResponse.json({ error: 'Décris la cible à rechercher.' }, { status: 400 })
-  const response = await fetch(`https://api.hunter.io/v2/discover?api_key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query, limit: 25 }), cache: 'no-store' })
+  let response: Response
+  try {
+    response = await fetch(`https://api.hunter.io/v2/discover?api_key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query, limit: 25 }), cache: 'no-store' })
+  } catch (error) {
+    console.error('[Acquisition Discover] Hunter network error', error)
+    return NextResponse.json({ error: 'Qualio ne parvient pas à joindre Hunter pour le moment.' }, { status: 502 })
+  }
   const payload = await response.json().catch(() => null) as { data?: HunterCompany[]; errors?: unknown } | null
   if (!response.ok) {
     console.error('[Acquisition Discover] Hunter error', { status: response.status, errors: payload?.errors ?? null })
