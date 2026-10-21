@@ -14,6 +14,7 @@ import { Banner, btnQuiet, surface } from '@/components/dashboard/weekly/bricks'
 import { focusRing, inputClass, PageHeader, pressable, primaryButton, secondaryButton } from '@/components/dashboard/ui'
 
 type Choice = 'import' | 'widget'
+type Intent = 'understand_feedback' | 'identify_themes' | 'track_satisfaction' | 'get_recommendations' | 'prepare_reports' | 'connect_sources'
 type Status = { tone: 'info' | 'alert'; text: string }
 type CopyState = 'idle' | 'copying' | 'copied' | 'error'
 type WidgetSource = { id: string; public_key: string }
@@ -48,6 +49,17 @@ export default function OnboardingPage() {
   const [promptCopyStatus, setPromptCopyStatus] = useState<CopyState>('idle')
   const [createdSite, setCreatedSite] = useState<Site | null>(null)
 
+  const intentQuery = useQuery({
+    queryKey: ['onboarding-intent'],
+    queryFn: async () => {
+      const response = await fetch('/api/onboarding')
+      if (!response.ok) throw new Error('Impossible de charger votre onboarding.')
+      return response.json() as Promise<{ intent: Intent | null }>
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+
   const sitesQuery = useQuery({
     queryKey: ['sites'],
     queryFn: async () => {
@@ -62,7 +74,8 @@ export default function OnboardingPage() {
   // Le projet à terminer : le plus récent dont l'onboarding n'est pas fini. Aucun → nouveau projet.
   const activeSite = createdSite ?? sites?.find((item) => !item.onboarding_completed_at) ?? null
   const choice: Choice | null = activeSite?.onboarding_method ?? null
-  const step = !activeSite ? 1 : !choice ? 2 : 3
+  const intent = intentQuery.data?.intent ?? null
+  const step = !intent ? 1 : !activeSite ? 2 : !choice ? 3 : 4
 
   const billingQuery = useQuery({
     queryKey: ['onboarding-billing', activeSite?.id],
@@ -133,6 +146,16 @@ export default function OnboardingPage() {
 
   function fail(error: unknown, fallback: string) {
     setStatus({ tone: 'alert', text: error instanceof Error && error.message ? error.message : fallback })
+  }
+
+  async function chooseIntent(next: Intent) {
+    setStatus(null); setBusy(true)
+    try {
+      const response = await fetch('/api/onboarding', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ intent: next }) })
+      const result = await readJson(response)
+      if (!response.ok) throw new Error(result.error ?? 'Impossible d’enregistrer votre objectif.')
+      queryClient.setQueryData(['onboarding-intent'], result)
+    } catch (error) { fail(error, 'Impossible d’enregistrer votre objectif.') } finally { setBusy(false) }
   }
 
   async function createProject(event: FormEvent) {
@@ -279,7 +302,7 @@ export default function OnboardingPage() {
 
   async function goBack() {
     setStatus(null)
-    if (step === 3 && activeSite) {
+    if (step === 4 && activeSite) {
       setBusy(true)
       try { await patchSite(activeSite, { onboarding_method: null }); resetCsv() } catch (error) { fail(error, 'Impossible de revenir en arrière.') } finally { setBusy(false) }
       return
@@ -343,12 +366,14 @@ Consignes :
       </main>
     )
   }
-  if (!draftLoaded || !sitesQuery.isFetchedAfterMount) {
+  if (!draftLoaded || !sitesQuery.isFetchedAfterMount || !intentQuery.isFetchedAfterMount) {
     return <main className="flex min-h-[100dvh] items-center justify-center bg-white dark:bg-black"><div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900 motion-reduce:animate-none dark:border-white/20 dark:border-t-white" aria-label="Chargement" role="status" /></main>
   }
 
-  const title = !activeSite ? 'Créons votre espace.' : !choice ? 'Comment voulez-vous commencer ?' : choice === 'widget' ? 'Ajoutez les nouveaux avis.' : 'Rassemblez vos avis existants.'
-  const description = !activeSite
+  const title = !intent ? 'Que souhaitez-vous accomplir avec Qualio ?' : !activeSite ? 'Créons votre espace.' : !choice ? 'Comment voulez-vous commencer ?' : choice === 'widget' ? 'Ajoutez les nouveaux avis.' : 'Rassemblez vos avis existants.'
+  const description = !intent
+    ? 'Choisissez votre objectif principal. Nous adapterons votre première configuration à ce que vous voulez obtenir.'
+    : !activeSite
     ? 'Un projet correspond à votre produit ou votre site. Il sert uniquement à regrouper vos avis et vos sources.'
     : !choice
       ? 'Vous pourrez toujours ajouter l’autre source plus tard. L’important est de commencer avec ce que vous avez déjà.'
@@ -373,8 +398,8 @@ Consignes :
         <div className="mx-auto mt-10 max-w-3xl space-y-6">
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => void goBack()} disabled={step === 1 || busy} aria-label="Revenir à l’étape précédente" title="Revenir à l’étape précédente" className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 hover:border-gray-400 disabled:pointer-events-none disabled:opacity-0 dark:border-white/15 dark:bg-transparent dark:text-zinc-200 dark:hover:border-white/30 ${pressable} ${focusRing}`}><ArrowLeftIcon className="h-5 w-5" aria-hidden /></button>
-            <div role="progressbar" aria-label="Progression de la configuration" aria-valuemin={1} aria-valuemax={3} aria-valuenow={step} className="flex flex-1 items-center gap-2">
-              {[1, 2, 3].map((item) => <div key={item} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 motion-reduce:transition-none ${item <= step ? 'bg-gray-950 dark:bg-white' : 'bg-gray-200 dark:bg-white/10'}`} />)}
+            <div role="progressbar" aria-label="Progression de la configuration" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} className="flex flex-1 items-center gap-2">
+              {[1, 2, 3, 4].map((item) => <div key={item} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 motion-reduce:transition-none ${item <= step ? 'bg-gray-950 dark:bg-white' : 'bg-gray-200 dark:bg-white/10'}`} />)}
             </div>
           </div>
 
@@ -382,7 +407,27 @@ Consignes :
 
           {status && <Banner tone={status.tone}>{status.text}</Banner>}
 
-          {!activeSite && (
+          {!intent && (
+            <section className={`${surface} space-y-4 p-5 sm:p-6`} aria-label="Objectif principal">
+              <div className="space-y-3">
+                {([
+                  ['understand_feedback', 'Comprendre les retours de mes utilisateurs', 'Voir clairement ce que mes utilisateurs pensent.'],
+                  ['identify_themes', 'Identifier les thèmes récurrents', 'Repérer les sujets qui reviennent le plus souvent.'],
+                  ['track_satisfaction', 'Suivre la satisfaction dans le temps', 'Observer les tendances et leur évolution.'],
+                  ['get_recommendations', 'Obtenir des recommandations d’actions', 'Savoir quoi améliorer en priorité.'],
+                  ['prepare_reports', 'Préparer un rapport pour mon équipe', 'Partager une synthèse claire et exploitable.'],
+                  ['connect_sources', 'Connecter mes sources de feedback', 'Rassembler les retours au même endroit.'],
+                ] as const).map(([value, label, body]) => (
+                  <button key={value} type="button" onClick={() => void chooseIntent(value)} disabled={busy} className={`${surface} flex w-full items-center justify-between gap-4 p-5 text-left hover:border-gray-400 disabled:opacity-60 dark:hover:border-white/30 ${pressable} ${focusRing}`}>
+                    <span><strong className="block text-base font-semibold text-gray-950 dark:text-white">{label}</strong><span className="mt-1 block text-sm text-gray-600 dark:text-zinc-400">{body}</span></span>
+                    <span className="h-5 w-5 shrink-0 rounded-full border-2 border-gray-400 dark:border-zinc-500" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {intent && !activeSite && (
             <form onSubmit={createProject} className={`${surface} space-y-4 p-5 sm:p-6`}>
               <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">Nom du projet (facultatif)
                 <input value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Mon produit" className={`${inputClass} mt-2`} />
@@ -394,7 +439,7 @@ Consignes :
             </form>
           )}
 
-          {activeSite && !choice && (
+          {intent && activeSite && !choice && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <ChoiceCard icon={<DocumentArrowUpIcon className="h-5 w-5" aria-hidden />} title="Importer un CSV" body="Retrouvez votre historique et obtenez votre première synthèse en quelques minutes." disabled={busy} onClick={() => void chooseMethod(activeSite, 'import')} />
@@ -407,7 +452,7 @@ Consignes :
             </>
           )}
 
-          {activeSite && choice === 'widget' && !widgetAvailable && (
+          {intent && activeSite && choice === 'widget' && !widgetAvailable && (
             <section className={`${surface} space-y-4 p-5 sm:p-6`}>
               <div className="flex items-start gap-4">
                 <span className="rounded-xl bg-gray-100 p-3 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"><LockClosedIcon className="h-5 w-5" aria-hidden /></span>
@@ -420,7 +465,7 @@ Consignes :
             </section>
           )}
 
-          {activeSite && choice === 'widget' && widgetAvailable && !widgetKey && (
+          {intent && activeSite && choice === 'widget' && widgetAvailable && !widgetKey && (
             <section className={`${surface} space-y-5 p-5 sm:p-6`}>
               <div className="flex items-start gap-4">
                 <span className="rounded-xl bg-gray-100 p-3 text-gray-700 dark:bg-white/[0.06] dark:text-zinc-200"><SparklesIcon className="h-5 w-5" aria-hidden /></span>
@@ -433,7 +478,7 @@ Consignes :
             </section>
           )}
 
-          {activeSite && choice === 'widget' && widgetAvailable && widgetKey && (
+          {intent && activeSite && choice === 'widget' && widgetAvailable && widgetKey && (
             <section className={`${surface} space-y-4 p-5 sm:p-6`}>
               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300"><CheckIcon className="h-5 w-5" aria-hidden />Source widget prête</div>
               <p className="text-sm leading-6 text-gray-600 dark:text-zinc-400">Collez ce script juste avant la balise <code>&lt;/body&gt;</code> de votre site, ou copiez le prompt pour demander à votre agent de code de l’intégrer.</p>
@@ -451,7 +496,7 @@ Consignes :
             </section>
           )}
 
-          {activeSite && choice === 'import' && (
+          {intent && activeSite && choice === 'import' && (
             <section className={`${surface} space-y-5 p-5 sm:p-6`} aria-label="Import CSV">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400"><strong className="font-semibold text-gray-950 dark:text-white">Colonnes :</strong> <code>content</code> obligatoire ; <code>author_name</code> et <code>created_at</code> facultatives. Un texte qui contient une virgule doit être entouré de guillemets. UTF-8, virgule ou point-virgule, 5 Mo et 5 000 lignes maximum.</p>
@@ -500,11 +545,11 @@ Consignes :
             </section>
           )}
 
-          {step > 1 && (
+          {step > 2 && (
             <nav aria-label="Navigation de l’onboarding" className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-5 dark:border-white/[0.08]">
               <button type="button" onClick={() => void goBack()} disabled={busy} className={secondaryButton}><ArrowLeftIcon className="h-4 w-4" aria-hidden />Retour</button>
               <span className="text-xs text-gray-500 dark:text-zinc-400">Votre progression est enregistrée</span>
-              {step === 3 && activeSite && <button type="button" onClick={() => void finishOnboarding(activeSite)} disabled={busy} className={primaryButton}>Ouvrir mon espace<ArrowRightIcon className="h-4 w-4" aria-hidden /></button>}
+              {step === 4 && activeSite && <button type="button" onClick={() => void finishOnboarding(activeSite)} disabled={busy} className={primaryButton}>Ouvrir mon espace<ArrowRightIcon className="h-4 w-4" aria-hidden /></button>}
             </nav>
           )}
         </div>
