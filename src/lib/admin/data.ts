@@ -17,6 +17,8 @@ export type AdminEmail = { id: string; event_type: string; recipient: string; st
 export type AdminSite = { id: string; name: string | null; url: string; created_at: string }
 export type AdminUser = { id: string; email: string | null; created_at: string; last_sign_in_at: string | null; isAdmin: boolean; plan: string | null; projects: number }
 export type Paged<T> = { rows: T[]; total: number; page: number; pageSize: number; failed: boolean }
+export type AcquisitionCompany = { id: string; name: string; domain: string; website_url: string | null; company_size: string | null; relevance_score: number | null; status: string; source_url: string | null; source_notes: string | null; created_at: string }
+export type AcquisitionContact = { id: string; company_id: string; full_name: string | null; role: string | null; email: string; email_status: string; confidence: number | null; company?: { name: string; domain: string } | null }
 
 const FEEDBACK_COLUMNS = 'id, category, message, context, status, priority, allow_contact, allow_public_testimonial, admin_note, created_at'
 const EMAIL_COLUMNS = 'id, event_type, recipient, status, created_at, last_error'
@@ -146,4 +148,29 @@ export async function getPublishedTestimonials(feedbackIds: string[]) {
   const admin = getSupabaseAdminClient() as any
   const { data } = await admin.from('public_testimonials').select('feedback_id, quote, name, role').in('feedback_id', feedbackIds)
   return new Map<string, { quote: string; name: string; role: string }>(((data ?? []) as Array<{ feedback_id: string; quote: string; name: string; role: string }>).map((row) => [row.feedback_id, { quote: row.quote, name: row.name, role: row.role }]))
+}
+
+export async function getAcquisitionOverview() {
+  const admin = getSupabaseAdminClient() as any
+  const [companies, approved, contacts, verified, messages, events] = await Promise.all([
+    admin.from('acquisition_companies').select('id', { count: 'exact', head: true }),
+    admin.from('acquisition_companies').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+    admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }),
+    admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }).eq('email_status', 'verified'),
+    admin.from('acquisition_messages').select('status').limit(5000),
+    admin.from('acquisition_visitor_events').select('session_id, event_name, path, company_domain, created_at').order('created_at', { ascending: false }).limit(100),
+  ])
+  const messageCounts = { draft: 0, approved: 0, sent: 0, replied: 0, bounced: 0, suppressed: 0 } as Record<string, number>
+  for (const row of messages.data ?? []) messageCounts[row.status] = (messageCounts[row.status] ?? 0) + 1
+  return { companies: companies.count ?? 0, approved: approved.count ?? 0, contacts: contacts.count ?? 0, verified: verified.count ?? 0, messageCounts, events: events.data ?? [], failed: [companies, approved, contacts, verified, messages, events].some((r) => r.error) }
+}
+
+export async function getAcquisitionCompanies(): Promise<{ rows: AcquisitionCompany[]; failed: boolean }> {
+  const { data, error } = await (getSupabaseAdminClient() as any).from('acquisition_companies').select('id, name, domain, website_url, company_size, relevance_score, status, source_url, source_notes, created_at').order('created_at', { ascending: false }).limit(100)
+  return { rows: data ?? [], failed: Boolean(error) }
+}
+
+export async function getAcquisitionContacts(): Promise<{ rows: AcquisitionContact[]; failed: boolean }> {
+  const { data, error } = await (getSupabaseAdminClient() as any).from('acquisition_contacts').select('id, company_id, full_name, role, email, email_status, confidence, company:acquisition_companies(name, domain)').order('created_at', { ascending: false }).limit(100)
+  return { rows: data ?? [], failed: Boolean(error) }
 }

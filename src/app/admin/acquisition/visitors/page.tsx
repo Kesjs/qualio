@@ -1,0 +1,11 @@
+import type { Metadata } from 'next'
+import { getAdminContext } from '@/lib/admin/auth'
+import { getAcquisitionOverview } from '@/lib/admin/data'
+import { EmptyState, Notice, PageHeader, Panel, TableRegion, TD, TH } from '@/components/admin/ui'
+
+export const metadata: Metadata = { title: 'Visiteurs' }
+
+export default async function VisitorsPage() {
+  await getAdminContext(); const data = await getAcquisitionOverview()
+  return <div className="mx-auto max-w-7xl space-y-6"><PageHeader eyebrow="Acquisition / Visiteurs" title="Signaux du site" description="Sessions anonymes et conversions. Une identité n’est affichée qu’après une action volontaire de la personne." /><Notice tone="info">Les domaines d’entreprise sont des estimations et ne permettent pas d’identifier une personne. Le suivi doit respecter le consentement configuré sur le site public.</Notice><Panel id="events" title="Derniers événements" description="Les plus récents d’abord.">{data.events.length === 0 ? <EmptyState title="Aucun événement" description="Les événements apparaîtront quand le tracking public sera connecté." /> : <TableRegion label="Événements visiteurs"><table className="w-full min-w-[720px] text-sm"><thead className="border-b border-white/10 bg-[#161413]"><tr><th className={TH}>Date</th><th className={TH}>Événement</th><th className={TH}>Page</th><th className={TH}>Domaine estimé</th></tr></thead><tbody className="divide-y divide-white/10 bg-[#1d1a18]">{data.events.map((event: { session_id: string; event_name: string; path: string; company_domain: string | null; created_at: string }, index: number) => <tr key={`${event.session_id}-${event.created_at}-${index}`}><td className={`${TD} font-mono text-xs text-stone-300`}>{new Date(event.created_at).toLocaleString('fr-FR')}</td><td className={TD}>{event.event_name}</td><td className={`${TD} font-mono text-xs text-stone-400`}>{event.path}</td><td className={`${TD} font-mono text-xs`}>{event.company_domain ?? 'Anonyme'}</td></tr>)}</tbody></table></TableRegion>}</Panel></div>
+}
