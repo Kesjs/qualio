@@ -41,7 +41,10 @@ export async function POST(request: Request) {
   }
   const uniqueSignals = Array.from(new Map(found.map((signal) => [`${signal.signal_type}:${signal.source_url}`, signal])).values())
   if (uniqueSignals.length) await admin.from('acquisition_signals').insert(uniqueSignals.map((signal) => ({ ...signal, company_id: company.id })))
-  for (const email of emails) await admin.from('acquisition_contacts').upsert({ company_id: company.id, email, email_status: 'public', confidence: 65 }, { onConflict: 'email', ignoreDuplicates: true })
+  for (const email of emails) {
+    const { data: existing } = await admin.from('acquisition_contacts').select('id').eq('email', email).maybeSingle()
+    if (!existing) await admin.from('acquisition_contacts').insert({ company_id: company.id, email, email_status: 'public', confidence: 65 })
+  }
   const score = Math.min(100, uniqueSignals.length * 16 + (emails.size ? 15 : 0))
   await admin.from('acquisition_companies').update({ relevance_score: score, status: 'review', source_notes: `${uniqueSignals.length} signal(s), ${emails.size} email(s) public(s) détecté(s).` }).eq('id', company.id)
   return NextResponse.json({ signals: uniqueSignals.length, emails: emails.size, score })

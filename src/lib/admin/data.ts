@@ -19,6 +19,7 @@ export type AdminUser = { id: string; email: string | null; created_at: string; 
 export type Paged<T> = { rows: T[]; total: number; page: number; pageSize: number; failed: boolean }
 export type AcquisitionCompany = { id: string; name: string; domain: string; website_url: string | null; company_size: string | null; relevance_score: number | null; status: string; source_url: string | null; source_notes: string | null; created_at: string }
 export type AcquisitionContact = { id: string; company_id: string; full_name: string | null; role: string | null; email: string; email_status: string; confidence: number | null; company?: { name: string; domain: string } | null }
+export type AcquisitionSignal = { id: string; company_id: string; signal_type: string; label: string; source_url: string; evidence: string | null; confidence: number | null; company?: { name: string; domain: string } | null }
 
 const FEEDBACK_COLUMNS = 'id, category, message, context, status, priority, allow_contact, allow_public_testimonial, admin_note, created_at'
 const EMAIL_COLUMNS = 'id, event_type, recipient, status, created_at, last_error'
@@ -172,5 +173,10 @@ export async function getAcquisitionCompanies(): Promise<{ rows: AcquisitionComp
 
 export async function getAcquisitionContacts(): Promise<{ rows: AcquisitionContact[]; failed: boolean }> {
   const { data, error } = await (getSupabaseAdminClient() as any).from('acquisition_contacts').select('id, company_id, full_name, role, email, email_status, confidence, company:acquisition_companies(name, domain)').order('created_at', { ascending: false }).limit(100)
+  return { rows: data ?? [], failed: Boolean(error) }
+}
+
+export async function getAcquisitionSignals(): Promise<{ rows: AcquisitionSignal[]; failed: boolean }> {
+  const { data, error } = await (getSupabaseAdminClient() as any).from('acquisition_signals').select('id, company_id, signal_type, label, source_url, evidence, confidence, company:acquisition_companies(name, domain)').order('created_at', { ascending: false }).limit(200)
   return { rows: data ?? [], failed: Boolean(error) }
 }
