@@ -13,11 +13,15 @@ export async function POST(request: Request) {
   if (!query) return NextResponse.json({ error: 'Décris la cible à rechercher.' }, { status: 400 })
   const response = await fetch(`https://api.hunter.io/v2/discover?api_key=${encodeURIComponent(apiKey)}`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query, limit: 25 }), cache: 'no-store' })
   const payload = await response.json().catch(() => null) as { data?: HunterCompany[]; errors?: unknown } | null
-  if (!response.ok) return NextResponse.json({ error: 'Hunter n’a pas accepté la recherche.', details: payload?.errors ?? null }, { status: response.status })
+  if (!response.ok) {
+    console.error('[Acquisition Discover] Hunter error', { status: response.status, errors: payload?.errors ?? null })
+    const reason = response.status === 401 ? 'La clé Hunter est invalide ou absente.' : response.status === 403 ? 'Ton compte Hunter ne permet pas cette recherche.' : response.status === 429 ? 'La limite Hunter a été atteinte. Réessaie plus tard.' : 'Hunter a refusé la recherche. Vérifie la formulation ou les filtres.'
+    return NextResponse.json({ error: reason }, { status: response.status })
+  }
   const companies = (payload?.data ?? []).filter((item) => item.domain && item.organization).map((item) => ({ name: item.organization!, domain: item.domain!, website_url: `https://${item.domain}`, relevance_score: null, status: 'discovered', source_url: 'https://hunter.io', source_notes: `Hunter Discover · ${item.emails_count?.total ?? 0} email(s) recensé(s)` }))
   if (companies.length) {
     const { error } = await (getSupabaseAdminClient() as any).from('acquisition_companies').upsert(companies, { onConflict: 'domain', ignoreDuplicates: true })
-    if (error) return NextResponse.json({ error: 'Les résultats ont été trouvés mais ne sont pas enregistrés.', details: error.message }, { status: 500 })
+    if (error) { console.error('[Acquisition Discover] Supabase error', error.message); return NextResponse.json({ error: 'Hunter a trouvé les entreprises, mais Qualio n’a pas pu les enregistrer.' }, { status: 500 }) }
   }
   return NextResponse.json({ count: companies.length, companies })
 }
