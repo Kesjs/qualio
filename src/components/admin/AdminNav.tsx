@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bot, Building2, LayoutDashboard, ListChecks, Mail, MessageSquare, Users, UserRoundSearch, Eye } from 'lucide-react'
+import { Bot, Building2, LayoutDashboard, ListChecks, Mail, MessageSquare, Users, UserRoundSearch, Eye, FileText } from 'lucide-react'
 import { FOCUS } from '@/components/admin/ui'
 
 const ITEMS = [
@@ -18,6 +18,7 @@ const ACQUISITION = [
   { href: '/admin/acquisition/prospects', label: 'Prospects', short: 'Prospects', Icon: UserRoundSearch },
   { href: '/admin/acquisition/visitors', label: 'Visiteurs', short: 'Visiteurs', Icon: Eye },
   { href: '/admin/acquisition/agent', label: 'Agent de recherche', short: 'Agent', Icon: Bot },
+  { href: '/admin/acquisition/drafts', label: 'Brouillons', short: 'Brouillons', Icon: FileText },
 ] as const
 
 /** Sur admin.tryqualio.pro, « / » est réécrit vers /admin : on ramène les deux formes au même chemin. */
