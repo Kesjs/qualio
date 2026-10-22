@@ -19,6 +19,18 @@ function safeUrl(domain: string, path: string) {
 
 function textFromHtml(html: string) { return html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120_000) }
 
+const PLACEHOLDER_EMAIL_HOSTS = new Set(['yourdomain.com', 'example.com', 'test.com', 'domain.com'])
+const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello'])
+
+function isUsablePublicEmail(value: string) {
+  const email = value.trim().toLowerCase()
+  const [local, host] = email.split('@')
+  if (!local || !host || PLACEHOLDER_EMAIL_HOSTS.has(host) || PLACEHOLDER_EMAIL_LOCALS.has(local)) return false
+  if (local.includes('example') || local.includes('yourdomain') || local.includes('placeholder')) return false
+  if (/^(noreply|no-reply|do-not-reply|donotreply)$/.test(local)) return false
+  return true
+}
+
 export async function POST(request: Request) {
   if (!await requireAdminApi()) return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 })
   const { companyId } = await request.json().catch(() => ({})) as { companyId?: string }
@@ -36,11 +48,14 @@ export async function POST(request: Request) {
       if (!response.ok) continue
       const html = await response.text(); const text = textFromHtml(html); const lower = text.toLowerCase()
       for (const signal of SIGNALS) { const word = signal.words.find((candidate) => lower.includes(candidate.toLowerCase())); if (word) found.push({ signal_type: signal.type, label: signal.label, source_url: url, evidence: `Terme détecté : “${word}”`, confidence: 72 }) }
-      for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) { const email = match[0].toLowerCase(); if (!email.endsWith('.png') && !email.endsWith('.jpg')) emails.add(email) }
+      for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) { const email = match[0].toLowerCase(); if (!email.endsWith('.png') && !email.endsWith('.jpg') && isUsablePublicEmail(email)) emails.add(email) }
     } catch { /* page inaccessible: on conserve uniquement les sources accessibles */ }
   }
   const uniqueSignals = Array.from(new Map(found.map((signal) => [`${signal.signal_type}:${signal.source_url}`, signal])).values())
-  if (uniqueSignals.length) await admin.from('acquisition_signals').insert(uniqueSignals.map((signal) => ({ ...signal, company_id: company.id })))
+  for (const signal of uniqueSignals) {
+    const { data: existingSignals } = await admin.from('acquisition_signals').select('id').eq('company_id', company.id).eq('signal_type', signal.signal_type).eq('source_url', signal.source_url).limit(1)
+    if (!existingSignals?.length) await admin.from('acquisition_signals').insert({ ...signal, company_id: company.id })
+  }
   for (const email of emails) {
     const { data: existing } = await admin.from('acquisition_contacts').select('id').eq('email', email).maybeSingle()
     if (!existing) await admin.from('acquisition_contacts').insert({ company_id: company.id, email, email_status: 'public', confidence: 65 })

@@ -178,5 +178,6 @@ export async function getAcquisitionContacts(): Promise<{ rows: AcquisitionConta
 
 export async function getAcquisitionSignals(): Promise<{ rows: AcquisitionSignal[]; failed: boolean }> {
   const { data, error } = await (getSupabaseAdminClient() as any).from('acquisition_signals').select('id, company_id, signal_type, label, source_url, evidence, confidence, company:acquisition_companies(name, domain)').order('created_at', { ascending: false }).limit(200)
-  return { rows: data ?? [], failed: Boolean(error) }
+  const unique = Array.from(new Map((data ?? []).map((row: AcquisitionSignal) => [`${row.company_id}:${row.signal_type}:${row.source_url}`, row])).values()) as AcquisitionSignal[]
+  return { rows: unique, failed: Boolean(error) }
 }
