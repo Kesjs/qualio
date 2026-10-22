@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server'
+import { requireAdminApi } from '@/lib/admin/auth'
+import { getSupabaseAdminClient } from '@/lib/supabase/server'
+export async function POST(request: Request) { if (!await requireAdminApi()) return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 }); const { messageIds } = await request.json().catch(() => ({})) as { messageIds?: string[] }; if (!Array.isArray(messageIds) || !messageIds.length) return NextResponse.json({ error: 'Sélection vide.' }, { status: 400 }); const { error } = await (getSupabaseAdminClient() as any).from('acquisition_messages').update({ status: 'approved' }).in('id', messageIds).eq('status', 'draft'); if (error) return NextResponse.json({ error: 'Impossible d’approuver.' }, { status: 500 }); return NextResponse.json({ approved: messageIds.length }) }
