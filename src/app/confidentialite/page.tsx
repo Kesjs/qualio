@@ -30,7 +30,7 @@ export default function ConfidentialitePage() {
         <p>Vous pouvez accéder à vos données, les corriger, les exporter ou les supprimer. La suppression d’un projet ou du compte se fait depuis Réglages. Pour tout autre droit (accès, copie, opposition), écrivez-nous : nous répondons sous 30 jours. Les auteurs d’avis dont vous nous confiez les données peuvent aussi s’adresser à vous, ou à nous.</p>
       </LegalSection>
       <LegalSection title="Cookies">
-        <p>Qualio utilise uniquement ce qui est nécessaire pour vous connecter et retenir vos préférences (thème, langue, projet choisi). Aucun cookie publicitaire.</p>
+        <p>Qualio utilise uniquement ce qui est nécessaire pour vous connecter et retenir vos préférences (thème, langue, projet choisi). Avec votre accord, Qualio mesure aussi les visites et clics essentiels du site dans un but d’amélioration. Aucun cookie publicitaire ni profilage.</p>
       </LegalSection>
       <LegalSection title="Les emails">
         <p>L’email du lundi n’est envoyé que si vous l’avez accepté. Chaque message contient un lien de désinscription, et vous pouvez aussi le désactiver dans Réglages.</p>

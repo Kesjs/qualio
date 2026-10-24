@@ -8,6 +8,7 @@ import { MotionConfig } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { FOCUS, INK, LINE, MUTED, R_BUTTON, SIGNUP } from './tokens'
+import { PublicTracking } from './PublicTracking'
 
 /** Les trois destinations de la barre (section 4.8) : comprendre, voir, acheter. */
 const NAV_LINKS = [
@@ -221,6 +222,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         <Navbar />
         <main>{children}</main>
         <Footer />
+        <PublicTracking widgetKey={process.env.NEXT_PUBLIC_QUALIO_WIDGET_KEY || 'guWs9U6tKOXoeCnxVN_M1um9QqxgIhhm'} />
       </div>
     </MotionConfig>
   )
