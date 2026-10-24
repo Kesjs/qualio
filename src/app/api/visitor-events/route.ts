@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 
-const ALLOWED = new Set(['page_view', 'widget_opened', 'feedback_submitted', 'cta_clicked'])
+const ALLOWED = new Set(['page_view', 'email_clicked', 'widget_opened', 'feedback_submitted', 'cta_clicked'])
 function cors() { return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } }
 
 export async function POST(request: NextRequest) {
