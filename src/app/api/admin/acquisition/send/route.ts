@@ -39,7 +39,12 @@ export async function POST(request: Request) {
       skipped += 1
       continue
     }
-    const email = renderAcquisitionEmail({ subject: message.subject, body: message.body })
+    const trackingUrl = new URL('/', process.env.NEXT_PUBLIC_SITE_URL || 'https://tryqualio.pro')
+    trackingUrl.searchParams.set('utm_source', 'email')
+    trackingUrl.searchParams.set('utm_medium', 'outreach')
+    trackingUrl.searchParams.set('utm_campaign', 'prospection')
+    trackingUrl.searchParams.set('utm_content', message.id)
+    const email = renderAcquisitionEmail({ subject: message.subject, body: message.body, trackingUrl: trackingUrl.toString() })
     const result = await resend.emails.send({
       from: `Qualio <${from}>`, to: contact.email, subject: message.subject, html: email.html, replyTo,
       headers: { 'List-Unsubscribe': `<mailto:${replyTo ?? from}?subject=stop>` },

@@ -159,7 +159,7 @@ export async function getAcquisitionOverview() {
     admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }),
     admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }).eq('email_status', 'verified'),
     admin.from('acquisition_messages').select('status').limit(5000),
-    admin.from('acquisition_visitor_events').select('session_id, event_name, path, company_domain, created_at').order('created_at', { ascending: false }).limit(100),
+      admin.from('acquisition_visitor_events').select('session_id, event_name, path, company_domain, acquisition_message_id, utm_source, utm_medium, utm_campaign, created_at').order('created_at', { ascending: false }).limit(100),
   ])
   const messageCounts = { draft: 0, approved: 0, sent: 0, replied: 0, bounced: 0, suppressed: 0 } as Record<string, number>
   for (const row of messages.data ?? []) messageCounts[row.status] = (messageCounts[row.status] ?? 0) + 1

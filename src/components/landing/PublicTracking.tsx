@@ -26,11 +26,13 @@ export function PublicTracking({ widgetKey }: { widgetKey: string }) {
   useEffect(() => {
     if (consent !== 'accepted') return
     const sessionId = getSessionId()
+    const params = new URLSearchParams(window.location.search)
+    const attribution = { acquisitionMessageId: params.get('utm_content'), utmSource: params.get('utm_source'), utmMedium: params.get('utm_medium'), utmCampaign: params.get('utm_campaign'), utmContent: params.get('utm_content') }
     const send = (eventName: 'page_view' | 'cta_clicked', path = window.location.pathname) => {
       void fetch('/api/visitor-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: widgetKey, eventName, sessionId, path, referrer: document.referrer, host: window.location.hostname, consented: true }),
+        body: JSON.stringify({ key: widgetKey, eventName, sessionId, path, referrer: document.referrer, host: window.location.hostname, consented: true, ...attribution }),
         keepalive: true,
       }).catch(() => undefined)
     }

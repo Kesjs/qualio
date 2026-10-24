@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
   const { data: source } = await admin.from('collection_sources').select('site_id, active').eq('public_key', key).eq('type', 'widget').maybeSingle()
   if (!source?.active) return NextResponse.json({ error: 'Source inactive.' }, { status: 403, headers: cors() })
   const sessionId = typeof body?.sessionId === 'string' && body.sessionId.length < 100 ? body.sessionId : crypto.randomUUID()
-  const { error } = await admin.from('acquisition_visitor_events').insert({ session_id: sessionId, event_name: eventName, path: typeof body?.path === 'string' ? body.path.slice(0, 500) : '/', referrer: typeof body?.referrer === 'string' ? body.referrer.slice(0, 500) : null, company_domain: typeof body?.host === 'string' ? body.host.toLowerCase().replace(/^www\./, '').slice(0, 160) : null, consented: body?.consented === true || eventName === 'widget_opened' || eventName === 'feedback_submitted' })
+  const clean = (value: unknown, max = 160) => typeof value === 'string' && value.length <= max ? value : null
+  const { error } = await admin.from('acquisition_visitor_events').insert({ session_id: sessionId, event_name: eventName, path: typeof body?.path === 'string' ? body.path.slice(0, 500) : '/', referrer: typeof body?.referrer === 'string' ? body.referrer.slice(0, 500) : null, company_domain: typeof body?.host === 'string' ? body.host.toLowerCase().replace(/^www\./, '').slice(0, 160) : null, acquisition_message_id: clean(body?.acquisitionMessageId, 80), utm_source: clean(body?.utmSource), utm_medium: clean(body?.utmMedium), utm_campaign: clean(body?.utmCampaign), utm_content: clean(body?.utmContent, 80), consented: body?.consented === true || eventName === 'widget_opened' || eventName === 'feedback_submitted' })
   if (error) return NextResponse.json({ error: 'Événement non enregistré.' }, { status: 500, headers: cors() })
   return NextResponse.json({ ok: true }, { headers: cors() })
 }
