@@ -24,7 +24,7 @@ function normalize(pathname: string) {
   return pathname.startsWith('/admin') ? pathname : `/admin${pathname}`
 }
 
-export function AdminNav({ variant }: { variant: 'sidebar' | 'bar' }) {
+export function AdminNav({ variant, collapsed = false, onNavigate }: { variant: 'sidebar' | 'bar'; collapsed?: boolean; onNavigate?: () => void }) {
   const current = normalize(usePathname() ?? '/admin')
   const isActive = (href: string) => (href === '/admin' || href === '/admin/acquisition' ? current === href : current === href || current.startsWith(`${href}/`))
   const sidebar = variant === 'sidebar'
@@ -38,9 +38,9 @@ export function AdminNav({ variant }: { variant: 'sidebar' | 'bar' }) {
             : `flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm ${active ? 'bg-white/[0.1] font-semibold text-white' : 'text-stone-300 hover:bg-white/[0.06]'}`
           return (
             <li key={href}>
-              <Link href={href} aria-current={active ? 'page' : undefined} className={`${classes} ${FOCUS}`}>
+              <Link href={href} onClick={onNavigate} aria-current={active ? 'page' : undefined} aria-label={collapsed ? label : undefined} title={collapsed ? label : undefined} className={`${classes} ${collapsed ? 'justify-center px-0' : ''} ${FOCUS}`}>
                 <Icon size={18} aria-hidden="true" className={active ? 'text-[#ff9a66]' : 'text-stone-400'} />
-                {sidebar ? label : short}
+                {sidebar && !collapsed ? label : !sidebar ? short : null}
               </Link>
             </li>
           )
