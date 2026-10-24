@@ -29,6 +29,7 @@ export function WeeklyPage() {
   const actionsQuery = useActions()
   const { generateSynthesis, setActionStatus } = useDashboardMutations()
   const siteId = data && data.state !== 'no_project' ? data.project.id : undefined
+  const setupComplete = data?.state !== 'no_project' && Boolean(data?.project.onboarding_method)
   const { data: billing } = useBillingStatus(siteId)
   const { postponedIds, postpone } = usePostponed(siteId)
 
@@ -40,7 +41,7 @@ export function WeeklyPage() {
     <PageHeader
       title="Cette semaine"
       description="Les recommandations tirées de vos avis"
-      actions={data && data.state !== 'no_project' ? (
+      actions={data && setupComplete && data.state !== 'empty' && data.state !== 'warming' ? (
         <SynthesisRefresh generateError={generateSynthesis.error} billing={billing} generating={generateSynthesis.isPending}
           onGenerate={() => generateSynthesis.mutate(data.project.id, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['billing-status-header'] }) } })} />
       ) : undefined}

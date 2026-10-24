@@ -9,7 +9,7 @@ import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP, 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const
 
 /**
- * Apparition au défilement (désactivée si l'utilisateur demande moins d'animations).
+ * Mouvement au défilement, avec un contenu toujours visible, même avant hydratation.
  *  - `rise` : montée douce (texte).
  *  - `focus` : mise au point, du flou au net (visuels de produit).
  *  - `unveil` : dévoilement par le bas (grands blocs sombres).
@@ -19,10 +19,10 @@ export function Reveal({ children, delay = 0, className, variant = 'rise' }: { c
   const initial = reduce
     ? false
     : variant === 'focus'
-      ? { opacity: 0, scale: 0.97, filter: 'blur(10px)' }
+      ? { opacity: 1, scale: 0.97 }
       : variant === 'unveil'
-        ? { opacity: 0, clipPath: 'inset(12% 4% 0% 4% round 24px)' }
-        : { opacity: 0, y: 18 }
+        ? { opacity: 1, y: 12 }
+        : { opacity: 1, y: 18 }
   const animate = variant === 'focus'
     ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
     : variant === 'unveil'

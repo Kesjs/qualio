@@ -86,8 +86,11 @@ export async function POST(request: NextRequest) {
   const siteId = typeof body?.siteId === 'string' ? body.siteId.trim() : ''
   if (!siteId) return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
 
-  const { data: site } = await supabase.from('sites').select('id').eq('id', siteId).eq('user_id', user.id).maybeSingle()
+  const { data: site } = await supabase.from('sites').select('id, onboarding_method').eq('id', siteId).eq('user_id', user.id).maybeSingle()
   if (!site) return NextResponse.json({ error: 'Projet introuvable.' }, { status: 404 })
+  if (!site.onboarding_method) {
+    return NextResponse.json({ error: 'Terminez la configuration de votre projet avant de lancer une synthèse.', code: 'onboarding_incomplete' }, { status: 409 })
+  }
 
   // Les avis jamais classés (échec passé, exemples, avis débloqués) le sont maintenant : la synthèse et l'écran Détails en dépendent.
   try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: 30, budgetMs: 15_000 }) } catch (error) { console.error('[Feedback synthesis] pending classification failed', error) }
