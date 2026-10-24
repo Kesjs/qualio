@@ -12,6 +12,7 @@ import { WeeklyScreen } from './WeeklyScreen'
 import { PricingCards } from '@/components/billing/PricingCards'
 import { WidgetLiveDemo } from './WidgetLiveDemo'
 import { HeroVideo } from './HeroVideo'
+import { HeroFloaters, HeroFrame, HeroHeadline } from './HeroMotion'
 
 /**
  * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
@@ -41,53 +42,43 @@ export function LightLanding() {
 
   return (
     <SiteShell>
-      {/* 1. Hero : une visualisation fixe explique le passage des avis aux décisions */}
+      {/* 1. Hero : moment signature, des avis dispersés se resserrent en une décision suivie */}
       <section className="mx-auto max-w-6xl px-5 pb-10 text-center">
-        <div className="flex min-h-[min(calc(100svh-4.5rem-7rem),46rem)] flex-col items-center justify-center py-12">
-          <div className="hs-rise-now w-full">
-            <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium" style={{ borderColor: LINE, color: MUTED }}>
-              <span>Une lecture sourcée de vos avis</span>
-              <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" style={{ color: ACCENT }} />
-            </div>
-            <h1 className="mx-auto text-[clamp(2.25rem,5.8vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.055em] [text-wrap:balance]">
-              <span className="block lg:whitespace-nowrap">Des avis dispersés</span>
-              <span className="mt-2 block text-[#ee6018]">
-                <span className="inline-block -skew-x-2 bg-[#fff1e9] px-3 py-1">
-                  <span className="inline-block skew-x-2">Une décision suivie</span>
-                </span>
-              </span>
-            </h1>
-            <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED }}>
+        <div className="lp-hero flex min-h-[min(calc(100svh-4.5rem-7rem),46rem)] flex-col items-center justify-center py-12">
+          <HeroFloaters />
+          <div className="w-full">
+            <HeroHeadline />
+            <p className="hs-rise-now mx-auto mt-7 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED, ['--d' as string]: '0.75s' }}>
               Qualio regroupe vos retours, fait émerger les thèmes qui reviennent, propose des recommandations sourcées et vous aide à suivre ce que votre équipe décide ensuite.
             </p>
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="hs-rise-now mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" style={{ ['--d' as string]: '0.9s' }}>
               <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
               <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
             </div>
-            <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED }}>
+            <p className="hs-rise-now mt-4 flex items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED, ['--d' as string]: '1s' }}>
               <Check size={14} className="text-emerald-600" aria-hidden="true" />
               <span>Sans carte bancaire</span>
               <span aria-hidden="true">·</span>
               <span>50 avis analysés gratuitement</span>
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: MUTED }}>
+            <div className="hs-rise-now mt-6 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: MUTED, ['--d' as string]: '1.1s' }}>
               {['Import CSV', 'Widget sur votre site', 'Recommandations sourcées', 'Décisions humaines'].map((x) => (
-                <span key={x} className="rounded-md border px-2.5 py-1" style={{ borderColor: LINE }}>{x}</span>
+                <span key={x} className="rounded-md border bg-white px-2.5 py-1" style={{ borderColor: LINE }}>{x}</span>
               ))}
             </div>
           </div>
         </div>
         <div className="mx-auto max-w-6xl text-left">
-          <p className="qualio-hero-note" aria-hidden="true">
+          <p className="qualio-hero-note hs-rise-now" aria-hidden="true" style={{ ['--d' as string]: '1.3s' }}>
             <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
               <path d="M32 2C24 4 12 8 3 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <path d="M4 12l-1 7 7-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Qualio en moins d’une minute
           </p>
-          <div className="qualio-hero-frame">
+          <HeroFrame>
             <HeroVideo />
-          </div>
+          </HeroFrame>
         </div>
       </section>
 
@@ -127,8 +118,8 @@ export function LightLanding() {
             </ol>
             <div className="mt-8"><MoreLink href="/produit">En savoir plus</MoreLink></div>
           </Reveal>
-          <Reveal delay={0.08}>
-            <DecisionAnimation mode="static" />
+          <Reveal delay={0.08} variant="focus">
+            <DecisionAnimation />
           </Reveal>
         </div>
       </Section>
@@ -141,7 +132,7 @@ export function LightLanding() {
             Les nouveaux avis, les thèmes qui montent, les sources qui les expliquent et la prochaine action à examiner.
           </p>
         </Reveal>
-        <Reveal delay={0.05} className="mx-auto mt-12 max-w-3xl">
+        <Reveal delay={0.05} variant="focus" className="mx-auto mt-12 max-w-3xl">
           <WeeklyScreen full={false} />
         </Reveal>
         <Reveal delay={0.1} className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">

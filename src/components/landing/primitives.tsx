@@ -3,18 +3,38 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP, SOFT } from './tokens'
 
-/** Apparition au défilement (désactivée si l'utilisateur demande moins d'animations). */
-export function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+const EASE_OUT = [0.16, 1, 0.3, 1] as const
+
+/**
+ * Apparition au défilement (désactivée si l'utilisateur demande moins d'animations).
+ *  - `rise` : montée douce (texte).
+ *  - `focus` : mise au point, du flou au net (visuels de produit).
+ *  - `unveil` : dévoilement par le bas (grands blocs sombres).
+ */
+export function Reveal({ children, delay = 0, className, variant = 'rise' }: { children: ReactNode; delay?: number; className?: string; variant?: 'rise' | 'focus' | 'unveil' }) {
   const reduce = useReducedMotion()
+  const initial = reduce
+    ? false
+    : variant === 'focus'
+      ? { opacity: 0, scale: 0.97, filter: 'blur(10px)' }
+      : variant === 'unveil'
+        ? { opacity: 0, clipPath: 'inset(12% 4% 0% 4% round 24px)' }
+        : { opacity: 0, y: 18 }
+  const animate = variant === 'focus'
+    ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
+    : variant === 'unveil'
+      ? { opacity: 1, clipPath: 'inset(0% 0% 0% 0% round 16px)' }
+      : { opacity: 1, y: 0 }
   return (
     <motion.div
       className={className}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={initial}
+      whileInView={animate}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: variant === 'rise' ? 0.6 : 0.9, delay, ease: EASE_OUT }}
     >
       {children}
     </motion.div>
@@ -33,8 +53,9 @@ export function Eyebrow({ children, dark = false }: { children: ReactNode; dark?
   )
 }
 
-/** Trait dessiné permanent pour mettre en valeur un mot-clé dans un titre. */
+/** Trait dessiné pour mettre en valeur un mot-clé dans un titre : il se trace quand le titre apparaît. */
 export function UnderlineWord({ children }: { children: ReactNode }) {
+  const reduce = useReducedMotion()
   return (
     <span className="relative inline-block whitespace-nowrap">
       <span className="relative z-[1]">{children}</span>
@@ -45,34 +66,47 @@ export function UnderlineWord({ children }: { children: ReactNode }) {
         fill="none"
         preserveAspectRatio="none"
       >
-        <path d="M2 8.5C24 5.8 47 10.2 69 7.2c18-2.4 31-1.7 49-3.4" stroke="#ee6018" strokeWidth="3.2" strokeLinecap="round" />
+        <motion.path
+          d="M2 8.5C24 5.8 47 10.2 69 7.2c18-2.4 31-1.7 49-3.4"
+          stroke="#ee6018"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          initial={reduce ? false : { pathLength: 0 }}
+          whileInView={{ pathLength: 1 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.8, delay: 0.35, ease: [0.65, 0, 0.35, 1] }}
+        />
       </svg>
     </span>
   )
 }
 
+function ButtonArrow() {
+  return <ArrowRight aria-hidden="true" size={16} strokeWidth={2.25} className="lp-btn-arrow" />
+}
+
 export function PrimaryButton({ href, children, dark = false }: { href: string; children: ReactNode; dark?: boolean }) {
-  const className = `inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition hover:opacity-90 ${R_BUTTON} ${FOCUS}`
-  const style = dark ? { background: '#fff', color: INK } : { background: ACCENT_INK, color: '#fff' }
+  const tone = dark ? 'bg-white text-[#0b0b0c] hover:bg-[#f4f4f5]' : 'lp-btn-primary bg-[#c2410c] text-white hover:bg-[#a8370a]'
+  const className = `lp-btn inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold ${tone} ${R_BUTTON} ${FOCUS}`
   if (href.startsWith('#')) {
     return (
-      <a href={href} className={className} style={style}>
+      <a href={href} className={className}>
         {children}
-        <span aria-hidden="true">→</span>
+        <ButtonArrow />
       </a>
     )
   }
   return (
-    <Link href={href} className={className} style={style}>
+    <Link href={href} className={className}>
       {children}
-      <span aria-hidden="true">→</span>
+      <ButtonArrow />
     </Link>
   )
 }
 
 export function SecondaryButton({ href, children, onClick }: { href?: string; children: ReactNode; onClick?: () => void }) {
-  const className = `inline-flex items-center justify-center border px-5 py-3 text-sm font-semibold transition hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`
-  const style = { borderColor: LINE, color: INK }
+  const className = `lp-btn inline-flex items-center justify-center border border-[#e6e6ea] bg-white px-5 py-3 text-sm font-semibold text-[#0b0b0c] hover:border-[#d4d4d8] hover:bg-[#f4f4f5] ${R_BUTTON} ${FOCUS}`
+  const style = undefined
   if (onClick && !href) {
     return (
       <button type="button" onClick={onClick} className={className} style={style}>

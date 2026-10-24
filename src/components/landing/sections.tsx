@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, Check, ChevronDown, Minus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, animate, motion, useInView, useReducedMotion } from 'framer-motion'
+import { ArrowRight, Check, ChevronDown, Minus, MousePointer2 } from 'lucide-react'
 import { ACCENT, ACCENT_INK, DARK, FOCUS, H2, INK, LINE, MUTED, R_CARD, R_CHIP, SIGNUP, SOFT } from './tokens'
 import { AUDIENCES, COMPARISON, FAQ, PROBLEMS } from './content'
-import { Eyebrow, Reveal, PrimaryButton, Section, UnderlineWord } from './primitives'
+import { Reveal, PrimaryButton, Section, UnderlineWord } from './primitives'
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const
 
 const LOOP_ITEMS = [
   ['01', 'Collecter', 'CSV, widget ou ajout manuel.'],
@@ -15,39 +17,244 @@ const LOOP_ITEMS = [
   ['04', 'Suivre', 'Voir ce qui évolue après la décision.'],
 ] as const
 
+const LOOP_STEP_MS = 2600
+
+/** Boucle Qualio : l'étape active avance toute seule tant que la section est à l'écran (cliquable aussi). */
 export function DecisionLoopSection() {
   const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { amount: 0.4 })
+  const [active, setActive] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const running = inView && !paused && !reduce
+
+  useEffect(() => {
+    if (!running) return
+    const id = window.setTimeout(() => setActive((a) => (a + 1) % LOOP_ITEMS.length), LOOP_STEP_MS)
+    return () => window.clearTimeout(id)
+  }, [running, active])
+
   return (
     <Section tone="soft">
       <Reveal className="mx-auto max-w-3xl text-center">
-        <Eyebrow>La boucle Qualio</Eyebrow>
-        <h2 className={`mt-5 ${H2}`}>De l’avis reçu à la décision suivie.</h2>
+        <h2 className={H2}>De l’avis reçu à la décision suivie.</h2>
         <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Qualio garde le fil entre ce que vos clients disent, ce que votre équipe choisit et ce qui change ensuite.</p>
       </Reveal>
-      <div className="mx-auto mt-12 grid max-w-5xl gap-3 md:grid-cols-4">
-        {LOOP_ITEMS.map(([number, title, text], index) => (
-          <Reveal key={number} delay={index * 0.06} className="relative h-full">
-            <motion.div whileHover={reduce ? undefined : { y: -4 }} className={`h-full border bg-white p-6 ${R_CARD}`} style={{ borderColor: LINE }}>
-              <span className="font-mono text-xs font-semibold" style={{ color: ACCENT_INK }}>{number}</span>
-              <h3 className="mt-8 text-xl font-semibold tracking-tight">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: MUTED }}>{text}</p>
-            </motion.div>
-            {index < LOOP_ITEMS.length - 1 && <ArrowRight className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 md:block" size={18} style={{ color: ACCENT }} aria-hidden="true" />}
-          </Reveal>
-        ))}
+      <div ref={ref} className="mx-auto mt-12 grid max-w-5xl gap-3 md:grid-cols-4" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+        {LOOP_ITEMS.map(([number, title, text], index) => {
+          const isActive = index === active
+          const isDone = index < active
+          return (
+            <Reveal key={number} delay={index * 0.06} className="relative h-full">
+              <button
+                type="button"
+                onClick={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                aria-pressed={isActive}
+                className={`relative h-full w-full overflow-hidden border bg-white p-6 text-left transition-[border-color,box-shadow,transform] duration-500 lp-ease ${R_CARD} ${FOCUS} ${isActive ? 'md:-translate-y-1' : ''}`}
+                style={{
+                  borderColor: isActive ? '#f8c9ad' : LINE,
+                  boxShadow: isActive ? '0 18px 40px -26px rgba(194,65,12,.55)' : 'none',
+                }}
+              >
+                <span className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-semibold" style={{ color: isActive || isDone ? ACCENT_INK : MUTED }}>{number}</span>
+                  <span
+                    className="grid h-5 w-5 place-items-center rounded-full transition-colors duration-300"
+                    style={{ background: isDone ? '#e4ebde' : isActive ? '#fff1e9' : SOFT, color: isDone ? '#4f6b43' : ACCENT_INK }}
+                    aria-hidden="true"
+                  >
+                    {isDone ? <Check size={12} strokeWidth={3} /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: isActive ? ACCENT : '#d4d4d8' }} />}
+                  </span>
+                </span>
+                <span className="mt-8 block text-xl font-semibold tracking-tight" style={{ color: INK }}>{title}</span>
+                <span className="mt-2 block text-sm leading-relaxed" style={{ color: MUTED }}>{text}</span>
+                <span className="absolute inset-x-0 bottom-0 h-[3px]" style={{ background: isActive ? '#fde3d3' : 'transparent' }} aria-hidden="true">
+                  {isActive && (
+                    <span
+                      key={`${active}-${running}`}
+                      className={running ? 'lp-progress block h-full' : 'block h-full'}
+                      style={{ background: ACCENT, ['--dur' as string]: `${LOOP_STEP_MS}ms` }}
+                    />
+                  )}
+                </span>
+              </button>
+              {index < LOOP_ITEMS.length - 1 && (
+                <ArrowRight
+                  className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 transition-colors duration-500 md:block"
+                  size={18}
+                  style={{ color: index < active ? ACCENT : '#d4d4d8' }}
+                  aria-hidden="true"
+                />
+              )}
+            </Reveal>
+          )
+        })}
       </div>
     </Section>
   )
 }
 
+const TREND_PATH = 'M0 122 C60 116 78 98 130 104 S210 70 260 82 S330 46 380 62 S450 32 560 40'
+
+/** Compteur qui défile une seule fois quand il apparaît. */
+function CountUp({ to, run }: { to: number; run: boolean }) {
+  const reduce = useReducedMotion()
+  const [value, setValue] = useState(reduce ? to : 0)
+  useEffect(() => {
+    if (!run) return
+    if (reduce) { setValue(to); return }
+    const controls = animate(0, to, { duration: 1.4, delay: 0.6, ease: EASE_OUT, onUpdate: (v) => setValue(Math.round(v)) })
+    return () => controls.stop()
+  }, [run, to, reduce])
+  return <span className="tabular-nums">{value}</span>
+}
+
 export function TrendSection() {
+  const reduce = useReducedMotion()
+  const chartRef = useRef<HTMLDivElement>(null)
+  const inView = useInView(chartRef, { once: true, amount: 0.5 })
   return (
     <Section tone="soft">
       <div className="grid items-center gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16">
-        <Reveal><Eyebrow>Suivi hebdomadaire</Eyebrow><h2 className={`mt-5 ${H2}`}>Ne regardez pas seulement ce qui est dit. Regardez ce qui évolue.</h2><p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Une synthèse garde sa date, ses avis sources et les recommandations qui en découlent. La tendance vous aide à savoir quoi examiner maintenant.</p><div className="mt-7 flex flex-wrap gap-2 text-xs" style={{ color: MUTED }}>{['Avis positifs', 'Avis négatifs', 'Thèmes en hausse', 'Nouveaux avis'].map((item) => <span key={item} className="border px-2.5 py-1.5" style={{ borderColor: LINE }}>{item}</span>)}</div></Reveal>
-        <Reveal delay={0.08}><div className={`border bg-white p-5 sm:p-7 ${R_CARD}`} style={{ borderColor: LINE }}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: MUTED }}>Aperçu de démonstration</p><p className="mt-2 text-3xl font-semibold tracking-tight">Une tendance en hausse</p></div><span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ color: ACCENT_INK, background: '#fff1e9' }}>Exemple</span></div><div className="mt-8 h-40" aria-label="Aperçu démonstratif d’une tendance des avis" role="img"><svg viewBox="0 0 560 150" className="h-full w-full" fill="none" preserveAspectRatio="none"><path d="M0 122 C60 116 78 98 130 104 S210 70 260 82 S330 46 380 62 S450 32 560 40" stroke={ACCENT} strokeWidth="3" strokeLinecap="round" /><path d="M0 122 C60 116 78 98 130 104 S210 70 260 82 S330 46 380 62 S450 32 560 40 V150 H0 Z" fill={ACCENT} fillOpacity="0.08" /><path d="M0 145 H560" stroke={LINE} /></svg></div><div className="mt-4 flex items-center justify-between text-xs" style={{ color: MUTED }}><span>Il y a 4 semaines</span><span>Aujourd’hui</span></div><div className="mt-6 border-t pt-4" style={{ borderColor: LINE }}><p className="text-sm font-medium">Thème en hausse</p><p className="mt-1 text-sm" style={{ color: MUTED }}>La facturation revient dans 3 avis d’exemple.</p></div></div></Reveal>
+        <Reveal>
+          <h2 className={H2}>Ne regardez pas seulement ce qui est dit. Regardez ce qui évolue.</h2>
+          <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Une synthèse garde sa date, ses avis sources et les recommandations qui en découlent. La tendance vous aide à savoir quoi examiner maintenant.</p>
+          <div className="mt-7 flex flex-wrap gap-2 text-xs" style={{ color: MUTED }}>{['Avis positifs', 'Avis négatifs', 'Thèmes en hausse', 'Nouveaux avis'].map((item) => <span key={item} className={`border bg-white px-2.5 py-1.5 ${R_CHIP}`} style={{ borderColor: LINE }}>{item}</span>)}</div>
+        </Reveal>
+        <Reveal delay={0.08} variant="focus">
+          <div ref={chartRef} className={`border bg-white p-5 sm:p-7 ${R_CARD}`} style={{ borderColor: LINE }}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.1em]" style={{ color: MUTED }}>Aperçu de démonstration</p>
+                <p className="mt-2 text-3xl font-semibold tracking-tight">Une tendance en hausse</p>
+              </div>
+              <span className="rounded-md px-2 py-1 text-xs font-semibold" style={{ color: ACCENT_INK, background: '#fff1e9' }}>Exemple</span>
+            </div>
+            <div className="relative mt-8 h-40" aria-label="Aperçu démonstratif d’une tendance des avis" role="img">
+              <svg viewBox="0 0 560 150" className="h-full w-full overflow-visible" fill="none" preserveAspectRatio="none" aria-hidden="true">
+                {[40, 80, 120].map((y) => <path key={y} d={`M0 ${y} H560`} stroke={LINE} strokeDasharray="3 6" />)}
+                <motion.path
+                  d={`${TREND_PATH} V150 H0 Z`}
+                  fill={ACCENT}
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={inView ? { opacity: 0.08 } : undefined}
+                  style={reduce ? { opacity: 0.08 } : undefined}
+                  transition={{ duration: 0.8, delay: 1 }}
+                />
+                <motion.path
+                  d={TREND_PATH}
+                  stroke={ACCENT}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  initial={reduce ? false : { pathLength: 0 }}
+                  animate={inView ? { pathLength: 1 } : undefined}
+                  transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1] }}
+                />
+                <path d="M0 145 H560" stroke={LINE} />
+              </svg>
+              {/* Point d'arrivée : (560, 40) dans un repère 560 × 150 */}
+              <span className="absolute right-0 block h-2.5 w-2.5 -translate-y-1/2 translate-x-1/2" style={{ top: `${(40 / 150) * 100}%` }} aria-hidden="true">
+                <motion.span
+                  className="relative block h-full w-full rounded-full"
+                  style={{ background: ACCENT }}
+                  initial={reduce ? false : { scale: 0 }}
+                  animate={inView ? { scale: 1 } : undefined}
+                  transition={{ duration: 0.4, delay: 1.5, ease: EASE_OUT }}
+                >
+                  {inView && !reduce && <span className="lp-pulse absolute inset-0 rounded-full" style={{ background: ACCENT }} />}
+                </motion.span>
+              </span>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-xs" style={{ color: MUTED }}><span>Il y a 4 semaines</span><span>Aujourd’hui</span></div>
+            <div className="mt-6 flex items-end justify-between gap-4 border-t pt-4" style={{ borderColor: LINE }}>
+              <div>
+                <p className="text-sm font-medium">Thème en hausse</p>
+                <p className="mt-1 text-sm" style={{ color: MUTED }}>La facturation revient dans <CountUp to={3} run={inView} /> avis d’exemple.</p>
+              </div>
+              <span className="shrink-0 font-mono text-2xl font-semibold tracking-tight" style={{ color: ACCENT_INK }}>+<CountUp to={3} run={inView} /></span>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </Section>
+  )
+}
+
+/*
+ * Simulation de décision : le curseur choisit « Accepter », le statut passe en suivi.
+ * Joue en boucle lente uniquement à l'écran ; « réduire les animations » montre l'état final.
+ */
+const DECISION_PHASES = [1400, 900, 2600, 900] as const // attente, survol, acceptée, retour
+
+function DecisionSim() {
+  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { amount: 0.5 })
+  const [phase, setPhase] = useState(reduce ? 2 : 0)
+
+  useEffect(() => {
+    if (reduce) { setPhase(2); return }
+    if (!inView) return
+    const id = window.setTimeout(() => setPhase((p) => (p + 1) % DECISION_PHASES.length), DECISION_PHASES[phase])
+    return () => window.clearTimeout(id)
+  }, [phase, inView, reduce])
+
+  const hovering = phase === 1
+  const accepted = phase === 2
+  const cursorTarget = phase === 1 || phase === 2
+
+  return (
+    <div ref={ref} className={`relative overflow-hidden border bg-[#18181b] p-6 text-white sm:p-8 ${R_CARD}`} aria-label="Exemple : une recommandation sur la facturation, appuyée par 3 avis, est acceptée puis ajoutée au suivi." role="img">
+      <div aria-hidden="true">
+        <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: 'rgba(255,255,255,0.14)' }}>
+          <span className="text-sm font-semibold">Recommandation · Facturation</span>
+          <span className="font-mono text-xs" style={{ color: '#a1a1aa' }}>3 avis sources</span>
+        </div>
+        <p className="mt-7 text-xl font-semibold tracking-tight">Rendre les factures plus faciles à retrouver.</p>
+        <p className="mt-3 text-sm leading-relaxed" style={{ color: '#a1a1aa' }}>Les avis convergent vers un même obstacle. Votre équipe choisit la suite.</p>
+        <div className="relative mt-7 flex flex-wrap gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-medium transition-all duration-300"
+            style={{
+              borderColor: accepted ? '#a0ca92' : hovering ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.18)',
+              background: accepted ? '#a0ca92' : hovering ? 'rgba(255,255,255,0.08)' : 'transparent',
+              color: accepted ? '#18181b' : '#fff',
+              transform: accepted ? 'scale(1.03)' : 'none',
+              borderRadius: 8,
+            }}
+          >
+            <AnimatePresence initial={false}>
+              {accepted && (
+                <motion.span initial={{ width: 0, opacity: 0 }} animate={{ width: 'auto', opacity: 1 }} exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="inline-flex overflow-hidden">
+                  <Check size={13} strokeWidth={3} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {accepted ? 'Acceptée' : 'Accepter'}
+          </span>
+          <span className="border px-3 py-2 text-xs transition-opacity duration-300" style={{ borderColor: 'rgba(255,255,255,0.18)', borderRadius: 8, opacity: accepted ? 0.4 : 1 }}>Plus tard</span>
+          <span className="border px-3 py-2 text-xs transition-opacity duration-300" style={{ borderColor: ACCENT, color: '#ffb08d', borderRadius: 8, opacity: accepted ? 0.4 : 1 }}>Écarter</span>
+          {!reduce && (
+            <motion.span
+              className="pointer-events-none absolute left-0 top-0"
+              initial={false}
+              animate={cursorTarget ? { x: 54, y: 22, opacity: 1, scale: phase === 2 ? 0.9 : 1 } : { x: 210, y: 70, opacity: 0, scale: 1 }}
+              transition={{ duration: cursorTarget ? 0.8 : 0.5, ease: EASE_OUT }}
+            >
+              <MousePointer2 size={20} fill="#fff" stroke="#18181b" strokeWidth={1.5} />
+            </motion.span>
+          )}
+        </div>
+        <div className="mt-6 flex h-5 items-center text-xs" style={{ color: '#a1a1aa' }}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span key={accepted ? 'on' : 'off'} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }} className="inline-flex items-center gap-2">
+              {accepted ? <><span className="h-1.5 w-1.5 rounded-full bg-[#a0ca92]" />Ajoutée au suivi du projet, avec ses 3 avis sources.</> : 'Décision conservée dans le suivi du projet.'}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -55,33 +262,41 @@ export function ReportsSection() {
   return (
     <Section>
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-        <Reveal><div className={`border bg-[#18181b] p-6 text-white sm:p-8 ${R_CARD}`}><div className="flex items-center justify-between border-b pb-4" style={{ borderColor: 'rgba(255,255,255,0.14)' }}><span className="text-sm font-semibold">Recommandation · Facturation</span><span className="text-xs" style={{ color: '#a1a1aa' }}>3 avis sources</span></div><p className="mt-7 text-xl font-semibold tracking-tight">Rendre les factures plus faciles à retrouver.</p><p className="mt-3 text-sm leading-relaxed" style={{ color: '#a1a1aa' }}>Les avis convergent vers un même obstacle. Votre équipe choisit la suite.</p><div className="mt-7 flex flex-wrap gap-2"><span className="border px-3 py-2 text-xs" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>Accepter</span><span className="border px-3 py-2 text-xs" style={{ borderColor: 'rgba(255,255,255,0.18)' }}>Plus tard</span><span className="border px-3 py-2 text-xs" style={{ borderColor: ACCENT, color: '#ffb08d' }}>Écarter</span></div><p className="mt-6 text-xs" style={{ color: '#a1a1aa' }}>Décision conservée dans le suivi du projet.</p></div></Reveal>
-        <Reveal delay={0.08}><Eyebrow>Décision humaine</Eyebrow><h2 className={`mt-5 ${H2}`}>L’IA propose. Votre équipe garde la main.</h2><p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Chaque recommandation reste reliée aux avis qui la justifient. Vous pouvez l’accepter, la reporter ou l’écarter, puis partager le résultat avec votre équipe ou votre client.</p><div className="mt-7 flex flex-wrap gap-2 text-xs" style={{ color: MUTED }}><span className="border px-2.5 py-1.5" style={{ borderColor: LINE }}>Notifications</span><span className="border px-2.5 py-1.5" style={{ borderColor: LINE }}>Rapport partageable</span><span className="border px-2.5 py-1.5" style={{ borderColor: LINE }}>Export CSV</span></div></Reveal>
+        <Reveal variant="focus"><DecisionSim /></Reveal>
+        <Reveal delay={0.08}><h2 className={H2}>L’IA propose. Votre équipe garde la main.</h2><p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Chaque recommandation reste reliée aux avis qui la justifient. Vous pouvez l’accepter, la reporter ou l’écarter, puis partager le résultat avec votre équipe ou votre client.</p><div className="mt-7 flex flex-wrap gap-2 text-xs" style={{ color: MUTED }}>{['Notifications', 'Rapport partageable', 'Export CSV'].map((item) => <span key={item} className={`border px-2.5 py-1.5 ${R_CHIP}`} style={{ borderColor: LINE }}>{item}</span>)}</div></Reveal>
       </div>
     </Section>
   )
 }
 
-/* ───────── Le problème (bloc sombre, statique) ───────── */
+/* ───────── Le problème (bloc sombre) : chaque point arrive à son tour ───────── */
 
 export function ProblemSection() {
+  const reduce = useReducedMotion()
   return (
     <section className="mx-auto max-w-6xl px-5 py-20">
-      <Reveal>
+      <Reveal variant="unveil">
         <div className={`grid gap-12 p-8 sm:p-14 lg:grid-cols-[1fr_1.15fr] lg:gap-16 ${R_CARD}`} style={{ background: DARK, color: '#fff' }}>
           <div>
-            <Eyebrow dark>Le problème</Eyebrow>
-            <h2 className={`mt-5 ${H2}`}>Les <UnderlineWord>avis</UnderlineWord> s’accumulent. Les décisions, elles, attendent.</h2>
+            <h2 className={H2}>Les <UnderlineWord>avis</UnderlineWord> s’accumulent. Les décisions, elles, attendent.</h2>
           </div>
           <ul>
-            {PROBLEMS.map(([t, d]) => (
-              <li key={t} className="flex gap-4 border-t py-6 first:border-t-0 first:pt-0 last:pb-0" style={{ borderColor: 'rgba(255,255,255,0.12)' }}>
+            {PROBLEMS.map(([t, d], i) => (
+              <motion.li
+                key={t}
+                className="flex gap-4 border-t py-6 first:border-t-0 first:pt-0 last:pb-0"
+                style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+                initial={reduce ? false : { opacity: 0, x: 16 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.6, delay: 0.35 + i * 0.12, ease: EASE_OUT }}
+              >
                 <ArrowRight size={20} className="mt-1 shrink-0" style={{ color: ACCENT }} aria-hidden="true" />
                 <div>
                   <h3 className="text-[20px] font-semibold tracking-tight">{t}</h3>
                   <p className="mt-1.5 text-[15px] leading-relaxed" style={{ color: '#a1a1aa' }}>{d}</p>
                 </div>
-              </li>
+              </motion.li>
             ))}
           </ul>
         </div>
@@ -154,8 +369,7 @@ export function BetaBand() {
       <Reveal className="mx-auto max-w-6xl">
         <div className={`flex flex-col items-start justify-between gap-6 border p-8 sm:flex-row sm:items-center sm:p-10 ${R_CARD}`} style={{ borderColor: LINE, background: SOFT }}>
           <div>
-            <Eyebrow>Bêta ouverte</Eyebrow>
-            <p className="mt-4 max-w-xl text-[20px] font-semibold leading-snug tracking-tight">
+            <p className="max-w-xl text-[20px] font-semibold leading-snug tracking-tight">
               Qualio est en bêta ouverte. Rejoignez les premiers utilisateurs et aidez-nous à le façonner.
             </p>
           </div>
@@ -215,13 +429,38 @@ export function FaqSection() {
   )
 }
 
-/* ───────── Appel final (bloc sombre) ───────── */
+/* ───────── Appel final (bloc sombre) : les fils des avis convergent vers l'action ───────── */
+
+const CTA_LINES = [
+  'M0 40 C220 60 360 210 600 230',
+  'M0 190 C200 190 380 230 600 230',
+  'M0 380 C240 350 380 250 600 230',
+  'M1200 30 C980 60 840 210 600 230',
+  'M1200 200 C1000 200 820 230 600 230',
+  'M1200 400 C960 360 820 250 600 230',
+] as const
 
 export function FinalCta({ title = 'Transformez chaque avis en prochaine décision.', text = 'Importez vos avis ou installez le widget. Votre première synthèse arrive dès qu’il y a assez de matière.' }: { title?: string; text?: string }) {
+  const reduce = useReducedMotion()
   return (
     <section className="px-5 pb-20">
-      <Reveal className="mx-auto max-w-6xl">
-        <div className={`px-6 py-16 text-center sm:px-16 sm:py-24 ${R_CARD}`} style={{ background: DARK, color: '#fff' }}>
+      <Reveal className="mx-auto max-w-6xl" variant="unveil">
+        <div className={`relative isolate overflow-hidden px-6 py-16 text-center sm:px-16 sm:py-24 ${R_CARD}`} style={{ background: DARK, color: '#fff' }}>
+          <svg className="pointer-events-none absolute inset-0 -z-10 h-full w-full" viewBox="0 0 1200 440" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
+            {CTA_LINES.map((d, i) => (
+              <motion.path
+                key={d}
+                d={d}
+                stroke={i % 3 === 1 ? ACCENT : '#fff'}
+                strokeOpacity={i % 3 === 1 ? 0.35 : 0.08}
+                strokeWidth={1.5}
+                initial={reduce ? false : { pathLength: 0 }}
+                whileInView={{ pathLength: 1 }}
+                viewport={{ once: true, margin: '-80px' }}
+                transition={{ duration: 1.6, delay: 0.3 + (i % 3) * 0.15, ease: [0.65, 0, 0.35, 1] }}
+              />
+            ))}
+          </svg>
           <h2 className="mx-auto max-w-3xl text-[clamp(2rem,4.8vw,3.75rem)] font-semibold leading-[1.1] tracking-[-0.03em] [text-wrap:balance]">
             {title === 'Transformez chaque avis en prochaine décision.' ? <>Transformez chaque <UnderlineWord>avis</UnderlineWord> en prochaine décision.</> : title}
           </h2>
