@@ -60,7 +60,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 /** Onglets accessibles : flèches, Début et Fin pour naviguer, seul l'onglet actif est dans l'ordre de tabulation. */
-export function Tabs<T extends string>({ label, tabs, value, onChange }: { label: string; tabs: ReadonlyArray<{ id: T; label: string; locked?: boolean }>; value: T; onChange: (id: T) => void }) {
+export function Tabs<T extends string>({ label, tabs, value, onChange }: { label: string; tabs: ReadonlyArray<{ id: T; label: string; locked?: boolean; attention?: boolean }>; value: T; onChange: (id: T) => void }) {
   const refs = useRef<Array<HTMLButtonElement | null>>([])
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -93,6 +93,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange }: { label
             className={`relative inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 text-sm font-semibold transition-colors duration-150 ${focusRing} ${selected ? 'text-gray-950 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white'}`}
           >
             {tab.label}
+            {tab.attention && <span className="h-2.5 w-2.5 rounded-full bg-[#ee6018]" aria-label="Notification à configurer" />}
             {tab.locked && <><LockClosedIcon className="h-3.5 w-3.5" aria-hidden /><span className="sr-only">(avec Pro)</span></>}
             <span aria-hidden className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gray-950 transition-transform duration-200 motion-reduce:transition-none dark:bg-white ${selected ? 'scale-x-100' : 'scale-x-0'}`} />
           </button>

@@ -11,7 +11,7 @@ const AUTH_MAX_PAGES = 5
 
 export type AdminFeedback = {
   id: string; category: string; message: string; context: string | null; status: string; priority: string
-  allow_contact: boolean; allow_public_testimonial: boolean; admin_note: string | null; created_at: string
+  allow_contact: boolean; allow_public_testimonial: boolean; testimonial_name: string | null; testimonial_role: string | null; admin_note: string | null; created_at: string
 }
 export type AdminEmail = { id: string; event_type: string; recipient: string; status: string; created_at: string; last_error: string | null }
 export type AdminSite = { id: string; name: string | null; url: string; created_at: string }
@@ -21,7 +21,7 @@ export type AcquisitionCompany = { id: string; name: string; domain: string; web
 export type AcquisitionContact = { id: string; company_id: string; full_name: string | null; role: string | null; email: string; email_status: string; confidence: number | null; company?: { name: string; domain: string } | null }
 export type AcquisitionSignal = { id: string; company_id: string; signal_type: string; label: string; source_url: string; evidence: string | null; confidence: number | null; company?: { name: string; domain: string } | null }
 
-const FEEDBACK_COLUMNS = 'id, category, message, context, status, priority, allow_contact, allow_public_testimonial, admin_note, created_at'
+const FEEDBACK_COLUMNS = 'id, category, message, context, status, priority, allow_contact, allow_public_testimonial, testimonial_name, testimonial_role, admin_note, created_at'
 const EMAIL_COLUMNS = 'id, event_type, recipient, status, created_at, last_error'
 
 /** Retours qui attendent une décision : nouveaux, ou prioritaires et encore ouverts. */

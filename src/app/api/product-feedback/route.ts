@@ -12,6 +12,8 @@ export async function POST(request: Request) {
   const category = String(body?.category ?? '')
   const message = String(body?.message ?? '').trim()
   const context = String(body?.context ?? '').trim().slice(0, 500) || null
+  const testimonialName = String(body?.testimonialName ?? '').trim().slice(0, 80) || null
+  const testimonialRole = String(body?.testimonialRole ?? '').trim().slice(0, 120) || null
   if (!categories.has(category) || message.length < 10 || message.length > 4000) {
     return NextResponse.json({ error: 'Décrivez votre retour en au moins 10 caractères.' }, { status: 400 })
   }
@@ -23,6 +25,8 @@ export async function POST(request: Request) {
     context,
     allow_contact: Boolean(body?.allowContact),
     allow_public_testimonial: Boolean(body?.allowPublicTestimonial),
+    testimonial_name: testimonialName,
+    testimonial_role: testimonialRole,
   } as never)
   if (error) {
     console.error('[product-feedback] insert failed', error.message)

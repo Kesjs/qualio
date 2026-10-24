@@ -9,15 +9,15 @@ type Published = { quote: string; name: string; role: string } | null
 const BUTTON = `min-h-11 rounded-lg px-4 text-sm font-semibold disabled:opacity-50 ${FOCUS}`
 
 /** Publier un retour positif sur la landing : citation fidèle, nom et rôle validés avec la personne. */
-export function TestimonialControl({ feedbackId, message, published }: { feedbackId: string; message: string; published: Published }) {
+export function TestimonialControl({ feedbackId, message, suggestedName, suggestedRole, published }: { feedbackId: string; message: string; suggestedName: string | null; suggestedRole: string | null; published: Published }) {
   const router = useRouter()
   const uid = useId()
   const toggleRef = useRef<HTMLButtonElement>(null)
   const quoteRef = useRef<HTMLTextAreaElement>(null)
   const [open, setOpen] = useState(false)
   const [quote, setQuote] = useState(published?.quote ?? message)
-  const [name, setName] = useState(published?.name ?? '')
-  const [role, setRole] = useState(published?.role ?? '')
+  const [name, setName] = useState(published?.name ?? suggestedName ?? '')
+  const [role, setRole] = useState(published?.role ?? suggestedRole ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)

@@ -28,6 +28,22 @@ export default function SettingsPage() {
   const requestedTab = searchParams.get('tab') as TabId | null
   const [tab, setTab] = useState<TabId>(requestedTab && TABS.some((item) => item.id === requestedTab) ? requestedTab : 'project')
   const [flash, setFlash] = useState<Flash>(null)
+  const [needsNotificationSetup, setNeedsNotificationSetup] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const loadPreference = () => {
+      void fetch('/api/settings/notifications').then(async (response) => {
+        if (!response.ok || cancelled) return
+        const preferences = await response.json() as { weekly_digest?: boolean }
+        setNeedsNotificationSetup(preferences.weekly_digest !== true)
+      }).catch(() => undefined)
+    }
+    loadPreference()
+    const onChanged = () => loadPreference()
+    window.addEventListener('qualio:notification-preferences-changed', onChanged)
+    return () => { cancelled = true; window.removeEventListener('qualio:notification-preferences-changed', onChanged) }
+  }, [])
 
   useEffect(() => {
     if (!flash) return
@@ -38,7 +54,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 pb-16">
       <PageHeader eyebrow="Réglages" title="Votre espace, simplement" description="Projet, notifications, abonnement et compte." />
-      <Tabs label="Sections des réglages" tabs={TABS} value={tab} onChange={setTab} />
+      <Tabs label="Sections des réglages" tabs={TABS.map((item) => item.id === 'notifications' ? { ...item, attention: needsNotificationSetup } : item)} value={tab} onChange={setTab} />
 
       {flash && (
         <p role={flash.tone === 'error' ? 'alert' : 'status'} className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm motion-safe:animate-[qualio-fade_200ms_ease-out] ${flash.tone === 'error' ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200' : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100'}`}>

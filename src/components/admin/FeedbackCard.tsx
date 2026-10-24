@@ -21,7 +21,7 @@ export function FeedbackCard({ item, published, showTestimonial = true }: { item
       {item.context && <p className="mt-3 break-words font-mono text-xs text-stone-400">Contexte : {item.context}</p>}
       <p className="mt-3 text-xs text-stone-400">{item.allow_contact ? 'Recontact autorisé' : 'Recontact non autorisé'}</p>
       <FeedbackControls feedbackId={item.id} status={item.status} priority={item.priority} adminNote={item.admin_note} />
-      {showTestimonial && item.allow_public_testimonial && <TestimonialControl feedbackId={item.id} message={item.message} published={published ?? null} />}
+      {showTestimonial && item.allow_public_testimonial && <TestimonialControl feedbackId={item.id} message={item.message} suggestedName={item.testimonial_name} suggestedRole={item.testimonial_role} published={published ?? null} />}
     </article>
   )
 }

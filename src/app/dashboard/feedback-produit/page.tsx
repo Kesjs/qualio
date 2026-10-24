@@ -10,6 +10,8 @@ export default function ProductFeedbackPage() {
   const [message, setMessage] = useState('')
   const [allowContact, setAllowContact] = useState(false)
   const [allowPublicTestimonial, setAllowPublicTestimonial] = useState(false)
+  const [testimonialName, setTestimonialName] = useState('')
+  const [testimonialRole, setTestimonialRole] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [feedback, setFeedback] = useState<Feedback[]>([])
 
@@ -19,9 +21,9 @@ export default function ProductFeedbackPage() {
     event.preventDefault()
     setState('sending')
     try {
-      const response = await fetch('/api/product-feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ category, message, allowContact, allowPublicTestimonial }) })
+      const response = await fetch('/api/product-feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ category, message, allowContact, allowPublicTestimonial, testimonialName, testimonialRole }) })
       setState(response.ok ? 'sent' : 'error')
-      if (response.ok) setMessage('')
+      if (response.ok) { setMessage(''); setTestimonialName(''); setTestimonialRole('') }
     } catch {
       setState('error')
     }
@@ -34,6 +36,7 @@ export default function ProductFeedbackPage() {
       <label className="block text-sm font-semibold">Votre retour<textarea required minLength={10} maxLength={4000} rows={7} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Qu’essayiez-vous de faire ? Qu’est-ce qui vous a aidé ou bloqué ?" className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm font-normal dark:border-white/10 dark:bg-white/[0.04]" /></label>
       <label className="flex gap-3 text-sm text-gray-600 dark:text-zinc-300"><input type="checkbox" checked={allowContact} onChange={(event) => setAllowContact(event.target.checked)} className="mt-1" />Vous pouvez me recontacter pour préciser ce retour.</label>
       <label className="flex gap-3 text-sm text-gray-600 dark:text-zinc-300"><input type="checkbox" checked={allowPublicTestimonial} onChange={(event) => setAllowPublicTestimonial(event.target.checked)} className="mt-1" />Je pourrais accepter que ce retour devienne un témoignage, après validation.</label>
+      {allowPublicTestimonial && <div className="grid gap-4 rounded-xl border border-orange-200/70 bg-orange-50/60 p-4 dark:border-orange-500/20 dark:bg-orange-500/[0.06] sm:grid-cols-2"><label className="block text-sm font-semibold text-gray-700 dark:text-zinc-300">Nom à afficher<input value={testimonialName} onChange={(event) => setTestimonialName(event.target.value)} maxLength={80} placeholder="Prénom ou prénom + initiale" className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-normal dark:border-white/10 dark:bg-white/[0.04]" /></label><label className="block text-sm font-semibold text-gray-700 dark:text-zinc-300">Rôle ou activité<input value={testimonialRole} onChange={(event) => setTestimonialRole(event.target.value)} maxLength={120} placeholder="Fondatrice, boutique en ligne" className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-normal dark:border-white/10 dark:bg-white/[0.04]" /></label><p className="sm:col-span-2 text-xs leading-5 text-gray-500 dark:text-zinc-400">Ces informations seront proposées à l’administrateur et ne seront affichées qu’après validation.</p></div>}
       {state === 'sent' && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Merci. Votre retour a bien été enregistré.</p>}
       {state === 'error' && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">Impossible d’enregistrer le retour. Réessayez.</p>}
       <button disabled={state === 'sending'} className="min-h-11 rounded-lg bg-[#ee6018] px-5 text-sm font-bold text-white disabled:opacity-50">{state === 'sending' ? 'Envoi…' : 'Envoyer mon retour'}</button>

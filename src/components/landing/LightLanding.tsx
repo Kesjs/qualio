@@ -23,14 +23,16 @@ export function LightLanding() {
   const [demoOpen, setDemoOpen] = useState(false)
   // Témoignages : ceux saisis dans content.ts, plus ceux que l'admin a publiés (avec l'accord de leurs auteurs).
   const [testimonials, setTestimonials] = useState<{ quote: string; name: string; role: string }[]>(TESTIMONIALS)
+  const [testimonialsLoaded, setTestimonialsLoaded] = useState(false)
   useEffect(() => {
     let cancelled = false
-    fetch('/api/testimonials')
+    fetch('/api/testimonials', { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .then((body: { testimonials?: { quote: string; name: string; role: string }[] } | null) => {
         if (!cancelled && body?.testimonials?.length) setTestimonials([...TESTIMONIALS, ...body.testimonials].slice(0, 6))
+        if (!cancelled) setTestimonialsLoaded(true)
       })
-      .catch(() => undefined)
+      .catch(() => { if (!cancelled) setTestimonialsLoaded(true) })
     return () => { cancelled = true }
   }, [])
 
@@ -171,7 +173,7 @@ export function LightLanding() {
       </Section>
 
       {/* 8. Témoignages (seulement avec de vrais retours) ou bande « Bêta ouverte » */}
-      {testimonials.length > 0 ? (
+      {!testimonialsLoaded ? null : testimonials.length > 0 ? (
         <section className="border-t" style={{ borderColor: LINE }}>
           <div className="mx-auto max-w-6xl px-5 py-20">
             <div className="grid gap-4 md:grid-cols-3">
