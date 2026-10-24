@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast as sonnerToast } from 'sonner'
 import { StatCard } from '@/components/admin/ui'
 import { AcquisitionAdd } from '@/components/admin/AcquisitionAdd'
 import { AcquisitionDrafts } from '@/components/admin/AcquisitionDrafts'
@@ -23,7 +24,18 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>(data.queue.length ? 'queue' : data.drafts.length ? 'drafts' : data.tracking.length ? 'tracking' : 'queue')
   const [toast, setToast] = useState<Toast | null>(null)
-  const notify: Notify = useCallback((kind, text, go) => setToast({ kind, text, go }), [])
+  const notify: Notify = useCallback((kind, text, go) => {
+    if (kind === 'success') {
+      sonnerToast.success(text, {
+        action: go ? { label: `Voir « ${TAB_LABEL[go]} »`, onClick: () => setTab(go) } : undefined,
+      })
+    } else if (kind === 'error') {
+      sonnerToast.error(text)
+    } else {
+      sonnerToast.info(text)
+    }
+    setToast({ kind, text, go })
+  }, [])
   const refresh = useCallback(() => router.refresh(), [router])
   useEffect(() => {
     if (!toast || toast.kind === 'error') return

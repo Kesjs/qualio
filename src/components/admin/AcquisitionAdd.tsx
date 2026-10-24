@@ -8,6 +8,7 @@ import { parseImport } from '@/lib/admin/acquisition-csv'
 import { OSM_CATEGORIES } from '@/lib/admin/acquisition-osm'
 import { plural, postJson, type Notify } from '@/components/admin/acquisition-shared'
 import { SparklesIcon } from '@heroicons/react/24/solid'
+import { toast } from 'sonner'
 
 type Mode = 'ai' | 'discover' | 'domains' | 'csv'
 
@@ -51,13 +52,26 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
     })
     setBusy(false)
 
-    if (!ok) return notify('error', data.error ?? 'La génération par l’IA a échoué.')
+    if (!ok) {
+      const err = data.error ?? 'La génération par l’IA a échoué.'
+      toast.error(err)
+      return notify('error', err)
+    }
     refresh()
-    if (!data.added) return notify('info', data.message ?? 'Aucun nouveau prospect trouvé.')
+    if (!data.added) {
+      const msg = data.message ?? 'Aucun nouveau prospect trouvé.'
+      toast.info(msg)
+      return notify('info', msg)
+    }
 
+    const countText = plural(data.added, 'entreprise réelle trouvée', 'entreprises réelles trouvées')
+    toast.success(`✨ ${countText} via ${data.provider}`, {
+      description: 'Disponibles dans « À contacter ». Cliquez sur « Préparer » pour extraire les emails.',
+      duration: 6000,
+    })
     notify(
       'success',
-      `✨ ${plural(data.added, 'entreprise réelle trouvée', 'entreprises réelles trouvées')} via ${data.provider}. Elles t’attendent dans « À contacter » : clique sur « Préparer » pour trouver leurs emails publics et générer les messages.`,
+      `✨ ${countText} via ${data.provider}. Elles t’attendent dans « À contacter » : clique sur « Préparer » pour trouver leurs emails publics et générer les messages.`,
       'queue'
     )
   }
@@ -208,10 +222,38 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
           <button
             type="submit"
             disabled={busy || !aiTarget.trim()}
-            className={`${BTN_PRIMARY} inline-flex items-center gap-2`}
+            className={`${BTN_PRIMARY} inline-flex min-h-11 items-center justify-center gap-2.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-75`}
           >
-            <SparklesIcon className="h-4 w-4 shrink-0 text-amber-200" aria-hidden />
-            {busy ? 'Recherche intelligente par l’IA en cours…' : 'Générer les prospects avec l’IA'}
+            {busy ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin text-white shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-90"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                <span>Recherche et analyse IA en cours…</span>
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="h-4 w-4 shrink-0 text-amber-200" aria-hidden />
+                <span>Générer les prospects avec l’IA</span>
+              </>
+            )}
           </button>
         </form>
       ) : mode === 'discover' ? (
@@ -250,7 +292,39 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             </div>
           </div>
           <p className="text-sm leading-6 text-stone-400">Seules les entreprises physiques locales dont le site web est renseigné sur OpenStreetMap apparaissent. Pour les e-commerces, agences ou SaaS, privilégiez l’onglet « Trouver avec l’IA ».</p>
-          <button type="submit" disabled={busy || !city.trim()} className={BTN_PRIMARY}>{busy ? 'Recherche en cours…' : 'Trouver des commerces locaux'}</button>
+          <button
+            type="submit"
+            disabled={busy || !city.trim()}
+            className={`${BTN_PRIMARY} inline-flex min-h-11 items-center justify-center gap-2.5 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-75`}
+          >
+            {busy ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin text-white shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-90"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  />
+                </svg>
+                <span>Recherche en cours…</span>
+              </>
+            ) : (
+              <span>Trouver des commerces locaux</span>
+            )}
+          </button>
         </form>
       ) : mode === 'domains' ? (
         <form onSubmit={addDomains} className="space-y-3">
