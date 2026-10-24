@@ -50,7 +50,7 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
     let failed = 0
     let total = 0
     while (true) {
-      const response = await fetch('/api/admin/acquisition/scan-all', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offset, limit: 5 }) })
+      const response = await fetch('/api/admin/acquisition/scan-all', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offset, limit: 1 }) })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) { setRescanning(false); return notify('error', result.error ?? 'La réanalyse a échoué.') }
       scanned += result.scanned ?? 0

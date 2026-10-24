@@ -43,6 +43,7 @@ function textFromHtml(html: string) {
 
 const PLACEHOLDER_EMAIL_HOSTS = new Set([
   'yourdomain.com',
+  'email.com',
   'example.com',
   'test.com',
   'domain.com',
@@ -58,7 +59,7 @@ const PLACEHOLDER_EMAIL_HOSTS = new Set([
   'github.com',
 ])
 
-const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello', 'sample', 'user', 'placeholder'])
+const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello', 'sample', 'user', 'placeholder', 'votre', 'adresse', 'email'])
 
 const INVALID_EXTENSIONS = [
   '.png',
@@ -118,9 +119,9 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
   const emails = new Map<string, string>()
   let discoveredLeaderName: string | null = null
 
-  // Scanner aussi les pages de contact/légales : la page d'accueil peut contenir
+  // Scanner les pages les plus probantes : la page d'accueil peut contenir
   // des adresses historiques, de support ou de tracking qui ne sont pas le bon point d'entrée.
-  for (const path of PATHS) {
+  for (const path of PATHS.slice(0, 8)) {
     const url = safeUrl(company.domain, path)
     if (!url) continue
 

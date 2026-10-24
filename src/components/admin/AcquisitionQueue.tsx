@@ -13,10 +13,12 @@ const STATE: Record<QueueItem['state'], { label: string; tone: 'warning' | 'acce
 
 export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[]; notify: Notify; refresh: () => void }) {
   const [selected, setSelected] = useState<string[]>([])
+  const [onlySourced, setOnlySourced] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const working = progress !== null
   const toggle = (id: string) => setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-  const allSelected = items.length > 0 && selected.length === items.length
+  const visibleItems = onlySourced ? items.filter((item) => item.contacts.some((contact) => Boolean(contact.email_source_url))) : items
+  const allSelected = visibleItems.length > 0 && selected.length === visibleItems.length
 
   async function prepare(ids: string[]) {
     let drafted = 0, noEmail = 0, existing = 0
@@ -49,16 +51,17 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex min-h-11 items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? [] : items.map((item) => item.id))} className={CHECKBOX} />Tout sélectionner</label>
+        <label className="flex min-h-11 items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? [] : visibleItems.map((item) => item.id))} className={CHECKBOX} />Tout sélectionner</label>
         <button type="button" onClick={() => void prepare(selected)} disabled={!selected.length || working} className={BTN_PRIMARY}>{working ? `Préparation ${progress.done + 1}/${progress.total}…` : `Préparer la sélection (${selected.length})`}</button>
         <button type="button" onClick={() => void archive()} disabled={!selected.length || working} className={BTN_SECONDARY}>Archiver</button>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={onlySourced} onChange={(event) => setOnlySourced(event.target.checked)} className={CHECKBOX} />Emails trouvés sur une source publique</label>
         {working && <p role="status" className="text-sm text-stone-400">Chaque site est analysé puis un brouillon est créé. Ne ferme pas la page.</p>}
       </div>
       <TableRegion label="Prospects à contacter">
         <table className="w-full text-sm">
           <thead><tr><th className={`${TH} w-12`}><span className="sr-only">Sélection</span></th><th className={TH}>Entreprise</th><th className={TH}>Emails</th><th className={TH}>Étape</th><th className={TH}><span className="sr-only">Action</span></th></tr></thead>
           <tbody>
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const meta = STATE[item.state]
               const first = item.contacts[0]
               return (
@@ -66,7 +69,7 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
                   <td className={TD}><input type="checkbox" aria-label={`Sélectionner ${item.name}`} checked={selected.includes(item.id)} onChange={() => toggle(item.id)} disabled={working} className={CHECKBOX} /></td>
                   <td className={TD}><a href={`https://${item.domain}`} target="_blank" rel="noreferrer" className="font-semibold hover:underline">{item.name}<span className="block font-mono text-xs font-normal text-stone-400">{item.domain}</span></a></td>
                   <td className={TD}>
-                    {first ? <><span className="font-mono text-xs">{first.email}</span>{item.contacts.length > 1 && <span className="text-xs text-stone-500"> +{item.contacts.length - 1}</span>}{first.generic && <span className="block text-xs text-amber-300">Boîte partagée</span>}{first.email_source_url && <a href={first.email_source_url} target="_blank" rel="noreferrer" className="block text-xs text-sky-300 hover:underline">Source vérifiée</a>}</>
+                    {first ? <><span className="font-mono text-xs">{first.email}</span>{item.contacts.length > 1 && <span className="text-xs text-stone-500"> +{item.contacts.length - 1}</span>}{first.generic && <span className="block text-xs text-amber-300">Boîte partagée</span>}{first.email_source_url && <a href={first.email_source_url} target="_blank" rel="noreferrer" className="block text-xs text-sky-300 hover:underline">Trouvé sur le site</a>}</>
                       : <span className="text-xs text-stone-500">{item.state === 'scan' ? 'Pas encore cherchés' : 'Aucun email public : importe-en un par CSV'}</span>}
                   </td>
                   <td className={TD}><Badge tone={meta.tone}>{meta.label}</Badge></td>
