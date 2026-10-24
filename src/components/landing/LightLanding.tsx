@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, Quote } from 'lucide-react'
 import { ACCENT, ACCENT_INK, H2, INK, LINE, MUTED, R_CARD, SIGNUP } from './tokens'
 import { REASSURANCE, STEPS, TESTIMONIALS } from './content'
 import { MoreLink, PrimaryButton, Reveal, SecondaryButton, Section, UnderlineWord } from './primitives'
@@ -175,13 +175,24 @@ export function LightLanding() {
       {/* 8. Témoignages (seulement avec de vrais retours) ou bande « Bêta ouverte » */}
       {!testimonialsLoaded ? null : testimonials.length > 0 ? (
         <section className="border-t" style={{ borderColor: LINE }}>
-          <div className="mx-auto max-w-6xl px-5 py-20">
-            <div className="grid gap-4 md:grid-cols-3">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
+            <Reveal className="mx-auto mb-16 max-w-2xl text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: ACCENT_INK }}>Premiers utilisateurs</p>
+              <h2 className={`${H2} mt-3`}>Ce que nos utilisateurs pensent de Qualio.</h2>
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed" style={{ color: MUTED }}>Des retours réels, publiés avec l’accord de leur auteur.</p>
+            </Reveal>
+            <div className="grid gap-8 md:grid-cols-3 md:gap-6">
               {testimonials.map((t, i) => (
-                <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`border bg-white p-7 ${R_CARD}`}>
-                  <p className="text-lg leading-relaxed">« {t.quote} »</p>
-                  <p className="mt-6 text-sm font-semibold">{t.name}</p>
-                  <p className="text-xs" style={{ color: MUTED }}>{t.role}</p>
+                <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`group relative flex flex-col justify-between gap-8 border bg-white px-7 pb-7 pt-8 shadow-[0_1px_0_rgba(11,11,12,0.03)] ${i === 1 ? 'md:translate-y-3' : i === 2 ? 'md:translate-y-6' : ''} ${R_CARD}`}>
+                  <span className="pointer-events-none absolute -left-2 -top-2 text-gray-300" aria-hidden="true">＋</span>
+                  <div className="flex gap-4">
+                    <Quote className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.2]" style={{ color: MUTED }} aria-hidden="true" />
+                    <blockquote className="text-base leading-7" style={{ color: MUTED }}>« {t.quote} »</blockquote>
+                  </div>
+                  <figcaption className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff1e9] text-sm font-semibold" style={{ color: ACCENT_INK }} aria-hidden="true">{t.name.trim().charAt(0).toUpperCase()}</span>
+                    <span className="flex min-w-0 flex-col"><cite className="text-sm font-semibold not-italic" style={{ color: INK }}>{t.name}</cite><span className="text-xs" style={{ color: MUTED }}>{t.role}</span></span>
+                  </figcaption>
                 </Reveal>
               ))}
             </div>
