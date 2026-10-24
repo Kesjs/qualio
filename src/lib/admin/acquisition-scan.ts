@@ -83,6 +83,8 @@ export function isUsablePublicEmail(value: string) {
 
   const [local, host] = email.split('@')
   if (!local || !host || PLACEHOLDER_EMAIL_HOSTS.has(host) || PLACEHOLDER_EMAIL_LOCALS.has(local)) return false
+  if (host.includes('sentry') || host.includes('wixpress') || host.includes('cloudflare') || host.includes('schema.org') || host.includes('w3.org') || host.includes('wordpress.org')) return false
+  if (/^[0-9a-f]{20,}$/i.test(local)) return false // Sentry DSN hash ou token
   if (local.includes('example') || local.includes('yourdomain') || local.includes('placeholder')) return false
   if (/^(noreply|no-reply|do-not-reply|donotreply|mailer-daemon)$/.test(local)) return false
   return true

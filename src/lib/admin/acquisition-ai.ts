@@ -7,6 +7,7 @@ export type DiscoveredAiCompany = {
   domain: string
   city: string
   country: string
+  contact_email?: string
   relevance_reason: string
   company_size?: 'TPE' | 'PME' | 'ETI'
 }
@@ -23,6 +24,7 @@ const aiCompanySchema: Schema = {
           domain: { type: Type.STRING },
           city: { type: Type.STRING },
           country: { type: Type.STRING },
+          contact_email: { type: Type.STRING },
           relevance_reason: { type: Type.STRING },
           company_size: { type: Type.STRING, enum: ['TPE', 'PME', 'ETI'] },
         },
@@ -45,6 +47,7 @@ const openAiCompanySchema = {
           domain: { type: 'string' },
           city: { type: 'string' },
           country: { type: 'string' },
+          contact_email: { type: 'string' },
           relevance_reason: { type: 'string' },
           company_size: { type: 'string', enum: ['TPE', 'PME', 'ETI'] },
         },
@@ -171,7 +174,8 @@ Règles impératives :
 1. Uniquement de VRAIES entreprises qui existent dans la réalité.
 2. Un nom de domaine internet réel (ex: asphalte.com, bigmamma.fr, norsys.fr, etc.). Pas d'URL inventée, pas de sous-domaine de réseau social.
 3. Format domaine : "exemple.fr" (sans https:// ni www).
-4. Indique une raison pertinente pour laquelle Qualio les intéresserait.`
+4. Indique une raison pertinente pour laquelle Qualio les intéresserait.
+5. Donne également l'adresse email de contact public officiel si connue (ex: contact@domaine.com, hello@domaine.com).`
 
   // 1. Essai avec Gemini
   if (geminiKey) {
@@ -185,7 +189,7 @@ Règles impératives :
         try {
           const groundedResponse = await client.models.generateContent({
             model,
-            contents: [{ role: 'user', parts: [{ text: `${prompt}\nRéponds au format JSON strict conforme : {"companies": [{"name": "...", "domain": "...", "city": "...", "country": "...", "relevance_reason": "..."}]}` }] }],
+            contents: [{ role: 'user', parts: [{ text: `${prompt}\nRéponds au format JSON strict conforme : {"companies": [{"name": "...", "domain": "...", "city": "...", "country": "...", "contact_email": "...", "relevance_reason": "..."}]}` }] }],
             config: {
               tools: [{ googleSearch: {} }],
               temperature: 0.2,
@@ -222,6 +226,7 @@ Règles impératives :
             .map((c) => ({
               ...c,
               domain: cleanDomain(c.domain) ?? '',
+              contact_email: c.contact_email?.trim() || undefined,
             }))
             .filter((c) => Boolean(c.name && c.domain))
 

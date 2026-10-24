@@ -98,8 +98,9 @@ export async function POST(request: Request) {
     source_notes: `IA Qualio (${provider}) · ${c.relevance_reason.slice(0, 200)}`,
   }))
 
+  const ids = new Map<string, string>()
   for (const part of chunk(records, 100)) {
-    const { error } = await admin.from('acquisition_companies').insert(part)
+    const { data, error } = await admin.from('acquisition_companies').insert(part).select('id, domain')
     if (error) {
       console.error('[Discover AI] insert error', error.message)
       return NextResponse.json(
@@ -107,11 +108,31 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+    for (const row of data ?? []) {
+      ids.set(String(row.domain).toLowerCase(), row.id)
+    }
+  }
+
+  // Enregistrement des emails de contact déjà identifiés
+  const withEmail = fresh.filter((c) => c.contact_email && ids.has(c.domain.toLowerCase()))
+  let emailsAdded = 0
+  if (withEmail.length) {
+    const contacts = withEmail.map((c) => ({
+      company_id: ids.get(c.domain.toLowerCase()),
+      email: c.contact_email!.toLowerCase(),
+      email_status: 'public',
+      confidence: 75,
+    }))
+    for (const part of chunk(contacts, 100)) {
+      const { error } = await admin.from('acquisition_contacts').insert(part)
+      if (!error) emailsAdded += part.length
+    }
   }
 
   return NextResponse.json({
     found: generated.length,
     added: fresh.length,
+    withEmail: emailsAdded,
     alreadyKnown: known.size,
     provider,
     companies: fresh,

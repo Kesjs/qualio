@@ -65,13 +65,14 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
     }
 
     const countText = plural(data.added, 'entreprise réelle trouvée', 'entreprises réelles trouvées')
-    toast.success(`✨ ${countText} via ${data.provider}`, {
-      description: 'Disponibles dans « À contacter ». Cliquez sur « Préparer » pour extraire les emails.',
-      duration: 6000,
+    const emailText = data.withEmail ? `, dont ${data.withEmail} avec un email déjà prêt` : ''
+    toast.success(`✨ ${countText}${emailText} (${data.provider})`, {
+      description: 'Disponibles dans « À contacter ». Cliquez sur « Préparer » pour générer les messages.',
+      duration: 7000,
     })
     notify(
       'success',
-      `✨ ${countText} via ${data.provider}. Elles t’attendent dans « À contacter » : clique sur « Préparer » pour trouver leurs emails publics et générer les messages.`,
+      `✨ ${countText}${emailText} via ${data.provider}. Elles t’attendent dans « À contacter » : clique sur « Préparer ».`,
       'queue'
     )
   }
