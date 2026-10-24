@@ -1,10 +1,27 @@
 /** Analyse publique d'un site : signaux produit + emails visibles. Partagé par /scan et /prepare. */
 
-const PATHS = ['', '/contact', '/feedback', '/reviews', '/support', '/changelog', '/jobs']
+const PATHS = [
+  '',
+  '/contact',
+  '/contactez-nous',
+  '/nous-contacter',
+  '/mentions-legales',
+  '/legal',
+  '/a-propos',
+  '/about',
+  '/qui-sommes-nous',
+  '/cgv',
+  '/conditions-generales',
+  '/support',
+  '/feedback',
+  '/reviews',
+  '/jobs',
+]
+
 const SIGNALS = [
   { type: 'feedback', label: 'Collecte de feedback détectée', words: ['feedback', 'give us feedback', 'donnez votre avis', 'votre avis', 'customer feedback'] },
-  { type: 'reviews', label: 'Avis ou témoignages détectés', words: ['reviews', 'avis clients', 'témoignages', 'testimonials', 'customer stories'] },
-  { type: 'support', label: 'Support client détecté', words: ['support', 'help center', 'centre d’aide', 'customer success'] },
+  { type: 'reviews', label: 'Avis ou témoignages détectés', words: ['reviews', 'avis clients', 'témoignages', 'testimonials', 'customer stories', 'trustpilot', 'avis vérifiés'] },
+  { type: 'support', label: 'Support client détecté', words: ['support', 'help center', 'centre d’aide', 'customer success', 'service client'] },
   { type: 'changelog', label: 'Changelog détecté', words: ['changelog', 'release notes', 'nouveautés', 'what’s new'] },
   { type: 'hiring', label: 'Recrutement lié au produit détecté', words: ['product manager', 'customer success', 'support specialist', 'head of product'] },
 ]
@@ -15,44 +32,205 @@ function safeUrl(domain: string, path: string) {
   return `https://${host}${path}`
 }
 
-function textFromHtml(html: string) { return html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 120_000) }
+function textFromHtml(html: string) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .slice(0, 150_000)
+}
 
-const PLACEHOLDER_EMAIL_HOSTS = new Set(['yourdomain.com', 'example.com', 'test.com', 'domain.com'])
-const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello'])
+const PLACEHOLDER_EMAIL_HOSTS = new Set([
+  'yourdomain.com',
+  'example.com',
+  'test.com',
+  'domain.com',
+  'sentry.io',
+  'wixpress.com',
+  'cloudflare.com',
+  'schema.org',
+  'wordpress.org',
+  'w3.org',
+  'gravatar.com',
+  'shopify.com',
+  'google.com',
+  'github.com',
+])
+
+const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello', 'sample', 'user', 'placeholder'])
+
+const INVALID_EXTENSIONS = [
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.svg',
+  '.gif',
+  '.css',
+  '.js',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.mp4',
+  '.pdf',
+  '.zip',
+]
 
 export function isUsablePublicEmail(value: string) {
   const email = value.trim().toLowerCase()
+  if (INVALID_EXTENSIONS.some((ext) => email.endsWith(ext))) return false
+
   const [local, host] = email.split('@')
   if (!local || !host || PLACEHOLDER_EMAIL_HOSTS.has(host) || PLACEHOLDER_EMAIL_LOCALS.has(local)) return false
   if (local.includes('example') || local.includes('yourdomain') || local.includes('placeholder')) return false
-  if (/^(noreply|no-reply|do-not-reply|donotreply)$/.test(local)) return false
+  if (/^(noreply|no-reply|do-not-reply|donotreply|mailer-daemon)$/.test(local)) return false
   return true
+}
+
+/**
+ * Tente d'extraire le nom d'un dirigeant ou responsable dans les mentions légales / à propos
+ * Ex: « Directeur de la publication : Jean Dupont » ou « Gérant : Sophie Martin »
+ */
+function extractLeaderName(html: string): string | null {
+  const patterns = [
+    /(?:directeur(?:trice)? de la publication|responsable de la publication|gérant(?:e)?|fondateur(?:trice)?|président(?:e)?|dirigeant(?:e)?)\s*[:–-]\s*([A-ZÀ-ÖØ-öø-ÿ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-öø-ÿ][a-zà-öø-ÿ]+){1,3})/i,
+    /(?:fondé(?:e)? par|créé(?:e)? par)\s+([A-ZÀ-ÖØ-öø-ÿ][a-zà-öø-ÿ]+(?:\s+[A-ZÀ-ÖØ-öø-ÿ][a-zà-öø-ÿ]+){1,3})/i,
+  ]
+
+  for (const regex of patterns) {
+    const match = html.match(regex)
+    if (match?.[1]) {
+      const candidate = match[1].trim()
+      // Éviter les captures de phrases longues ou fausses
+      if (candidate.length >= 4 && candidate.length <= 40 && !/^(société|entreprise|sarl|sas|france|paris|contact)/i.test(candidate)) {
+        return candidate
+      }
+    }
+  }
+  return null
 }
 
 export async function scanCompany(admin: any, company: { id: string; domain: string }) {
   const found: Array<{ signal_type: string; label: string; source_url: string; evidence: string; confidence: number }> = []
   const emails = new Set<string>()
+  let discoveredLeaderName: string | null = null
+
+  // Scan séquentiel avec arrêt précoce si on a déjà trouvé au moins 2 emails valides
   for (const path of PATHS) {
+    if (emails.size >= 3) break // Optimisation : pas besoin de crawler 15 pages si on a déjà les contacts
+
     const url = safeUrl(company.domain, path)
     if (!url) continue
+
     try {
-      const response = await fetch(url, { headers: { 'user-agent': 'QualioResearchBot/1.0 (+https://tryqualio.pro)' }, signal: AbortSignal.timeout(7000), cache: 'no-store' })
+      const response = await fetch(url, {
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 QualioResearchBot/1.0',
+          'accept': 'text/html,application/xhtml+xml',
+        },
+        signal: AbortSignal.timeout(6500),
+        cache: 'no-store',
+      })
+
       if (!response.ok) continue
-      const html = await response.text(); const text = textFromHtml(html); const lower = text.toLowerCase()
-      for (const signal of SIGNALS) { const word = signal.words.find((candidate) => lower.includes(candidate.toLowerCase())); if (word) found.push({ signal_type: signal.type, label: signal.label, source_url: url, evidence: `Terme détecté : “${word}”`, confidence: 72 }) }
-      for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) { const email = match[0].toLowerCase(); if (!email.endsWith('.png') && !email.endsWith('.jpg') && isUsablePublicEmail(email)) emails.add(email) }
-    } catch { /* page inaccessible: on conserve uniquement les sources accessibles */ }
+      const html = await response.text()
+      const text = textFromHtml(html)
+      const lower = text.toLowerCase()
+
+      // 1. Signaux de feedback & avis
+      for (const signal of SIGNALS) {
+        const word = signal.words.find((candidate) => lower.includes(candidate.toLowerCase()))
+        if (word) {
+          found.push({
+            signal_type: signal.type,
+            label: signal.label,
+            source_url: url,
+            evidence: `Terme détecté : “${word}”`,
+            confidence: 72,
+          })
+        }
+      }
+
+      // 2. Détection du dirigeant / publication dans mentions légales
+      if (!discoveredLeaderName && (path.includes('legal') || path.includes('mentions') || path.includes('propos') || path.includes('about'))) {
+        discoveredLeaderName = extractLeaderName(html)
+      }
+
+      // 3. Détection des liens mailto: (les plus fiables et intentionnels)
+      for (const match of html.matchAll(/href=["']mailto:([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})[?"']/gi)) {
+        const email = match[1].toLowerCase()
+        if (isUsablePublicEmail(email)) {
+          emails.add(email)
+        }
+      }
+
+      // 4. Détection des adresses email brutes dans le HTML
+      for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
+        const email = match[0].toLowerCase()
+        if (isUsablePublicEmail(email)) {
+          emails.add(email)
+        }
+      }
+
+      // 5. Détection des emails obfusqués (ex: contact [at] domain.fr)
+      for (const match of html.matchAll(/([A-Z0-9._%+-]{2,30})\s*(?:\[at\]|\(at\)|\s+at\s+)\s*([A-Z0-9.-]{2,30})\s*(?:\[dot\]|\(dot\)|\s+dot\s+|\.)\s*([A-Z]{2,10})/gi)) {
+        const candidate = `${match[1]}@${match[2]}.${match[3]}`.toLowerCase()
+        if (isUsablePublicEmail(candidate)) {
+          emails.add(candidate)
+        }
+      }
+    } catch {
+      /* Page inaccessible ou timeout : on passe à la suivante sans bloquer */
+    }
   }
+
+  // Enregistrement des signaux uniques
   const uniqueSignals = Array.from(new Map(found.map((signal) => [`${signal.signal_type}:${signal.source_url}`, signal])).values())
   for (const signal of uniqueSignals) {
-    const { data: existingSignals } = await admin.from('acquisition_signals').select('id').eq('company_id', company.id).eq('signal_type', signal.signal_type).eq('source_url', signal.source_url).limit(1)
-    if (!existingSignals?.length) await admin.from('acquisition_signals').insert({ ...signal, company_id: company.id })
+    const { data: existingSignals } = await admin
+      .from('acquisition_signals')
+      .select('id')
+      .eq('company_id', company.id)
+      .eq('signal_type', signal.signal_type)
+      .eq('source_url', signal.source_url)
+      .limit(1)
+
+    if (!existingSignals?.length) {
+      await admin.from('acquisition_signals').insert({ ...signal, company_id: company.id })
+    }
   }
+
+  // Enregistrement des contacts emails trouvés
   for (const email of emails) {
-    const { data: existing } = await admin.from('acquisition_contacts').select('id').eq('email', email).maybeSingle()
-    if (!existing) await admin.from('acquisition_contacts').insert({ company_id: company.id, email, email_status: 'public', confidence: 65 })
+    const { data: existing } = await admin
+      .from('acquisition_contacts')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (!existing) {
+      await admin.from('acquisition_contacts').insert({
+        company_id: company.id,
+        email,
+        full_name: discoveredLeaderName ?? null,
+        email_status: 'public',
+        confidence: discoveredLeaderName ? 85 : 70,
+      })
+    }
   }
-  const score = Math.min(100, uniqueSignals.length * 16 + (emails.size ? 15 : 0))
-  await admin.from('acquisition_companies').update({ relevance_score: score, status: 'review', source_notes: `${uniqueSignals.length} signal(s), ${emails.size} email(s) public(s) détecté(s).` }).eq('id', company.id)
-  return { signals: uniqueSignals.length, emails: emails.size, score }
+
+  const score = Math.min(100, uniqueSignals.length * 16 + (emails.size ? 20 : 0))
+  const notes = [
+    `${uniqueSignals.length} signal(s)`,
+    `${emails.size} email(s) public(s) détecté(s)`,
+    discoveredLeaderName ? `Contact : ${discoveredLeaderName}` : null,
+  ].filter(Boolean).join(' · ')
+
+  await admin
+    .from('acquisition_companies')
+    .update({ relevance_score: score, status: 'review', source_notes: notes })
+    .eq('id', company.id)
+
+  return { signals: uniqueSignals.length, emails: emails.size, score, leaderName: discoveredLeaderName }
 }

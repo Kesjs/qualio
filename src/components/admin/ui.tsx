@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { pageCount } from '@/lib/admin/format'
+import { AdminSelect } from '@/components/admin/AdminSelect'
 
 /** Anneau de focus commun : visible sur fond sombre comme sur le panneau clair de la connexion. */
 export const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff8a50]'
@@ -112,15 +113,15 @@ export function FilterBar({ label, resetHref, children }: { label: string; reset
   )
 }
 
+export { AdminSelect } from '@/components/admin/AdminSelect'
+
 export function SelectField({ label, name, value, options, allLabel }: { label: string; name: string; value: string; options: Array<{ value: string; label: string }>; allLabel: string }) {
   const id = `filtre-${name}`
+  const allOptions = [{ value: '', label: allLabel }, ...options]
   return (
     <div className="min-w-[10rem] flex-1">
       <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-stone-300">{label}</label>
-      <select id={id} name={name} defaultValue={value} className={FIELD}>
-        <option value="">{allLabel}</option>
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      <AdminSelect id={id} name={name} defaultValue={value} options={allOptions} />
     </div>
   )
 }

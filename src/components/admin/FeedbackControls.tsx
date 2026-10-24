@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BTN_PRIMARY, FIELD } from '@/components/admin/ui'
+import { AdminSelect } from '@/components/admin/AdminSelect'
 import { FEEDBACK_PRIORITIES, FEEDBACK_STATUSES, PRIORITY_LABELS, STATUS_LABELS, labelOf, optionsOf } from '@/lib/admin/format'
 import { ADMIN_NOTE_MAX } from '@/lib/admin/feedback-patch'
 
@@ -71,15 +72,23 @@ export function FeedbackControls({ feedbackId, status, priority, adminNote }: Pr
       <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
         <div>
           <label htmlFor={`${uid}-statut`} className="mb-1.5 block text-xs font-semibold text-stone-300">Statut</label>
-          <select id={`${uid}-statut`} value={current.status} disabled={busy} onChange={(event) => changeStatus(event.target.value)} className={FIELD}>
-            {optionsOf(STATUS_LABELS, FEEDBACK_STATUSES).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <AdminSelect
+            id={`${uid}-statut`}
+            value={current.status}
+            disabled={busy}
+            onChange={changeStatus}
+            options={optionsOf(STATUS_LABELS, FEEDBACK_STATUSES)}
+          />
         </div>
         <div>
           <label htmlFor={`${uid}-priorite`} className="mb-1.5 block text-xs font-semibold text-stone-300">Priorité</label>
-          <select id={`${uid}-priorite`} value={current.priority} disabled={busy} onChange={(event) => changePriority(event.target.value)} className={FIELD}>
-            {optionsOf(PRIORITY_LABELS, FEEDBACK_PRIORITIES).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <AdminSelect
+            id={`${uid}-priorite`}
+            value={current.priority}
+            disabled={busy}
+            onChange={changePriority}
+            options={optionsOf(PRIORITY_LABELS, FEEDBACK_PRIORITIES)}
+          />
         </div>
       </div>
       <div className="mt-3">

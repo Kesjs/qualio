@@ -23,11 +23,20 @@ export async function POST(request: Request) {
     const response = await fetch(`https://nominatim.openstreetmap.org/search?${new URLSearchParams({ q: city, format: 'json', limit: '1' })}`, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(10_000), cache: 'no-store' })
     if (!response.ok) throw new Error(`nominatim ${response.status}`)
     place = ((await response.json()) as Array<typeof place>)[0]
+
+    // Fallback automatique si faute de frappe commune (ex. "lilles" -> "lille")
+    if (!place && city.length > 3 && city.toLowerCase().endsWith('s')) {
+      const fallback = city.slice(0, -1)
+      const fbRes = await fetch(`https://nominatim.openstreetmap.org/search?${new URLSearchParams({ q: fallback, format: 'json', limit: '1' })}`, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(8_000), cache: 'no-store' })
+      if (fbRes.ok) {
+        place = ((await fbRes.json()) as Array<typeof place>)[0]
+      }
+    }
   } catch (error) {
     console.error('[Discover OSM] nominatim', error)
     return NextResponse.json({ error: 'OpenStreetMap ne répond pas pour le moment. Réessaie dans une minute.' }, { status: 502 })
   }
-  if (!place) return NextResponse.json({ error: `Ville introuvable : « ${city} ». Essaie avec le pays (ex. « Cotonou, Bénin »).` }, { status: 404 })
+  if (!place) return NextResponse.json({ error: `Ville introuvable : « ${city} ». Vérifiez l’orthographe ou choisissez une suggestion dans la liste.` }, { status: 404 })
 
   const areaId = areaIdFromNominatim(place)
   const box = place.boundingbox?.map(Number)

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { ArrowPathIcon, ArrowsPointingOutIcon, PauseIcon, PlayIcon, SpeakerWaveIcon, SpeakerXMarkIcon } from '@heroicons/react/24/solid'
+import { Select } from '@/components/dashboard/Select'
 
 const POSTER = '/qualio-hero-poster.webp'
 const SRC = '/qualio-final.mp4'
@@ -182,19 +183,22 @@ export function HeroVideo() {
 
         <span className="shrink-0 font-mono text-[11px] tabular-nums sm:text-xs">{formatTime(current)} / {formatTime(duration)}</span>
 
-        <label className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold sm:text-xs">
-          <span className="sr-only">Vitesse de lecture</span>
-          <select
-            value={playbackRate}
-            onChange={(event) => setPlaybackRate(Number(event.target.value))}
-            aria-label="Vitesse de lecture"
-            className="rounded-md border border-white/25 bg-black/55 px-1.5 py-1 text-[11px] font-semibold text-white outline-none transition hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-[#ee6018]"
-          >
-            {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
-              <option key={rate} value={rate} className="bg-gray-950 text-white">{rate}×</option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Vitesse de lecture"
+          value={String(playbackRate)}
+          onChange={(val) => setPlaybackRate(Number(val))}
+          compact
+          className="w-20 shrink-0"
+          buttonClassName="!min-h-7 !py-0.5 !px-2 !text-[11px] !font-semibold !bg-black/55 !border-white/25 hover:!bg-black/75 !text-white"
+          listClassName="!bg-black/95 !border-white/20 !min-w-[95px]"
+          options={[
+            { value: '0.75', label: '0.75×' },
+            { value: '1', label: '1×' },
+            { value: '1.25', label: '1.25×' },
+            { value: '1.5', label: '1.5×' },
+            { value: '2', label: '2×' },
+          ]}
+        />
 
         <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer le son' : 'Couper le son'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
           {muted ? <SpeakerXMarkIcon className="h-5 w-5" /> : <SpeakerWaveIcon className="h-5 w-5" />}
