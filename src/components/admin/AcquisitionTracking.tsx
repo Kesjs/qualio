@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Badge, EmptyState, TableRegion, TD, TH, type Tone } from '@/components/admin/ui'
-import { BTN_SMALL, BTN_SMALL_ACCENT, postJson, type Notify } from '@/components/admin/acquisition-shared'
+import { BTN_SMALL, BTN_SMALL_ACCENT, FOLLOW_UP_AFTER_DAYS, postJson, type Notify } from '@/components/admin/acquisition-shared'
 import { formatDateTime } from '@/lib/admin/format'
-import { FOLLOW_UP_AFTER_DAYS, type PipelineMessage } from '@/lib/admin/acquisition'
+import type { PipelineMessage } from '@/lib/admin/acquisition'
 
 type Filter = 'all' | 'due' | 'replied' | 'bounced'
 
