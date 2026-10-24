@@ -85,10 +85,11 @@ Règles strictes :
 // Keep the fallback chain on models supported by the production Gemini API.
 // The previous lite aliases returned 404 for the configured production key.
 export const GEMINI_PRIMARY_FALLBACK = 'gemini-3.8-flash'
-export const GEMINI_SECONDARY_FALLBACK = 'gemini-2.5-flash'
+export const GEMINI_SECONDARY_FALLBACK = 'gemini-3.6-flash'
+export const GEMINI_TERTIARY_FALLBACK = 'gemini-3.5-flash-lite'
 
 export function getGeminiModelCandidates(configuredModel?: string) {
-  return Array.from(new Set([configuredModel || 'gemini-3.8-flash', GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK]))
+  return Array.from(new Set([configuredModel || 'gemini-3.8-flash', GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK, GEMINI_TERTIARY_FALLBACK]))
 }
 
 function getProviderStatus(error: unknown): number | null {

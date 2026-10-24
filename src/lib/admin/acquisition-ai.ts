@@ -165,6 +165,18 @@ export async function discoverCompaniesWithAi({
   // On demande un léger surplus (+30%) pour compenser d'éventuels domaines inactifs filtrés au ping
   const askCount = Math.min(Math.ceil(limit * 1.3), 35)
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new Error(`Le fournisseur IA n’a pas répondu après ${ms / 1000} secondes.`)), ms) }),
+      ])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
+
   const prompt = `Trouve exactement ${askCount} entreprises et marques RÉELLES existantes correspondant à la cible : « ${target} », ${locText}.
 
 Qualio est un logiciel SaaS qui permet aux entreprises de collecter, analyser et transformer leurs avis clients en décisions concrètes (synthèses IA, alertes, priorisation produit/service).
@@ -187,20 +199,20 @@ Règles impératives :
         // Essai avec Google Search grounding pour sourcer en direct sur le web
         let textResult = ''
         try {
-          const groundedResponse = await client.models.generateContent({
+          const groundedResponse = await withTimeout(client.models.generateContent({
             model,
             contents: [{ role: 'user', parts: [{ text: `${prompt}\nRéponds au format JSON strict conforme : {"companies": [{"name": "...", "domain": "...", "city": "...", "country": "...", "contact_email": "...", "relevance_reason": "..."}]}` }] }],
             config: {
               tools: [{ googleSearch: {} }],
               temperature: 0.2,
             },
-          })
+          }), 15_000)
           if (groundedResponse.text) {
             textResult = groundedResponse.text
           }
         } catch {
           // Fallback sur mode schema JSON classique si Search Tool non disponible sur ce modèle/clé
-          const standardResponse = await client.models.generateContent({
+          const standardResponse = await withTimeout(client.models.generateContent({
             model,
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
@@ -208,7 +220,7 @@ Règles impératives :
               responseMimeType: 'application/json',
               responseSchema: aiCompanySchema,
             },
-          })
+          }), 15_000)
           if (standardResponse.text) {
             textResult = standardResponse.text
           }
