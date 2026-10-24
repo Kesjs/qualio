@@ -72,7 +72,7 @@ export function PlanUsage({ compact = false }: { compact?: boolean }) {
         type="button"
         onClick={() => setDetailsOpen(true)}
         aria-label="Voir le détail du quota d’avis"
-        className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${TEXT[level]} ${level === 'full' ? 'border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10' : level === 'warn' ? 'border-orange-200 bg-orange-50 dark:border-orange-500/20 dark:bg-orange-500/10' : 'border-gray-200 bg-gray-50 dark:border-white/[0.08] dark:bg-[#16181E]'} hover:border-gray-400 dark:hover:border-white/25`}
+        className={`max-w-[6.5rem] truncate rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${TEXT[level]} ${level === 'full' ? 'border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10' : level === 'warn' ? 'border-orange-200 bg-orange-50 dark:border-orange-500/20 dark:bg-orange-500/10' : 'border-gray-200 bg-gray-50 dark:border-white/[0.08] dark:bg-[#16181E]'} hover:border-gray-400 dark:hover:border-white/25`}
       >
         {compact && site ? `${isFree ? 'Gratuit' : data.label} · ${site.feedback}/${site.feedbackLimit}` : isFree ? 'Gratuit' : data.label}
       </button>

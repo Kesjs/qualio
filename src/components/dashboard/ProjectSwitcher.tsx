@@ -53,7 +53,7 @@ export function ProjectSwitcher({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className="relative min-w-0" ref={ref}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Projet actif : ${label}. Changer de projet`} className={`flex min-h-10 items-center gap-2.5 rounded-lg border border-gray-200/90 bg-white px-2.5 text-left shadow-2xs hover:border-gray-300 dark:border-white/[0.08] dark:bg-[#16181E] dark:hover:border-white/20 ${compact ? 'max-w-[11rem]' : 'max-w-[16rem]'}`}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Projet actif : ${label}. Changer de projet`} className={`flex min-h-10 min-w-0 items-center gap-2.5 rounded-lg border border-gray-200/90 bg-white px-2.5 text-left shadow-2xs hover:border-gray-300 dark:border-white/[0.08] dark:bg-[#16181E] dark:hover:border-white/20 ${compact ? 'max-w-[8.5rem] sm:max-w-[11rem]' : 'max-w-[16rem]'}`}>
         <SiteFavicon site={activeSite} />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 dark:text-zinc-100">{label}</span>
         <ChevronDownIcon className={`h-4 w-4 shrink-0 text-gray-400 transition-transform dark:text-zinc-500 ${open ? 'rotate-180' : ''}`} />
