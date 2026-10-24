@@ -10,11 +10,11 @@ export function buildDraft({ fullName, companyName, followUpOf }: DraftInput) {
   if (followUpOf) {
     return {
       subject: /^re\s*:/i.test(followUpOf.subject) ? followUpOf.subject : `Re: ${followUpOf.subject}`,
-      body: `${greeting}\n\nJe me permets de relancer mon message précédent, au cas où il se serait perdu.\n\nQualio rassemble les avis clients de ${company} et en ressort les thèmes qui reviennent le plus. Je peux vous envoyer un exemple basé sur vos propres avis si cela vous intéresse.\n\n${signature}`,
+      body: `${greeting}\n\nJe me permets de relancer mon message précédent, au cas où il se serait perdu.\n\nQualio rassemble les avis clients de ${company} et en ressort les thèmes qui reviennent le plus. Je peux vous envoyer un exemple basé sur vos propres avis si cela vous intéresse.\n\nSi vous avez 10 minutes cette semaine, je peux vous montrer le résultat sur un cas concret : https://tryqualio.pro\n\n${signature}`,
     }
   }
   return {
     subject: `Une question sur les retours clients chez ${company}`,
-    body: `${greeting}\n\nJe travaille sur Qualio, un espace qui aide les équipes produit à transformer les retours clients en thèmes, tendances et actions prioritaires.\n\nComment centralisez-vous aujourd’hui ces retours ?\n\nSi ce sujet concerne une autre personne, pourriez-vous m’indiquer le bon contact ?\n\n${signature}`,
+    body: `${greeting}\n\nJe travaille sur Qualio, un espace qui aide les équipes produit à transformer les retours clients en thèmes, tendances et actions prioritaires.\n\nComment centralisez-vous aujourd’hui ces retours ?\n\nSi vous avez 10 minutes cette semaine, je peux vous montrer le résultat sur un cas concret : https://tryqualio.pro\n\nSi ce sujet concerne une autre personne, pourriez-vous m’indiquer le bon contact ?\n\n${signature}`,
   }
 }

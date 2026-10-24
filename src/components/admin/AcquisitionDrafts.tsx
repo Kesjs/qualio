@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Badge, BTN_PRIMARY, BTN_SECONDARY, EmptyState, FIELD } from '@/components/admin/ui'
 import { BTN_SMALL, CHECKBOX, plural, postJson, type Notify } from '@/components/admin/acquisition-shared'
 import type { PipelineMessage } from '@/lib/admin/acquisition'
+import { renderAcquisitionEmail } from '@/lib/email/layout'
 
 const MAX_SEND = 25
 
@@ -14,6 +15,7 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
   const [body, setBody] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [previewing, setPreviewing] = useState<string | null>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (confirming) cancelRef.current?.focus() }, [confirming])
 
@@ -82,10 +84,13 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
                   {message.isFollowUp && <Badge tone="info">Relance</Badge>}
                 </div>
                 {editing === message.id ? (
-                  <div className="mt-3 space-y-3">
+                  <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.9fr)]">
+                    <div className="space-y-3">
                     <div><label htmlFor={`sujet-${message.id}`} className="mb-1.5 block text-xs font-semibold text-stone-300">Sujet</label><input id={`sujet-${message.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} className={FIELD} /></div>
                     <div><label htmlFor={`corps-${message.id}`} className="mb-1.5 block text-xs font-semibold text-stone-300">Message</label><textarea id={`corps-${message.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={10} maxLength={5000} className={`${FIELD} py-2 leading-6`} /></div>
                     <div className="flex gap-2"><button type="button" onClick={() => void save(message.id)} disabled={busy || !subject.trim() || !body.trim()} className={BTN_PRIMARY}>Enregistrer</button><button type="button" onClick={() => setEditing(null)} className={BTN_SECONDARY}>Annuler</button></div>
+                    </div>
+                    <EmailPreview subject={subject} body={body} />
                   </div>
                 ) : (
                   <>
@@ -93,9 +98,11 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
                     <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-stone-300">{message.body}</p>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => prepareSingleSend(message)} disabled={busy || remainingToday <= 0} className={BTN_PRIMARY}>Envoyer ce message</button>
+                      <button type="button" onClick={() => setPreviewing(previewing === message.id ? null : message.id)} className={BTN_SMALL}>{previewing === message.id ? 'Masquer l’aperçu' : 'Aperçu du mail'}</button>
                       <button type="button" onClick={() => startEdit(message)} className={BTN_SMALL}>Modifier</button>
                       <span className="text-xs text-stone-500">ou coche-le pour un envoi groupé</span>
                     </div>
+                    {previewing === message.id && <EmailPreview subject={message.subject} body={message.body} />}
                   </>
                 )}
               </div>
@@ -118,4 +125,12 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
       )}
     </div>
   )
+}
+
+function EmailPreview({ subject, body }: { subject: string; body: string }) {
+  const { html } = renderAcquisitionEmail({ subject, body })
+  return <div className="rounded-xl border border-white/10 bg-white p-2 text-left">
+    <div className="mb-2 flex items-center justify-between px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-500"><span>Aperçu envoyé au prospect</span><span>fond blanc · logo · pied de mail</span></div>
+    <iframe title={`Aperçu de ${subject}`} srcDoc={html} sandbox="" className="h-[25rem] w-full rounded-lg border border-stone-200 bg-white" />
+  </div>
 }

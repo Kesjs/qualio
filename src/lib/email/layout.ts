@@ -32,7 +32,10 @@ export function renderEmail(input: {
 
 /** Template sobre pour les messages d'acquisition : rendu blanc, lisible dans Gmail et mobile. */
 export function renderAcquisitionEmail(input: { subject: string; body: string }) {
-  const paragraphs = input.body.split(/\n{2,}/).map((paragraph) => `<p style="margin:0 0 20px;font-size:16px;line-height:1.7;color:#292524">${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`).join('')
+  const paragraphs = input.body.split(/\n{2,}/).map((paragraph) => {
+    const safe = escapeHtml(paragraph).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#c94f12;font-weight:700">$1</a>')
+    return `<p style="margin:0 0 20px;font-size:16px;line-height:1.7;color:#292524">${safe.replace(/\n/g, '<br />')}</p>`
+  }).join('')
   const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#292524"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#ffffff"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid #e7e2dc;border-radius:14px"><tr><td style="padding:30px 36px 18px;border-bottom:1px solid #eee9e3"><img src="https://tryqualio.pro/qualio-logo/export/lockup/lockup-brand-dark-900.png" width="150" alt="Qualio" style="display:block;width:150px;height:auto;border:0" /></td></tr><tr><td style="padding:34px 36px 18px">${paragraphs}</td></tr><tr><td style="padding:18px 36px 30px;border-top:1px solid #eee9e3"><p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#78716c">Qualio — une vue fiable des avis qui comptent.</p><p style="margin:0;font-size:12px;line-height:1.5;color:#a8a29e">Vous recevez ce message parce que votre adresse est publiée sur votre site. Pour ne plus recevoir de messages, répondez simplement « stop ».</p></td></tr></table></td></tr></table></body></html>`
   return { html }
 }

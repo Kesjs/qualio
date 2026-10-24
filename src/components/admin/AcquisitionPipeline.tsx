@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast as sonnerToast } from 'sonner'
 import { StatCard } from '@/components/admin/ui'
@@ -24,7 +24,12 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>(data.queue.length ? 'queue' : data.drafts.length ? 'drafts' : data.tracking.length ? 'tracking' : 'queue')
   const [toast, setToast] = useState<Toast | null>(null)
+  const pipelineRef = useRef<HTMLElement>(null)
   const notify: Notify = useCallback((kind, text, go) => {
+    if (go) {
+      setTab(go)
+      window.setTimeout(() => pipelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+    }
     if (kind === 'success') {
       sonnerToast.success(text, {
         action: go ? { label: `Voir « ${TAB_LABEL[go]} »`, onClick: () => setTab(go) } : undefined,
@@ -70,7 +75,7 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
 
       <AcquisitionAdd notify={notify} refresh={refresh} />
 
-      <section aria-label="Pipeline de prospection" className="rounded-2xl border border-white/10 bg-[#1d1a18]">
+      <section ref={pipelineRef} aria-label="Pipeline de prospection" className="scroll-mt-24 rounded-2xl border border-white/10 bg-[#1d1a18]">
         <div role="tablist" aria-label="Étapes de prospection" className="flex gap-1 overflow-x-auto border-b border-white/10 p-2">
           {(['queue', 'drafts', 'tracking'] as const).map((value) => (
             <button key={value} type="button" role="tab" id={`onglet-${value}`} aria-selected={tab === value} aria-controls={`panneau-${value}`} onClick={() => setTab(value)} className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${tab === value ? 'bg-white/[0.1] text-white' : 'text-stone-400 hover:text-white'}`}>
