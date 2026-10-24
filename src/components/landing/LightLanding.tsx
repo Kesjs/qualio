@@ -186,9 +186,9 @@ export function LightLanding() {
       {!testimonialsLoaded ? null : testimonials.length > 0 ? (
         <section className="border-t" style={{ borderColor: LINE }}>
           <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
-            <Reveal className="mx-auto mb-16 max-w-2xl text-center">
+            <Reveal className="mx-auto mb-10 max-w-3xl text-center">
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: ACCENT_INK }}>Premiers utilisateurs</p>
-              <h2 className={`${H2} mt-3`}>Ce que nos utilisateurs pensent de Qualio.</h2>
+              <h2 className="mt-3 text-[clamp(2rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.035em] [text-wrap:balance]">Ce que nos utilisateurs pensent de <span className="relative inline-block whitespace-nowrap" style={{ color: ACCENT_INK }}>Qualio<span className="pointer-events-none absolute -bottom-1 left-0 h-px w-full bg-[#ee6018]/45" aria-hidden="true" /></span>.</h2>
               <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed" style={{ color: MUTED }}>Des retours réels, publiés avec l’accord de leur auteur.</p>
             </Reveal>
             <div className="grid gap-8 md:grid-cols-3 md:gap-6">
