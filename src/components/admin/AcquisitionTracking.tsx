@@ -48,6 +48,7 @@ export function AcquisitionTracking({ messages, notify, refresh }: { messages: P
 
   return (
     <div className="space-y-4">
+      <p className="rounded-xl border border-sky-400/20 bg-sky-400/5 p-3 text-xs leading-5 text-sky-200">Les statuts Envoyé, Livré et Rebond viennent du fournisseur d’email. « Répondu » et « Stop reçu » sont enregistrés quand tu confirmes l’action ici.</p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer le suivi">{chip('all', 'Tous')}{chip('due', 'À relancer')}{chip('replied', 'Répondus')}{chip('bounced', 'Rebonds')}</div>
       {visible.length === 0 ? <EmptyState title="Rien dans ce filtre" description={filter === 'due' ? `Une relance est proposée ${FOLLOW_UP_AFTER_DAYS} jours après l’envoi, sans réponse.` : undefined} /> : (
         <TableRegion label="Suivi des envois">

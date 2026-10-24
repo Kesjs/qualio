@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 
 export function GET(request: NextRequest) {
   const intakeUrl = JSON.stringify(new URL('/api/feedback/intake', request.url).toString())
+  const eventUrl = JSON.stringify(new URL('/api/visitor-events', request.url).toString())
   const script = `(() => {
   const current = document.currentScript;
   const key = current && current.getAttribute('data-key');
@@ -34,6 +35,10 @@ export function GET(request: NextRequest) {
     window.visualViewport?.addEventListener('scroll', syncViewport);
     const shadow = host.attachShadow({ mode: 'open' });
     const apiUrl = ${intakeUrl};
+    const eventApiUrl = ${eventUrl};
+    const sessionId = window.sessionStorage.getItem('qualio_session_id') || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    window.sessionStorage.setItem('qualio_session_id', sessionId);
+    const track = (eventName) => { fetch(eventApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, eventName, sessionId, path: window.location.pathname, referrer: document.referrer, host: window.location.hostname }), keepalive: true }).catch(() => {}); };
 
     shadow.innerHTML = \`
       <style>
@@ -226,7 +231,7 @@ export function GET(request: NextRequest) {
       if (open) openedAt = Date.now();
       if (open) shadow.querySelector('textarea')?.focus();
     };
-    button.addEventListener('click', () => setOpen(panel.hidden));
+    button.addEventListener('click', () => { const nextOpen = panel.hidden; setOpen(nextOpen); if (nextOpen) track('widget_opened'); });
     close.addEventListener('click', () => setOpen(false));
     document.addEventListener('pointerdown', (event) => {
       if (panel.hidden) return;
@@ -259,6 +264,7 @@ export function GET(request: NextRequest) {
       submitDots.hidden = false;
       status.textContent = '';
       try {
+        track('feedback_submitted');
         const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, content: data.get('content'), rating: data.get('rating'), authorName: data.get('authorName'), authorEmail: data.get('authorEmail'), sourceUrl: window.location.href, honeypot: data.get('honeypot') }) });
         if (!response.ok) { const payload = await response.json().catch(() => ({})); throw new Error(payload.error || 'Votre avis n’a pas pu être envoyé.'); }
         form.reset();
