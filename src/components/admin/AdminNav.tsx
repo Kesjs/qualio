@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bot, Building2, LayoutDashboard, ListChecks, Mail, MessageSquare, Users, UserRoundSearch, Eye, FileText } from 'lucide-react'
+import { Building2, LayoutDashboard, ListChecks, Mail, MessageSquare, Users, Eye } from 'lucide-react'
 import { FOCUS } from '@/components/admin/ui'
 
 const ITEMS = [
@@ -14,11 +14,8 @@ const ITEMS = [
 ] as const
 
 const ACQUISITION = [
-  { href: '/admin/acquisition', label: 'Acquisition', short: 'Acquisition', Icon: Building2 },
-  { href: '/admin/acquisition/prospects', label: 'Prospects', short: 'Prospects', Icon: UserRoundSearch },
+  { href: '/admin/acquisition', label: 'Prospection', short: 'Prospection', Icon: Building2 },
   { href: '/admin/acquisition/visitors', label: 'Visiteurs', short: 'Visiteurs', Icon: Eye },
-  { href: '/admin/acquisition/agent', label: 'Agent de recherche', short: 'Agent', Icon: Bot },
-  { href: '/admin/acquisition/drafts', label: 'Brouillons', short: 'Brouillons', Icon: FileText },
 ] as const
 
 /** Sur admin.tryqualio.pro, « / » est réécrit vers /admin : on ramène les deux formes au même chemin. */
@@ -29,7 +26,7 @@ function normalize(pathname: string) {
 
 export function AdminNav({ variant }: { variant: 'sidebar' | 'bar' }) {
   const current = normalize(usePathname() ?? '/admin')
-  const isActive = (href: string) => (href === '/admin' ? current === '/admin' : current === href || current.startsWith(`${href}/`))
+  const isActive = (href: string) => (href === '/admin' || href === '/admin/acquisition' ? current === href : current === href || current.startsWith(`${href}/`))
   const sidebar = variant === 'sidebar'
   return (
     <nav aria-label="Navigation admin" className={sidebar ? 'mt-6' : 'mt-3'}>

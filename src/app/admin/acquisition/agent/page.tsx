@@ -1,8 +1,4 @@
-import type { Metadata } from 'next'
-import { getAdminContext } from '@/lib/admin/auth'
-import { Notice, PageHeader, Panel } from '@/components/admin/ui'
-import { AcquisitionAgentForm } from '@/components/admin/AcquisitionAgentForm'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Agent de recherche' }
-
-export default async function AgentPage() { await getAdminContext(); return <div className="mx-auto max-w-5xl space-y-6"><PageHeader eyebrow="Acquisition / Agent" title="Agent de recherche" description="Prépare une liste qualifiée à partir de sources publiques ; aucun email ne part sans validation humaine." /><Notice tone="info">Mode sans fournisseur externe : ajoute des domaines trouvés publiquement, puis Qualio analyse leurs sites et conserve la preuve de chaque email détecté.</Notice><Panel id="recherche" title="Ajouter des domaines" description="Un domaine par ligne. Ensuite, ouvre Prospects et clique sur « Analyser le site »."><AcquisitionAgentForm /></Panel><Panel id="workflow" title="Flux de travail" description="Une étape à la fois, avec preuve et niveau de confiance."><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{['Ajouter des domaines','Analyser les sites','Vérifier les contacts','Approuver les brouillons'].map((step, index) => <div key={step} className="rounded-xl border border-white/10 bg-[#161413] p-4"><span className="font-mono text-xs text-[#ff9a66]">0{index + 1}</span><h2 className="mt-3 font-semibold">{step}</h2><p className="mt-2 text-sm leading-6 text-stone-400">Aucune donnée inventée : source, preuve et statut restent visibles.</p></div>)}</div></Panel></div> }
+/** Ancienne page : tout le flux de prospection tient maintenant sur /admin/acquisition. */
+export default function Page() { redirect('/admin/acquisition') }
