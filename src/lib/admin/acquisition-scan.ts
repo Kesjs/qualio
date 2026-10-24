@@ -1,5 +1,7 @@
 /** Analyse publique d'un site : signaux produit + emails visibles. Partagé par /scan et /prepare. */
 
+import { validatePublicEmail } from '@/lib/admin/email-validation'
+
 const PATHS = [
   '',
   '/contact',
@@ -17,6 +19,7 @@ const PATHS = [
   '/reviews',
   '/jobs',
 ]
+
 
 const SIGNALS = [
   { type: 'feedback', label: 'Collecte de feedback détectée', words: ['feedback', 'give us feedback', 'donnez votre avis', 'votre avis', 'customer feedback'] },
@@ -219,6 +222,8 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
 
   // Enregistrement des contacts emails trouvés, avec preuve de la page source.
   for (const [email, sourceUrl] of emails) {
+    const validation = await validatePublicEmail(email)
+    if (validation.status === 'invalid') continue
     const { data: existing } = await admin
       .from('acquisition_contacts')
       .select('id')
@@ -230,12 +235,12 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
         company_id: company.id,
         email,
         full_name: discoveredLeaderName ?? null,
-        email_status: 'public',
+        email_status: validation.status,
         email_source_url: sourceUrl,
-        confidence: discoveredLeaderName ? 85 : 70,
+        confidence: validation.status === 'verified' ? (discoveredLeaderName ? 90 : 80) : 55,
       })
     } else {
-      await admin.from('acquisition_contacts').update({ email_source_url: sourceUrl }).eq('id', existing.id).eq('company_id', company.id)
+      await admin.from('acquisition_contacts').update({ email_source_url: sourceUrl, email_status: validation.status }).eq('id', existing.id).eq('company_id', company.id)
     }
   }
 

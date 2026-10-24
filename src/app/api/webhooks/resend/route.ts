@@ -15,9 +15,22 @@ export async function POST(request: NextRequest) {
         timestamp: request.headers.get('svix-timestamp') ?? '',
         signature: request.headers.get('svix-signature') ?? '',
       },
-    }) as { type?: string; data?: { email_id?: string; reason?: string; error?: string } }
+    }) as { type?: string; data?: { email_id?: string; reason?: string; error?: string; from?: string; to?: string[]; subject?: string } }
     if (!event.data?.email_id) return NextResponse.json({ ok: true })
     const admin = getSupabaseAdminClient() as any
+
+    // Réponse entrante : Resend nous donne l'expéditeur, on rattache la réponse
+    // au dernier message envoyé à cette adresse. La réception doit être activée
+    // dans Resend avec un webhook sur cette URL.
+    if (event.type === 'email.received' && event.data.from) {
+      const fromEmail = (event.data.from.match(/<([^>]+)>/)?.[1] ?? event.data.from).trim().toLowerCase()
+      const { data: contact } = await admin.from('acquisition_contacts').select('id, email').eq('email', fromEmail).maybeSingle()
+      if (contact) {
+        const { data: sentMessage } = await admin.from('acquisition_messages').select('id').eq('contact_id', contact.id).in('status', ['sent', 'delivered']).order('sent_at', { ascending: false }).limit(1).maybeSingle()
+        if (sentMessage) await admin.from('acquisition_messages').update({ status: 'replied', replied_at: new Date().toISOString() }).eq('id', sentMessage.id)
+      }
+      return NextResponse.json({ ok: true })
+    }
 
     // Prospection : livraison et rebonds des messages d'acquisition (retrouvés via provider_message_id).
     if (event.type === 'email.delivered') {
