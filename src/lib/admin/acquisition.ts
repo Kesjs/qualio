@@ -3,7 +3,7 @@ import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 
 export const FOLLOW_UP_AFTER_DAYS = 3
 
-export type PipelineContact = { id: string; email: string; full_name: string | null; role: string | null; email_status: string; generic: boolean }
+export type PipelineContact = { id: string; email: string; full_name: string | null; role: string | null; email_status: string; email_source_url: string | null; generic: boolean }
 export type QueueState = 'scan' | 'empty' | 'ready'
 export type QueueItem = { id: string; name: string; domain: string; state: QueueState; contacts: PipelineContact[] }
 export type PipelineMessage = {
@@ -30,12 +30,12 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
   const admin = getSupabaseAdminClient() as any
   const [companiesResult, contactsResult, messagesResult] = await Promise.all([
     admin.from('acquisition_companies').select('id, name, domain, status, created_at').neq('status', 'archived').order('created_at', { ascending: false }).limit(500),
-    admin.from('acquisition_contacts').select('id, company_id, email, full_name, role, email_status, confidence').limit(3000),
+    admin.from('acquisition_contacts').select('id, company_id, email, full_name, role, email_status, email_source_url, confidence').limit(3000),
     admin.from('acquisition_messages').select('id, contact_id, subject, body, status, created_at, sent_at, delivered_at, bounced_at, bounce_reason, replied_at, follow_up_of, contact:acquisition_contacts(email, company:acquisition_companies(name, domain))').order('created_at', { ascending: false }).limit(3000),
   ])
   const failed = Boolean(companiesResult.error || contactsResult.error || messagesResult.error)
   const companies = (companiesResult.data ?? []) as Array<{ id: string; name: string; domain: string; status: string }>
-  const contacts = (contactsResult.data ?? []) as Array<{ id: string; company_id: string; email: string; full_name: string | null; role: string | null; email_status: string; confidence: number | null }>
+  const contacts = (contactsResult.data ?? []) as Array<{ id: string; company_id: string; email: string; full_name: string | null; role: string | null; email_status: string; email_source_url: string | null; confidence: number | null }>
   const rawMessages = (messagesResult.data ?? []) as any[]
 
   const contactIdsWithMessage = new Set(rawMessages.map((message) => message.contact_id as string))
@@ -54,7 +54,7 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
   const contactsByCompany = new Map<string, PipelineContact[]>()
   for (const contact of contacts.sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))) {
     const list = contactsByCompany.get(contact.company_id) ?? []
-    list.push({ id: contact.id, email: contact.email, full_name: contact.full_name, role: contact.role, email_status: contact.email_status, generic: GENERIC_EMAIL.test(contact.email) })
+    list.push({ id: contact.id, email: contact.email, full_name: contact.full_name, role: contact.role, email_status: contact.email_status, email_source_url: contact.email_source_url, generic: GENERIC_EMAIL.test(contact.email) })
     contactsByCompany.set(contact.company_id, list)
   }
 

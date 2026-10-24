@@ -24,6 +24,7 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>(data.queue.length ? 'queue' : data.drafts.length ? 'drafts' : data.tracking.length ? 'tracking' : 'queue')
   const [toast, setToast] = useState<Toast | null>(null)
+  const [rescanning, setRescanning] = useState(false)
   const pipelineRef = useRef<HTMLElement>(null)
   const notify: Notify = useCallback((kind, text, go) => {
     if (go) {
@@ -42,6 +43,15 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
     setToast({ kind, text, go })
   }, [])
   const refresh = useCallback(() => router.refresh(), [router])
+  async function rescanAll() {
+    setRescanning(true)
+    const response = await fetch('/api/admin/acquisition/scan-all', { method: 'POST' })
+    const result = await response.json().catch(() => ({}))
+    setRescanning(false)
+    if (!response.ok) return notify('error', result.error ?? 'La réanalyse a échoué.')
+    refresh()
+    notify(result.failed ? 'info' : 'success', `${result.scanned} entreprise(s) réanalysée(s)${result.failed ? ` · ${result.failed} échec(s)` : ''}. Les domaines ont été conservés.`)
+  }
   useEffect(() => {
     if (!toast || toast.kind === 'error') return
     const timer = setTimeout(() => setToast(null), 9000)
@@ -74,6 +84,10 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
       </div>
 
       <AcquisitionAdd notify={notify} refresh={refresh} />
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/20 bg-sky-400/5 px-4 py-3">
+        <p className="text-sm text-sky-100">Actualise les emails et signaux de tous les prospects sans supprimer leurs domaines.</p>
+        <button type="button" onClick={() => void rescanAll()} disabled={rescanning} className={BTN_SMALL}>{rescanning ? 'Réanalyse en cours…' : 'Tout réanalyser'}</button>
+      </div>
 
       <section ref={pipelineRef} aria-label="Pipeline de prospection" className="scroll-mt-24 rounded-2xl border border-white/10 bg-[#1d1a18]">
         <div role="tablist" aria-label="Étapes de prospection" className="flex gap-1 overflow-x-auto border-b border-white/10 p-2">

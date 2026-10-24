@@ -66,7 +66,7 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
                   <td className={TD}><input type="checkbox" aria-label={`Sélectionner ${item.name}`} checked={selected.includes(item.id)} onChange={() => toggle(item.id)} disabled={working} className={CHECKBOX} /></td>
                   <td className={TD}><a href={`https://${item.domain}`} target="_blank" rel="noreferrer" className="font-semibold hover:underline">{item.name}<span className="block font-mono text-xs font-normal text-stone-400">{item.domain}</span></a></td>
                   <td className={TD}>
-                    {first ? <><span className="font-mono text-xs">{first.email}</span>{item.contacts.length > 1 && <span className="text-xs text-stone-500"> +{item.contacts.length - 1}</span>}{first.generic && <span className="block text-xs text-amber-300">Adresse générique</span>}</>
+                    {first ? <><span className="font-mono text-xs">{first.email}</span>{item.contacts.length > 1 && <span className="text-xs text-stone-500"> +{item.contacts.length - 1}</span>}{first.generic && <span className="block text-xs text-amber-300">Boîte partagée</span>}{first.email_source_url && <a href={first.email_source_url} target="_blank" rel="noreferrer" className="block text-xs text-sky-300 hover:underline">Source vérifiée</a>}</>
                       : <span className="text-xs text-stone-500">{item.state === 'scan' ? 'Pas encore cherchés' : 'Aucun email public : importe-en un par CSV'}</span>}
                   </td>
                   <td className={TD}><Badge tone={meta.tone}>{meta.label}</Badge></td>

@@ -115,13 +115,12 @@ function extractLeaderName(html: string): string | null {
 
 export async function scanCompany(admin: any, company: { id: string; domain: string }) {
   const found: Array<{ signal_type: string; label: string; source_url: string; evidence: string; confidence: number }> = []
-  const emails = new Set<string>()
+  const emails = new Map<string, string>()
   let discoveredLeaderName: string | null = null
 
-  // Scan séquentiel avec arrêt précoce si on a déjà trouvé au moins 2 emails valides
+  // Scanner aussi les pages de contact/légales : la page d'accueil peut contenir
+  // des adresses historiques, de support ou de tracking qui ne sont pas le bon point d'entrée.
   for (const path of PATHS) {
-    if (emails.size >= 3) break // Optimisation : pas besoin de crawler 15 pages si on a déjà les contacts
-
     const url = safeUrl(company.domain, path)
     if (!url) continue
 
@@ -163,7 +162,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
       for (const match of html.matchAll(/href=["']mailto:([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})[?"']/gi)) {
         const email = match[1].toLowerCase()
         if (isUsablePublicEmail(email)) {
-          emails.add(email)
+          emails.set(email, url)
         }
       }
 
@@ -171,7 +170,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
       for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
         const email = match[0].toLowerCase()
         if (isUsablePublicEmail(email)) {
-          emails.add(email)
+          emails.set(email, url)
         }
       }
 
@@ -179,7 +178,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
       for (const match of html.matchAll(/([A-Z0-9._%+-]{2,30})\s*(?:\[at\]|\(at\)|\s+at\s+)\s*([A-Z0-9.-]{2,30})\s*(?:\[dot\]|\(dot\)|\s+dot\s+|\.)\s*([A-Z]{2,10})/gi)) {
         const candidate = `${match[1]}@${match[2]}.${match[3]}`.toLowerCase()
         if (isUsablePublicEmail(candidate)) {
-          emails.add(candidate)
+          emails.set(candidate, url)
         }
       }
     } catch {
@@ -203,8 +202,22 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
     }
   }
 
-  // Enregistrement des contacts emails trouvés
-  for (const email of emails) {
+  // Les contacts publics créés par un crawl sont réconciliés avec le dernier scan.
+  // On ne touche pas aux contacts importés/validés manuellement.
+  const scannedEmails = Array.from(emails.keys())
+  const { data: previousPublicContacts } = await admin
+    .from('acquisition_contacts')
+    .select('id, email')
+    .eq('company_id', company.id)
+    .eq('email_status', 'public')
+  for (const previous of previousPublicContacts ?? []) {
+    if (!emails.has(String(previous.email).toLowerCase())) {
+      await admin.from('acquisition_contacts').delete().eq('id', previous.id)
+    }
+  }
+
+  // Enregistrement des contacts emails trouvés, avec preuve de la page source.
+  for (const [email, sourceUrl] of emails) {
     const { data: existing } = await admin
       .from('acquisition_contacts')
       .select('id')
@@ -217,8 +230,11 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
         email,
         full_name: discoveredLeaderName ?? null,
         email_status: 'public',
+        email_source_url: sourceUrl,
         confidence: discoveredLeaderName ? 85 : 70,
       })
+    } else {
+      await admin.from('acquisition_contacts').update({ email_source_url: sourceUrl }).eq('id', existing.id).eq('company_id', company.id)
     }
   }
 
