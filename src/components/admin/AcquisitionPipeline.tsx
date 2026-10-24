@@ -45,12 +45,23 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
   const refresh = useCallback(() => router.refresh(), [router])
   async function rescanAll() {
     setRescanning(true)
-    const response = await fetch('/api/admin/acquisition/scan-all', { method: 'POST' })
-    const result = await response.json().catch(() => ({}))
+    let offset = 0
+    let scanned = 0
+    let failed = 0
+    let total = 0
+    while (true) {
+      const response = await fetch('/api/admin/acquisition/scan-all', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ offset, limit: 5 }) })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) { setRescanning(false); return notify('error', result.error ?? 'La réanalyse a échoué.') }
+      scanned += result.scanned ?? 0
+      failed += result.failed ?? 0
+      total = result.total ?? total
+      offset = result.nextOffset ?? offset + 5
+      if (!result.hasMore) break
+    }
     setRescanning(false)
-    if (!response.ok) return notify('error', result.error ?? 'La réanalyse a échoué.')
     refresh()
-    notify(result.failed ? 'info' : 'success', `${result.scanned} entreprise(s) réanalysée(s)${result.failed ? ` · ${result.failed} échec(s)` : ''}. Les domaines ont été conservés.`)
+    notify(failed ? 'info' : 'success', `${scanned}/${total} entreprise(s) réanalysée(s)${failed ? ` · ${failed} échec(s)` : ''}. Les domaines ont été conservés.`)
   }
   useEffect(() => {
     if (!toast || toast.kind === 'error') return
