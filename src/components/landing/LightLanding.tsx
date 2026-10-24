@@ -21,6 +21,7 @@ import { HeroFloaters, HeroFrame, HeroHeadline } from './HeroMotion'
 
 export function LightLanding() {
   const [demoOpen, setDemoOpen] = useState(false)
+  const [expandedTestimonials, setExpandedTestimonials] = useState<Set<string>>(new Set())
   // Témoignages : ceux saisis dans content.ts, plus ceux que l'admin a publiés (avec l'accord de leurs auteurs).
   const [testimonials, setTestimonials] = useState<{ quote: string; name: string; role: string }[]>(TESTIMONIALS)
   const [testimonialsLoaded, setTestimonialsLoaded] = useState(false)
@@ -35,6 +36,15 @@ export function LightLanding() {
       .catch(() => { if (!cancelled) setTestimonialsLoaded(true) })
     return () => { cancelled = true }
   }, [])
+
+  function toggleTestimonial(key: string) {
+    setExpandedTestimonials((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   useEffect(() => {
     const onOpen = () => setDemoOpen(true)
@@ -185,14 +195,23 @@ export function LightLanding() {
               {testimonials.map((t, i) => (
                 <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`group relative flex flex-col justify-between gap-8 border bg-white px-7 pb-7 pt-8 shadow-[0_1px_0_rgba(11,11,12,0.03)] ${i === 1 ? 'md:translate-y-3' : i === 2 ? 'md:translate-y-6' : ''} ${R_CARD}`}>
                   <span className="pointer-events-none absolute -left-2 -top-2 text-gray-300" aria-hidden="true">＋</span>
-                  <div className="flex gap-4">
-                    <Quote className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.2]" style={{ color: MUTED }} aria-hidden="true" />
-                    <blockquote className="text-base leading-7" style={{ color: MUTED }}>« {t.quote} »</blockquote>
-                  </div>
-                  <figcaption className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff1e9] text-sm font-semibold" style={{ color: ACCENT_INK }} aria-hidden="true">{t.name.trim().charAt(0).toUpperCase()}</span>
-                    <span className="flex min-w-0 flex-col"><cite className="text-sm font-semibold not-italic" style={{ color: INK }}>{t.name}</cite><span className="text-xs" style={{ color: MUTED }}>{t.role}</span></span>
-                  </figcaption>
+                  {(() => {
+                    const key = `${t.name}-${i}`
+                    const expanded = expandedTestimonials.has(key)
+                    return <button type="button" aria-expanded={expanded} aria-label={`${expanded ? 'Réduire' : 'Lire'} le témoignage de ${t.name}`} onClick={() => toggleTestimonial(key)} className="flex h-full flex-col justify-between gap-8 text-left">
+                      <div className="flex gap-4">
+                        <Quote className="mt-0.5 h-6 w-6 shrink-0 stroke-[1.2]" style={{ color: MUTED }} aria-hidden="true" />
+                        <div className="min-w-0 flex-1">
+                          <blockquote className={`overflow-hidden text-base leading-7 transition-[max-height] duration-500 ease-out ${expanded ? 'max-h-[30rem]' : 'max-h-36'}`} style={{ color: MUTED }}>« {t.quote} »</blockquote>
+                          <span className="mt-3 inline-flex items-center text-xs font-semibold" style={{ color: ACCENT_INK }}>{expanded ? 'Réduire' : 'Lire la suite'}<ArrowRight className={`ml-1.5 h-3.5 w-3.5 transition-transform duration-300 ${expanded ? '-rotate-90' : 'rotate-0'}`} aria-hidden="true" /></span>
+                        </div>
+                      </div>
+                      <figcaption className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fff1e9] text-sm font-semibold" style={{ color: ACCENT_INK }} aria-hidden="true">{t.name.trim().charAt(0).toUpperCase()}</span>
+                        <span className="flex min-w-0 flex-col"><cite className="text-sm font-semibold not-italic" style={{ color: INK }}>{t.name}</cite><span className="text-xs" style={{ color: MUTED }}>{t.role}</span></span>
+                      </figcaption>
+                    </button>
+                  })()}
                 </Reveal>
               ))}
             </div>
