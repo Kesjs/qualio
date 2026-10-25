@@ -22,6 +22,7 @@ const AI_TARGET_PRESETS = [
 
 export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: () => void }) {
   const [mode, setMode] = useState<Mode>('ai')
+  const [showOtherMethods, setShowOtherMethods] = useState(false)
 
   // IA State
   const [aiTarget, setAiTarget] = useState(AI_TARGET_PRESETS[0].value)
@@ -146,11 +147,16 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
       title="Ajouter des prospects"
       description="Trouve des entreprises cibles pour Qualio par IA, explore les commerces locaux, importe un CSV ou colle directement des domaines."
     >
-      <div role="tablist" aria-label="Méthode d’ajout" className="mb-4 inline-flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#161413] p-1">
+      <div role="tablist" aria-label="Méthode d’ajout" className="mb-4 flex flex-wrap items-center gap-2">
         {segment('ai', 'Trouver avec l’IA', true)}
-        {segment('discover', 'OpenStreetMap')}
-        {segment('csv', 'Importer un CSV')}
-        {segment('domains', 'Coller des domaines')}
+        <button type="button" onClick={() => setShowOtherMethods((value) => !value)} className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-stone-300 hover:border-white/25 hover:text-white">
+          {showOtherMethods ? 'Masquer les autres méthodes' : 'Autres méthodes'}
+        </button>
+        {showOtherMethods && <>
+          {segment('discover', 'Commerces locaux')}
+          {segment('domains', 'Mes domaines')}
+          {segment('csv', 'Importer un CSV')}
+        </>}
       </div>
 
       {mode === 'ai' ? (
