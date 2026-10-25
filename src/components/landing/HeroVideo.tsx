@@ -26,15 +26,15 @@ export function HeroVideo() {
   const userPaused = useRef(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [playing, setPlaying] = useState(false)
-  const [muted, setMuted] = useState(true)
-  const [voiceOn, setVoiceOn] = useState(false)
+  const [voiceOn, setVoiceOn] = useState(true)
+  const [voiceBlocked, setVoiceBlocked] = useState(false)
   const [ended, setEnded] = useState(false)
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
   const [duration, setDuration] = useState(0)
   const [reduced, setReduced] = useState(false)
   const [awake, setAwake] = useState(false)
-  const [playbackRate, setPlaybackRate] = useState(1)
+  const [playbackRate, setPlaybackRate] = useState(1.25)
 
   const wake = useCallback(() => {
     setAwake(true)
@@ -53,7 +53,9 @@ export function HeroVideo() {
     }
     audio.playbackRate = video.playbackRate
     if (video.paused && !audio.paused) audio.pause()
-    if (!video.paused && audio.paused && !audio.ended) void audio.play().catch(() => undefined)
+    if (!video.paused && audio.paused && !audio.ended) {
+      void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
+    }
   }, [voiceOn])
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export function HeroVideo() {
       void video.play().catch(() => undefined)
       if (audio && voiceOn) {
         audio.currentTime = video.currentTime
-        void audio.play().catch(() => undefined)
+        void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
       }
     } else {
       userPaused.current = true
@@ -134,13 +136,6 @@ export function HeroVideo() {
     setCurrent(t)
   }
 
-  const toggleSound = () => {
-    const video = videoRef.current
-    if (!video) return
-    video.muted = !video.muted
-    setMuted(video.muted)
-  }
-
   // Toggle French voiceover narration
   const toggleVoice = () => {
     const audio = audioRef.current
@@ -151,9 +146,10 @@ export function HeroVideo() {
     if (next && !video.paused) {
       audio.currentTime = video.currentTime
       audio.playbackRate = video.playbackRate
-      void audio.play().catch(() => undefined)
+      void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
     } else {
       audio.pause()
+      setVoiceBlocked(false)
     }
     wake()
   }
@@ -207,7 +203,7 @@ export function HeroVideo() {
           if (audio && voiceOn && video) {
             audio.currentTime = video.currentTime
             audio.playbackRate = video.playbackRate
-            void audio.play().catch(() => undefined)
+            void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
           }
         }}
         onPause={() => {
@@ -234,27 +230,15 @@ export function HeroVideo() {
         </button>
       )}
 
-      {/* "Activate sound" toast shown only when video is playing and video is muted */}
-      {playing && muted && (
-        <button
-          type="button"
-          onClick={toggleSound}
-          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-gray-950/80 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-gray-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]"
-        >
-          <SpeakerWaveIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Activer le son
-        </button>
-      )}
-
       {/* "Activate French narration" toast shown when playing, sound is on, but voiceover is off */}
-      {playing && !muted && !voiceOn && (
+      {playing && (!voiceOn || voiceBlocked) && (
         <button
           type="button"
           onClick={toggleVoice}
           className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#ee6018]/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-[#ee6018] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]"
         >
           <SpeakerWaveIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Narration FR
+          Activer la narration française
         </button>
       )}
 
@@ -326,8 +310,8 @@ export function HeroVideo() {
           </svg>
         </button>
 
-        <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer le son' : 'Couper le son'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
-          {muted ? <SpeakerXMarkIcon className="h-5 w-5" /> : <SpeakerWaveIcon className="h-5 w-5" />}
+        <button type="button" onClick={toggleVoice} aria-label={voiceOn ? 'Couper la narration française' : 'Activer la narration française'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
+          {voiceOn ? <SpeakerWaveIcon className="h-5 w-5" /> : <SpeakerXMarkIcon className="h-5 w-5" />}
         </button>
         <button type="button" onClick={fullscreen} aria-label="Plein écran" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
           <ArrowsPointingOutIcon className="h-5 w-5" />
