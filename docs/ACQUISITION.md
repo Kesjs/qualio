@@ -9,7 +9,7 @@ Flux : Ajouter (CSV ou domaines) → À contacter → Brouillons → Suivi.
 - RESEND_API_KEY : clé d'envoi
 - ACQUISITION_FROM_EMAIL : adresse d'envoi dédiée à la prospection (ex. kennedy@hello.tryqualio.pro), distincte de FEEDBACK_FROM_EMAIL pour protéger les emails du produit. À défaut, FEEDBACK_FROM_EMAIL est utilisée.
 - ACQUISITION_REPLY_TO : permet de remplacer l’adresse de réponse ; par défaut, les réponses et demandes « stop » vont à contact@tryqualio.pro, l’adresse professionnelle du site.
-- ACQUISITION_DAILY_LIMIT : plafond d'envois par jour (défaut 25)
+- ACQUISITION_DAILY_LIMIT : plafond d'envois par jour (défaut 50)
 - RESEND_WEBHOOK_SECRET : déjà utilisée ; dans Resend, active aussi l'événement `email.delivered` (en plus de bounced/complained)
 
 ## Trouver des prospects (OpenStreetMap)

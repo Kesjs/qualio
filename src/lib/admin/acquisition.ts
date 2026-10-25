@@ -16,7 +16,7 @@ export type PipelineData = { queue: QueueItem[]; drafts: PipelineMessage[]; trac
 
 export function dailyLimit() {
   const value = Number(process.env.ACQUISITION_DAILY_LIMIT)
-  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 25
+  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 50
 }
 
 export function startOfTodayIso() {
