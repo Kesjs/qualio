@@ -26,7 +26,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
   // IA State
   const [aiTarget, setAiTarget] = useState(AI_TARGET_PRESETS[0].value)
   const [aiLocation, setAiLocation] = useState('')
-  const [aiLimit, setAiLimit] = useState('20')
+  const [aiLimit, setAiLimit] = useState('50')
 
   // OpenStreetMap State
   const [city, setCity] = useState('')
@@ -213,9 +213,8 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
                 value={aiLimit}
                 onChange={setAiLimit}
                 options={[
-                  { value: '10', label: '10 prospects réels' },
-                  { value: '20', label: '20 prospects réels' },
-                  { value: '30', label: '30 prospects réels' },
+                  { value: '25', label: '25 prospects réels' },
+                  { value: '50', label: '50 prospects réels' },
                 ]}
               />
             </div>
