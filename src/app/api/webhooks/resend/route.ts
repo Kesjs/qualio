@@ -36,6 +36,10 @@ export async function POST(request: NextRequest) {
     if (event.type === 'email.delivered') {
       await admin.from('acquisition_messages').update({ delivered_at: new Date().toISOString() }).eq('provider_message_id', event.data.email_id).is('delivered_at', null)
     }
+
+    if (event.type === 'email.opened') {
+      await admin.from('acquisition_messages').update({ opened_at: new Date().toISOString() }).eq('provider_message_id', event.data.email_id).is('opened_at', null)
+    }
     if (['email.bounced', 'email.complained', 'email.delivery_failed'].includes(event.type ?? '')) {
       const { data: prospect } = await admin.from('acquisition_messages').select('id, contact_id').eq('provider_message_id', event.data.email_id).maybeSingle()
       if (prospect) {

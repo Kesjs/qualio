@@ -50,7 +50,8 @@ export async function POST(request: Request) {
       await admin.from('acquisition_messages').update({ status: 'bounced', bounced_at: new Date().toISOString(), bounce_reason: `Envoi refusé : ${String(result.error.message ?? 'erreur du fournisseur').slice(0, 160)}` }).eq('id', message.id)
       failed += 1
     } else {
-      await admin.from('acquisition_messages').update({ status: 'sent', provider_message_id: result.data?.id ?? null, sent_at: new Date().toISOString() }).eq('id', message.id)
+      const sentAt = new Date()
+      await admin.from('acquisition_messages').update({ status: 'sent', provider_message_id: result.data?.id ?? null, sent_at: sentAt.toISOString(), sequence_stage: 0, next_follow_up_at: new Date(sentAt.getTime() + 3 * 86400000).toISOString() }).eq('id', message.id)
       sent += 1
     }
     await pause(600)

@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const admin = getSupabaseAdminClient() as any
   const { data: message } = await admin.from('acquisition_messages').select('id, status').eq('id', messageId).maybeSingle()
   if (message?.id && ['sent', 'replied'].includes(message.status)) {
+    await admin.from('acquisition_messages').update({ clicked_at: new Date().toISOString() }).eq('id', message.id).is('clicked_at', null)
     const utm = { utm_source: 'email', utm_medium: 'outreach', utm_campaign: 'prospection', utm_content: message.id }
     await admin.from('acquisition_visitor_events').insert({ session_id: crypto.randomUUID(), event_name: 'email_clicked', path: '/', acquisition_message_id: message.id, ...utm, consented: false })
     const destination = new URL('/', SITE_URL)
