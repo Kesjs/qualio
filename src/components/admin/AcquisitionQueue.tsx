@@ -13,11 +13,17 @@ const STATE: Record<QueueItem['state'], { label: string; tone: 'warning' | 'acce
 
 export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[]; notify: Notify; refresh: () => void }) {
   const [selected, setSelected] = useState<string[]>([])
+  const [includeShared, setIncludeShared] = useState(false)
   const [onlySourced, setOnlySourced] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const working = progress !== null
   const toggle = (id: string) => setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-  const visibleItems = onlySourced ? items.filter((item) => item.contacts.some((contact) => Boolean(contact.email_source_url))) : items
+  const visibleItems = items.filter((item) => {
+    const hasNamedContact = item.contacts.some((contact) => !contact.generic)
+    if (!includeShared && !hasNamedContact) return false
+    if (onlySourced && !item.contacts.some((contact) => Boolean(contact.email_source_url))) return false
+    return true
+  })
   const allSelected = visibleItems.length > 0 && selected.length === visibleItems.length
 
   async function prepare(ids: string[]) {
@@ -54,7 +60,8 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
         <label className="flex min-h-11 items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? [] : visibleItems.map((item) => item.id))} className={CHECKBOX} />Tout sélectionner</label>
         <button type="button" onClick={() => void prepare(selected)} disabled={!selected.length || working} className={BTN_PRIMARY}>{working ? `Préparation ${progress.done + 1}/${progress.total}…` : `Préparer la sélection (${selected.length})`}</button>
         <button type="button" onClick={() => void archive()} disabled={!selected.length || working} className={BTN_SECONDARY}>Archiver</button>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={onlySourced} onChange={(event) => setOnlySourced(event.target.checked)} className={CHECKBOX} />Emails trouvés sur une source publique</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={includeShared} onChange={(event) => { setIncludeShared(event.target.checked); setSelected([]) }} className={CHECKBOX} />Inclure les boîtes partagées</label>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={onlySourced} onChange={(event) => { setOnlySourced(event.target.checked); setSelected([]) }} className={CHECKBOX} />Emails trouvés sur une source publique</label>
         {working && <p role="status" className="text-sm text-stone-400">Chaque site est analysé puis un brouillon est créé. Ne ferme pas la page.</p>}
       </div>
       <TableRegion label="Prospects à contacter">
