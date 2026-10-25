@@ -93,7 +93,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
     <>
       {/* 1. Modal de configuration rapide */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
           <div
             className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity"
             onClick={onClose}
@@ -104,19 +104,19 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
             role="dialog"
             aria-modal="true"
             aria-labelledby="demo-modal-title"
-            className="relative w-full max-w-lg overflow-hidden border border-gray-200/90 bg-white p-6 shadow-2xl transition-all sm:p-7"
+            className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-2xl transition-all sm:max-h-[calc(100dvh-2rem)]"
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-4 sm:px-7 sm:pt-7">
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-semibold text-[#ee6018]">
                   <Sparkles className="h-3.5 w-3.5" />
                   Démo en direct
                 </span>
-                <h2 id="demo-modal-title" className="mt-2 text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                <h2 id="demo-modal-title" className="mt-2 text-lg font-bold tracking-tight text-gray-900 sm:text-2xl">
                   Tester le widget en direct
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 max-w-[34rem] text-[13px] leading-5 text-gray-500 sm:text-sm">
                   Personnalisez l’apparence et activez le vrai widget Qualio directement sur cette page.
                 </p>
               </div>
@@ -131,20 +131,21 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
             </div>
 
             {/* Customization controls */}
-            <div className="mt-6 space-y-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2 pt-4 sm:px-7 sm:pt-6">
+              <div className="space-y-4 sm:space-y-5">
               {/* Couleur d'accent */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">
                   Couleur d'accent du widget
                 </label>
-                <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5 sm:gap-3">
                   {COLOR_OPTIONS.map((c) => (
                     <button
                       key={c.hex}
                       type="button"
                       onClick={() => setConfig((prev) => ({ ...prev, accentColor: c.hex }))}
                       title={c.label}
-                      className="group relative flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                      className="group relative flex h-8 w-8 items-center justify-center rounded-full transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:h-9 sm:w-9"
                       style={{
                         backgroundColor: c.hex,
                         boxShadow:
@@ -171,7 +172,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
                   <button
                     type="button"
                     onClick={() => setConfig((prev) => ({ ...prev, position: 'right' }))}
-                    className={`flex items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      className={`min-h-11 flex items-center justify-center rounded-xl border px-2 py-2 text-[11px] font-semibold leading-4 transition sm:px-3 sm:text-xs ${
                       config.position === 'right'
                         ? 'border-[#ee6018] bg-orange-50/70 text-[#c2410c] shadow-2xs'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -182,7 +183,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
                   <button
                     type="button"
                     onClick={() => setConfig((prev) => ({ ...prev, position: 'left' }))}
-                    className={`flex items-center justify-center rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                      className={`min-h-11 flex items-center justify-center rounded-xl border px-2 py-2 text-[11px] font-semibold leading-4 transition sm:px-3 sm:text-xs ${
                       config.position === 'left'
                         ? 'border-[#ee6018] bg-orange-50/70 text-[#c2410c] shadow-2xs'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
@@ -220,7 +221,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
                   value={config.buttonLabel}
                   onChange={(e) => setConfig((prev) => ({ ...prev, buttonLabel: e.target.value }))}
                   placeholder="Ou saisissez un texte personnalisé…"
-                  className="mt-2 h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-xs text-gray-800 outline-none transition focus:border-[#ee6018] focus:ring-2 focus:ring-[#ee6018]/15"
+                  className="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-800 outline-none transition focus:border-[#ee6018] focus:ring-2 focus:ring-[#ee6018]/15"
                 />
               </div>
 
@@ -239,10 +240,11 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
                   </div>
                 </div>
               </div>
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="mt-7 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-gray-100 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:flex-row sm:justify-end sm:px-7 sm:pb-7 sm:pt-4">
               <button
                 type="button"
                 onClick={onClose}
