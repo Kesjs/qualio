@@ -13,10 +13,14 @@ import { toast } from 'sonner'
 type Mode = 'ai' | 'discover' | 'domains' | 'csv'
 
 const AI_TARGET_PRESETS = [
+  {
+    label: 'Restaurants francophones',
+    value:
+      'Restaurants et cafés indépendants francophones, avec un site officiel actif, des avis clients publics et un contact professionnel public. Priorité aux établissements qui reçoivent régulièrement des avis et pourraient bénéficier d’une analyse de feedback.',
+  },
   { label: 'E-commerce & D2C', value: 'Boutiques E-commerce et marques D2C recevant des avis clients réguliers' },
   { label: 'Startups & SaaS B2B', value: 'Startups et éditeurs de logiciels SaaS B2B avec des utilisateurs actifs' },
   { label: 'Agences Web & Digital', value: 'Agences web, communication et marketing digital gérant la réputation de clients' },
-  { label: 'Hôtels & Restauration', value: 'Hôtels, hébergements de charme et restaurants réputés avec avis en ligne' },
 ]
 
 export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: () => void }) {
