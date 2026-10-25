@@ -40,51 +40,56 @@ export function DecisionLoopSection() {
         <h2 className={H2}>De l’avis reçu à la décision suivie.</h2>
         <p className="mt-5 text-base leading-relaxed" style={{ color: MUTED }}>Qualio garde le fil entre ce que vos clients disent, ce que votre équipe choisit et ce qui change ensuite.</p>
       </Reveal>
-      <div ref={ref} className="mx-auto mt-12 grid max-w-5xl items-center gap-10 lg:grid-cols-[1.08fr_.92fr] lg:gap-16" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-        <Reveal variant="focus">
-          <div className="relative min-h-[330px] sm:min-h-[360px]" aria-label="Aperçu animé du parcours Qualio" role="img">
-            {LOOP_ITEMS.map(([number, title, text], index) => {
-              const isActive = index === active
-              const isDone = index < active
-              return (
-                <motion.div
-                  key={number}
-                  animate={{ y: (index - active) * 18, scale: 1 - Math.max(0, index - active) * 0.025, opacity: index < active - 1 ? 0 : 1 }}
-                  transition={{ duration: 0.55, ease: EASE_OUT }}
-                  className={`absolute inset-x-0 border bg-white p-6 sm:p-8 ${R_CARD}`}
-                  style={{ zIndex: LOOP_ITEMS.length - index, borderColor: isActive ? '#f8c9ad' : LINE, boxShadow: isActive ? '0 24px 55px -30px rgba(194,65,12,.55)' : '0 10px 30px -24px rgba(24,24,27,.22)' }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="font-mono text-xs font-semibold" style={{ color: isActive || isDone ? ACCENT_INK : MUTED }}>{number} / 04</span>
-                    <span className="text-xs font-medium" style={{ color: isDone ? '#4f6b43' : MUTED }}>{isDone ? 'Terminé' : isActive ? 'En cours' : 'À venir'}</span>
-                  </div>
-                  <p className="mt-8 max-w-md text-2xl font-semibold tracking-tight" style={{ color: INK }}>{title}</p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: MUTED }}>{text}</p>
-                  <div className="mt-8 flex flex-wrap gap-2 text-xs" style={{ color: MUTED }}>
-                    <span className="border px-2.5 py-1.5" style={{ borderColor: LINE }}>{index === 0 ? 'Avis clients' : index === 1 ? 'Thèmes récurrents' : index === 2 ? 'Recommandation' : 'Impact suivi'}</span>
-                    {isDone && <span className="inline-flex items-center gap-1.5 border px-2.5 py-1.5" style={{ borderColor: '#d8e5d1', color: '#4f6b43' }}><Check size={12} /> Validé</span>}
-                  </div>
-                  {isActive && <span className="absolute inset-x-0 bottom-0 h-[3px]" style={{ background: ACCENT }} aria-hidden="true" />}
-                </motion.div>
-              )
-            })}
-          </div>
-        </Reveal>
-        <div className="space-y-2">
-          {LOOP_ITEMS.map(([number, title, text], index) => {
-            const isActive = index === active
-            const isDone = index < active
-            return (
-              <Reveal key={number} delay={index * 0.06}>
-                <button type="button" onClick={() => setActive(index)} onFocus={() => setActive(index)} aria-pressed={isActive} className={`flex w-full items-start gap-4 border-b px-1 py-4 text-left transition-colors ${FOCUS}`} style={{ borderColor: LINE }}>
-                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold" style={{ background: isDone ? '#e4ebde' : isActive ? '#fff1e9' : SOFT, color: isDone ? '#4f6b43' : ACCENT_INK }}>{isDone ? <Check size={13} strokeWidth={3} /> : number}</span>
-                  <span><span className="block font-semibold" style={{ color: INK }}>{title}</span><span className="mt-1 block text-sm leading-relaxed" style={{ color: MUTED }}>{text}</span></span>
-                  {isActive && <ArrowRight size={16} className="ml-auto mt-1 shrink-0" style={{ color: ACCENT }} aria-hidden="true" />}
-                </button>
-              </Reveal>
-            )
-          })}
-        </div>
+      <div ref={ref} className="mx-auto mt-12 grid max-w-5xl gap-3 md:grid-cols-4" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+        {LOOP_ITEMS.map(([number, title, text], index) => {
+          const isActive = index === active
+          const isDone = index < active
+          return (
+            <Reveal key={number} delay={index * 0.06} className="relative h-full">
+              <button
+                type="button"
+                onClick={() => setActive(index)}
+                onFocus={() => setActive(index)}
+                aria-pressed={isActive}
+                className={`relative h-full w-full overflow-hidden border bg-white p-6 text-left transition-[border-color,box-shadow,transform] duration-500 lp-ease ${R_CARD} ${FOCUS} ${isActive ? 'md:-translate-y-1' : ''}`}
+                style={{
+                  borderColor: isActive ? '#f8c9ad' : LINE,
+                  boxShadow: isActive ? '0 18px 40px -26px rgba(194,65,12,.55)' : 'none',
+                }}
+              >
+                <span className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-semibold" style={{ color: isActive || isDone ? ACCENT_INK : MUTED }}>{number}</span>
+                  <span
+                    className="grid h-5 w-5 place-items-center rounded-full transition-colors duration-300"
+                    style={{ background: isDone ? '#e4ebde' : isActive ? '#fff1e9' : SOFT, color: isDone ? '#4f6b43' : ACCENT_INK }}
+                    aria-hidden="true"
+                  >
+                    {isDone ? <Check size={12} strokeWidth={3} /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: isActive ? ACCENT : '#d4d4d8' }} />}
+                  </span>
+                </span>
+                <span className="mt-8 block text-xl font-semibold tracking-tight" style={{ color: INK }}>{title}</span>
+                <span className="mt-2 block text-sm leading-relaxed" style={{ color: MUTED }}>{text}</span>
+                <span className="absolute inset-x-0 bottom-0 h-[3px]" style={{ background: isActive ? '#fde3d3' : 'transparent' }} aria-hidden="true">
+                  {isActive && (
+                    <span
+                      key={`${active}-${running}`}
+                      className={running ? 'lp-progress block h-full' : 'block h-full'}
+                      style={{ background: ACCENT, ['--dur' as string]: `${LOOP_STEP_MS}ms` }}
+                    />
+                  )}
+                </span>
+              </button>
+              {index < LOOP_ITEMS.length - 1 && (
+                <ArrowRight
+                  className="absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 transition-colors duration-500 md:block"
+                  size={18}
+                  style={{ color: index < active ? ACCENT : '#d4d4d8' }}
+                  aria-hidden="true"
+                />
+              )}
+            </Reveal>
+          )
+        })}
       </div>
     </Section>
   )
