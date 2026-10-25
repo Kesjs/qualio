@@ -6,7 +6,9 @@ import { renderAcquisitionEmail } from '@/lib/email/layout'
 
 export const maxDuration = 60
 
-const WAIT_DAYS = [3, 4, 5]
+// Une seule relance, 4 jours après le premier envoi, puis on arrête.
+const MAX_FOLLOW_UPS = 1
+const WAIT_DAYS = [4]
 
 /** Envoie les relances approuvées par la règle de séquence, sans intervention manuelle. */
 export async function GET(request: NextRequest) {
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest) {
   const supplied = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || request.headers.get('x-cron-secret')
   if (!expected || supplied !== expected) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!process.env.RESEND_API_KEY) return NextResponse.json({ processed: 0, skipped: 'resend_not_configured' })
-  const from = process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
+  const from = process.env.ACQUISITION_FROM_EMAIL || process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
   if (!from) return NextResponse.json({ processed: 0, skipped: 'sender_not_configured' })
 
   const admin = getSupabaseAdminClient() as any
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     .from('acquisition_messages')
     .select('id, contact_id, subject, sequence_stage, contact:acquisition_contacts(id, email, email_status, full_name, company_id, company:acquisition_companies(name))')
     .in('status', ['sent'])
-    .lt('sequence_stage', 3)
+    .lt('sequence_stage', MAX_FOLLOW_UPS)
     .lte('next_follow_up_at', new Date().toISOString())
     .limit(20)
   if (error) return NextResponse.json({ error: 'Impossible de charger les relances.' }, { status: 500 })
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
       continue
     }
     const now = new Date()
-    await admin.from('acquisition_messages').update({ provider_message_id: result.data?.id ?? null, sent_at: now.toISOString(), next_follow_up_at: message.sequence_stage + 1 < 3 ? new Date(now.getTime() + WAIT_DAYS[message.sequence_stage] * 86400000).toISOString() : null }).eq('id', inserted.data.id)
+    await admin.from('acquisition_messages').update({ provider_message_id: result.data?.id ?? null, sent_at: now.toISOString(), next_follow_up_at: message.sequence_stage + 1 < MAX_FOLLOW_UPS ? new Date(now.getTime() + WAIT_DAYS[message.sequence_stage] * 86400000).toISOString() : null }).eq('id', inserted.data.id)
     await admin.from('acquisition_messages').update({ next_follow_up_at: null }).eq('id', message.id)
     sent++
   }

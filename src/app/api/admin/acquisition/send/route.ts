@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { requireAdminApi } from '@/lib/admin/auth'
-import { dailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
+import { dailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { renderAcquisitionEmail } from '@/lib/email/layout'
 
@@ -14,8 +14,9 @@ export async function POST(request: Request) {
   if (!await requireAdminApi()) return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 })
   const { messageIds } = await request.json().catch(() => ({})) as { messageIds?: string[] }
   if (!Array.isArray(messageIds) || messageIds.length === 0 || messageIds.length > 25) return NextResponse.json({ error: 'Sélectionne entre 1 et 25 brouillons.' }, { status: 400 })
-  const from = process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
-  if (!process.env.RESEND_API_KEY || !from) return NextResponse.json({ error: 'Fournisseur d’envoi non configuré (RESEND_API_KEY et FEEDBACK_FROM_EMAIL).' }, { status: 503 })
+  // Domaine d'envoi dédié à la prospection, pour ne pas abîmer la réputation des emails du produit.
+  const from = process.env.ACQUISITION_FROM_EMAIL || process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
+  if (!process.env.RESEND_API_KEY || !from) return NextResponse.json({ error: 'Fournisseur d’envoi non configuré (RESEND_API_KEY et ACQUISITION_FROM_EMAIL).' }, { status: 503 })
   const replyTo = process.env.ACQUISITION_REPLY_TO || 'contact@tryqualio.pro'
   const limit = dailyLimit()
   const admin = getSupabaseAdminClient() as any
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       failed += 1
     } else {
       const sentAt = new Date()
-      await admin.from('acquisition_messages').update({ status: 'sent', provider_message_id: result.data?.id ?? null, sent_at: sentAt.toISOString(), sequence_stage: 0, next_follow_up_at: new Date(sentAt.getTime() + 3 * 86400000).toISOString() }).eq('id', message.id)
+      await admin.from('acquisition_messages').update({ status: 'sent', provider_message_id: result.data?.id ?? null, sent_at: sentAt.toISOString(), sequence_stage: 0, next_follow_up_at: new Date(sentAt.getTime() + FOLLOW_UP_AFTER_DAYS * 86400000).toISOString() }).eq('id', message.id)
       sent += 1
     }
     await pause(600)

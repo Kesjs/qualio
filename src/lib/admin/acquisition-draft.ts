@@ -3,27 +3,37 @@ export const GENERIC_EMAIL = /^(billing|support|contact|hello|info|sales|bonjour
 export type DraftEvidence = { label: string; evidence: string | null; source_url: string }
 type DraftInput = { fullName?: string | null; companyName?: string | null; followUpOf?: { subject: string } | null; evidence?: DraftEvidence[] }
 
-function evidenceLine(companyName: string, evidence: DraftEvidence[] = []) {
-  const item = evidence[0]
-  if (!item) return null
-  const clean = (item.evidence ?? item.label).replace(/^Terme détecté\s*:\s*/i, '').replace(/[“”]/g, '').trim()
-  return `En regardant ${companyName}, j’ai relevé un signal public lié à ${item.label.toLowerCase()}${clean ? ` (${clean})` : ''}. Source consultée : ${item.source_url}`
+export const EXAMPLE_URL = 'https://tryqualio.pro/exemple'
+
+/** Phrase d'accroche uniquement si le site montre vraiment des avis ou une collecte de feedback. Sinon : rien, on ne simule pas la personnalisation. */
+function observedLine(companyName: string | null | undefined, evidence: DraftEvidence[] = []) {
+  const name = companyName ?? 'votre équipe'
+  if (evidence.some((item) => /avis|témoignage/i.test(item.label))) return `J’ai vu que ${name} affiche des avis clients sur son site.`
+  if (evidence.some((item) => /feedback/i.test(item.label))) return `J’ai vu que ${name} invite ses clients à donner leur avis.`
+  return null
 }
 
-/** Premier message ou relance courte. Le contenu reste relu et modifiable avant l'envoi. */
+/** Premier message ou relance courte. Le contenu reste relu et modifiable avant l'envoi.
+ *  La mention « adresse publiée sur votre site » et le « stop » sont ajoutés par le pied de page de l'email (renderAcquisitionEmail). */
 export function buildDraft({ fullName, companyName, followUpOf, evidence }: DraftInput) {
   const greeting = `Bonjour${fullName ? ` ${fullName}` : ''},`
-  const company = companyName ?? 'votre équipe'
-  const observed = evidenceLine(company, evidence)
-  const signature = 'Bonne journée,\nKennedy — Qualio\nhttps://tryqualio.pro\ncontact@tryqualio.pro\n\nSi vous ne souhaitez pas recevoir d’autres messages, répondez simplement « stop ».'
+  const signature = 'Kennedy\nQualio · tryqualio.pro'
   if (followUpOf) {
     return {
       subject: /^re\s*:/i.test(followUpOf.subject) ? followUpOf.subject : `Re: ${followUpOf.subject}`,
-      body: `${greeting}\n\nJe me permets de relancer mon message précédent, au cas où il se serait perdu.\n\nQualio rassemble les avis clients de ${company} et en ressort les thèmes qui reviennent le plus. Je peux vous envoyer un exemple basé sur vos propres avis si cela vous intéresse.\n\nSi vous avez 10 minutes cette semaine, je peux vous montrer le résultat sur un cas concret : https://tryqualio.pro\n\n${signature}`,
+      body: `${greeting}\n\nJe ne veux pas insister. Voici à quoi ressemble le résultat, sur des avis d’exemple : ${EXAMPLE_URL}\n\nSi ce n’est pas le bon moment, un mot suffit et je ne vous écris plus.\n\n${signature}`,
     }
   }
+  const observed = observedLine(companyName, evidence)
   return {
-    subject: `Une question sur les retours clients chez ${company}`,
-    body: `${greeting}\n\n${observed ?? `Je me suis intéressé à ${company}, mais je n’ai pas trouvé de signal public suffisamment précis pour personnaliser davantage ce message.`}\n\nQualio aide les équipes à transformer les retours clients en thèmes, tendances et actions prioritaires, au lieu de laisser les avis se disperser.\n\nComment identifiez-vous aujourd’hui ce qui revient le plus souvent dans vos retours clients ?\n\nSi vous avez 10 minutes cette semaine, je peux vous montrer un exemple concret : https://tryqualio.pro\n\nSi ce sujet concerne une autre personne, pourriez-vous m’indiquer le bon contact ?\n\n${signature}`,
+    subject: companyName ? `Vos avis clients chez ${companyName}` : 'Vos avis clients',
+    body: [
+      greeting,
+      observed,
+      'Je m’appelle Kennedy, je construis Qualio : l’outil lit vos avis clients et vous dit quoi corriger en premier.',
+      'Si vous m’envoyez un export de vos avis (CSV, ou juste un lien vers votre page d’avis), je vous renvoie gratuitement les 3 thèmes qui reviennent le plus, avec les avis à l’appui.',
+      'Ça vous intéresse ?',
+      signature,
+    ].filter(Boolean).join('\n\n'),
   }
 }

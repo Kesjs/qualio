@@ -5,7 +5,6 @@ export const OSM_CATEGORIES = [
   { value: 'restaurants', label: 'Restaurants et cafés', filter: '["amenity"~"^(restaurant|cafe|bar|fast_food)$"]' },
   { value: 'hotels', label: 'Hôtels et hébergements', filter: '["tourism"~"^(hotel|guest_house|hostel|motel|apartment)$"]' },
   { value: 'beauty', label: 'Coiffure et beauté', filter: '["shop"~"^(hairdresser|beauty)$"]' },
-  { value: 'health', label: 'Cliniques, dentistes, vétérinaires', filter: '["amenity"~"^(clinic|dentist|veterinary)$"]' },
   { value: 'realestate', label: 'Agences immobilières', filter: '["office"="estate_agent"]' },
 ] as const
 

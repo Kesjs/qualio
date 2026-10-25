@@ -27,7 +27,6 @@ export async function POST(request: Request) {
 
   const best = [...usable].sort((a: any, b: any) => Number(GENERIC_EMAIL.test(a.email)) - Number(GENERIC_EMAIL.test(b.email)) || (b.confidence ?? 0) - (a.confidence ?? 0))[0]
   const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', company.id).order('confidence', { ascending: false }).limit(3)
-  if (!evidence?.length) return NextResponse.json({ scanned, emails: usable.length, drafted: 0, reason: 'Aucun signal public suffisamment précis pour rédiger un email personnalisé.' })
   const draft = buildDraft({ fullName: best.full_name, companyName: company.name, evidence: evidence ?? [] })
   const { error } = await admin.from('acquisition_messages').insert({ contact_id: best.id, subject: draft.subject, body: draft.body, status: 'draft' })
   if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être enregistré.' }, { status: 500 })

@@ -23,7 +23,6 @@ export async function POST(request: Request) {
   const { data: pending } = await admin.from('acquisition_messages').select('id').eq('contact_id', contact.id).in('status', ['draft', 'approved']).limit(1)
   if (pending?.length) return NextResponse.json({ error: 'Un brouillon existe déjà pour ce contact.' }, { status: 409 })
   const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', contact.company_id).order('confidence', { ascending: false }).limit(3)
-  if (!original && !evidence?.length) return NextResponse.json({ error: 'Aucun signal public suffisamment précis pour rédiger un email personnalisé.' }, { status: 409 })
   const draft = buildDraft({ fullName: contact.full_name, companyName: contact.company?.name, followUpOf: original, evidence: evidence ?? [] })
   const { data, error } = await admin.from('acquisition_messages').insert({ contact_id: contact.id, subject: draft.subject, body: draft.body, status: 'draft', follow_up_of: original?.id ?? null }).select('id').single()
   if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être enregistré.' }, { status: 500 })

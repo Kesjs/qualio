@@ -1,7 +1,7 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 
-export const FOLLOW_UP_AFTER_DAYS = 3
+export const FOLLOW_UP_AFTER_DAYS = 4
 
 export type PipelineContact = { id: string; email: string; full_name: string | null; role: string | null; email_status: string; email_source_url: string | null; generic: boolean }
 export type QueueState = 'scan' | 'empty' | 'ready'

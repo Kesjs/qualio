@@ -5,6 +5,7 @@ import { Badge, BTN_PRIMARY, BTN_SECONDARY, EmptyState, FIELD } from '@/componen
 import { BTN_SMALL, CHECKBOX, plural, postJson, type Notify } from '@/components/admin/acquisition-shared'
 import type { PipelineMessage } from '@/lib/admin/acquisition'
 import { renderAcquisitionEmail } from '@/lib/email/layout'
+import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 
 const MAX_SEND = 25
 
@@ -80,7 +81,7 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
               <input type="checkbox" aria-label={`Sélectionner le message pour ${message.email}`} checked={selected.includes(message.id)} onChange={() => toggle(message.id)} className={`${CHECKBOX} mt-0.5`} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="min-w-0 text-xs text-stone-400"><span className="font-mono text-stone-200">{message.email}</span> · {message.company}</p>
+                  <p className="min-w-0 text-xs text-stone-400"><span className="font-mono text-stone-200">{message.email}</span> · {message.company}{GENERIC_EMAIL.test(message.email) && <span className="ml-2 text-amber-300">Boîte partagée : réponse moins probable</span>}</p>
                   {message.isFollowUp && <Badge tone="info">Relance</Badge>}
                 </div>
                 {editing === message.id ? (

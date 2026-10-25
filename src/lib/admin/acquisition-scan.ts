@@ -24,9 +24,6 @@ const PATHS = [
 const SIGNALS = [
   { type: 'feedback', label: 'Collecte de feedback détectée', words: ['feedback', 'give us feedback', 'donnez votre avis', 'votre avis', 'customer feedback'] },
   { type: 'reviews', label: 'Avis ou témoignages détectés', words: ['reviews', 'avis clients', 'témoignages', 'testimonials', 'customer stories', 'trustpilot', 'avis vérifiés'] },
-  { type: 'support', label: 'Support client détecté', words: ['support', 'help center', 'centre d’aide', 'customer success', 'service client'] },
-  { type: 'changelog', label: 'Changelog détecté', words: ['changelog', 'release notes', 'nouveautés', 'what’s new'] },
-  { type: 'hiring', label: 'Recrutement lié au produit détecté', words: ['product manager', 'customer success', 'support specialist', 'head of product'] },
 ]
 
 function safeUrl(domain: string, path: string) {

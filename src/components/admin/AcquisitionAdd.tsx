@@ -17,7 +17,6 @@ const AI_TARGET_PRESETS = [
   { label: 'Startups & SaaS B2B', value: 'Startups et éditeurs de logiciels SaaS B2B avec des utilisateurs actifs' },
   { label: 'Agences Web & Digital', value: 'Agences web, communication et marketing digital gérant la réputation de clients' },
   { label: 'Hôtels & Restauration', value: 'Hôtels, hébergements de charme et restaurants réputés avec avis en ligne' },
-  { label: 'Cliniques & Santé', value: 'Cliniques, centres dentaires et cabinets médicaux spécialisés' },
 ]
 
 export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: () => void }) {
