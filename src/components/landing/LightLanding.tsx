@@ -191,9 +191,9 @@ export function LightLanding() {
               <h2 className="mt-3 text-[clamp(2rem,3.7vw,3rem)] font-semibold leading-[1.08] tracking-[-0.035em] [text-wrap:balance]">Ce que nos utilisateurs pensent de <span className="relative inline-block whitespace-nowrap" style={{ color: ACCENT_INK }}>Qualio<span className="pointer-events-none absolute -bottom-1 left-0 h-px w-full bg-[#ee6018]/45" aria-hidden="true" /></span>.</h2>
               <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed" style={{ color: MUTED }}>Des retours réels, publiés avec l’accord de leur auteur.</p>
             </Reveal>
-            <div className="grid gap-8 md:grid-cols-3 md:gap-6">
+            <div className="grid gap-5 md:grid-cols-3 md:gap-6">
               {testimonials.map((t, i) => (
-                <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`group relative flex flex-col justify-between gap-8 border bg-white px-7 pb-7 pt-8 shadow-[0_1px_0_rgba(11,11,12,0.03)] ${i === 1 ? 'md:translate-y-3' : i === 2 ? 'md:translate-y-6' : ''} ${R_CARD}`}>
+                <Reveal key={`${t.name}-${i}`} delay={i * 0.05} className={`group sticky top-24 relative flex flex-col justify-between gap-8 border bg-white px-7 pb-7 pt-8 shadow-[0_1px_0_rgba(11,11,12,0.03)] md:static md:translate-y-0 ${i === 1 ? 'md:translate-y-3' : i === 2 ? 'md:translate-y-6' : ''} ${R_CARD}`} style={{ zIndex: testimonials.length - i }}>
                   <span className="pointer-events-none absolute -left-2 -top-2 text-gray-300" aria-hidden="true">＋</span>
                   {(() => {
                     const key = `${t.name}-${i}`
