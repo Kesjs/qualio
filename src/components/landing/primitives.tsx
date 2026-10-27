@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, R_BUTTON, R_CARD, R_CHIP, SOFT } from './tokens'
@@ -14,7 +14,7 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const
  *  - `focus` : mise au point, du flou au net (visuels de produit).
  *  - `unveil` : dévoilement par le bas (grands blocs sombres).
  */
-export function Reveal({ children, delay = 0, className, variant = 'rise' }: { children: ReactNode; delay?: number; className?: string; variant?: 'rise' | 'focus' | 'unveil' }) {
+export function Reveal({ children, delay = 0, className, style, variant = 'rise' }: { children: ReactNode; delay?: number; className?: string; style?: CSSProperties; variant?: 'rise' | 'focus' | 'unveil' }) {
   const reduce = useReducedMotion()
   const initial = reduce
     ? false
@@ -31,6 +31,7 @@ export function Reveal({ children, delay = 0, className, variant = 'rise' }: { c
   return (
     <motion.div
       className={className}
+      style={style}
       initial={initial}
       whileInView={animate}
       viewport={{ once: true, margin: '-60px' }}

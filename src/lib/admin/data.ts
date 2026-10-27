@@ -151,19 +151,22 @@ export async function getPublishedTestimonials(feedbackIds: string[]) {
   return new Map<string, { quote: string; name: string; role: string }>(((data ?? []) as Array<{ feedback_id: string; quote: string; name: string; role: string }>).map((row) => [row.feedback_id, { quote: row.quote, name: row.name, role: row.role }]))
 }
 
-export async function getAcquisitionOverview() {
+export async function getAcquisitionOverview(days: 7 | 30 | null = 7) {
   const admin = getSupabaseAdminClient() as any
+  const since = days ? new Date(Date.now() - days * 86_400_000).toISOString() : null
+  const withPeriod = (query: any, column = 'created_at') => since ? query.gte(column, since) : query
   const [companies, approved, contacts, verified, messages, events] = await Promise.all([
     admin.from('acquisition_companies').select('id', { count: 'exact', head: true }),
     admin.from('acquisition_companies').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
     admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }),
     admin.from('acquisition_contacts').select('id', { count: 'exact', head: true }).eq('email_status', 'verified'),
-    admin.from('acquisition_messages').select('status').limit(5000),
-      admin.from('acquisition_visitor_events').select('session_id, event_name, path, company_domain, acquisition_message_id, utm_source, utm_medium, utm_campaign, created_at').order('created_at', { ascending: false }).limit(100),
+    withPeriod(admin.from('acquisition_messages').select('id, status, subject, created_at, sent_at, delivered_at, contact:acquisition_contacts(email, company:acquisition_companies(name, domain))').limit(5000), 'sent_at'),
+    withPeriod(admin.from('acquisition_visitor_events').select('session_id, event_name, path, company_domain, acquisition_message_id, utm_source, utm_medium, utm_campaign, created_at').order('created_at', { ascending: false }).limit(200)),
   ])
   const messageCounts = { draft: 0, approved: 0, sent: 0, replied: 0, bounced: 0, suppressed: 0 } as Record<string, number>
-  for (const row of messages.data ?? []) messageCounts[row.status] = (messageCounts[row.status] ?? 0) + 1
-  return { companies: companies.count ?? 0, approved: approved.count ?? 0, contacts: contacts.count ?? 0, verified: verified.count ?? 0, messageCounts, events: events.data ?? [], failed: [companies, approved, contacts, verified, messages, events].some((r) => r.error) }
+  const messageRows = messages.data ?? []
+  for (const row of messageRows) messageCounts[row.status] = (messageCounts[row.status] ?? 0) + 1
+  return { companies: companies.count ?? 0, approved: approved.count ?? 0, contacts: contacts.count ?? 0, verified: verified.count ?? 0, messageCounts, messages: messageRows, events: events.data ?? [], period: { days, since }, failed: [companies, approved, contacts, verified, messages, events].some((r) => r.error) }
 }
 
 export async function getAcquisitionCompanies(): Promise<{ rows: AcquisitionCompany[]; failed: boolean }> {

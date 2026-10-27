@@ -64,6 +64,11 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
         <label className="flex min-h-11 items-center gap-2 text-sm text-stone-300"><input type="checkbox" checked={onlySourced} onChange={(event) => { setOnlySourced(event.target.checked); setSelected([]) }} className={CHECKBOX} />Emails trouvés sur une source publique</label>
         {working && <p role="status" className="text-sm text-stone-400">Chaque site est analysé puis un brouillon est créé. Ne ferme pas la page.</p>}
       </div>
+      {visibleItems.length !== items.length && (
+        <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-200">
+          {items.length} prospects dans la file · {visibleItems.length} affichés. Les autres sont masqués car ils n’ont qu’une boîte partagée ; active « Inclure les boîtes partagées » pour les voir.
+        </p>
+      )}
       <TableRegion label="Prospects à contacter">
         <table className="w-full text-sm">
           <thead><tr><th className={`${TH} w-12`}><span className="sr-only">Sélection</span></th><th className={TH}>Entreprise</th><th className={TH}>Emails</th><th className={TH}>Étape</th><th className={TH}><span className="sr-only">Action</span></th></tr></thead>
