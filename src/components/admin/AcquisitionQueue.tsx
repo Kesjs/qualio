@@ -13,7 +13,7 @@ const STATE: Record<QueueItem['state'], { label: string; tone: 'warning' | 'acce
 
 export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[]; notify: Notify; refresh: () => void }) {
   const [selected, setSelected] = useState<string[]>([])
-  const [includeShared, setIncludeShared] = useState(false)
+  const [includeShared, setIncludeShared] = useState(true)
   const [onlySourced, setOnlySourced] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const working = progress !== null
@@ -66,7 +66,7 @@ export function AcquisitionQueue({ items, notify, refresh }: { items: QueueItem[
       </div>
       {visibleItems.length !== items.length && (
         <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
-          {items.length} prospects dans la file · {visibleItems.length} affichés. Les autres sont masqués car ils n’ont qu’une boîte partagée ; active « Inclure les boîtes partagées » pour les voir.
+          {items.length} prospects dans la file · {visibleItems.length} affichés. Les prospects avec une boîte partagée sont signalés dans la liste ; décoche « Inclure les boîtes partagées » si tu veux les masquer.
         </p>
       )}
       <TableRegion label="Prospects à contacter">
