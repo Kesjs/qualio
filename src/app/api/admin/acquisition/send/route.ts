@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { dailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
-import { buildProspectMail, senderIdentityReady, SENDER_IDENTITY_ERROR } from '@/lib/admin/acquisition-mail'
+import { buildProspectMail } from '@/lib/admin/acquisition-mail'
 
 export const maxDuration = 60
 
@@ -17,7 +17,6 @@ export async function POST(request: Request) {
   // Domaine d'envoi dédié à la prospection, pour ne pas abîmer la réputation des emails du produit.
   const from = process.env.ACQUISITION_FROM_EMAIL || process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
   if (!process.env.RESEND_API_KEY || !from) return NextResponse.json({ error: 'Fournisseur d’envoi non configuré (RESEND_API_KEY et ACQUISITION_FROM_EMAIL).' }, { status: 503 })
-  if (!senderIdentityReady()) return NextResponse.json({ error: SENDER_IDENTITY_ERROR }, { status: 503 })
   const limit = dailyLimit()
   const admin = getSupabaseAdminClient() as any
 

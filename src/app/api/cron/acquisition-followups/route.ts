@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
 import { dailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
-import { buildProspectMail, senderIdentityReady } from '@/lib/admin/acquisition-mail'
+import { buildProspectMail } from '@/lib/admin/acquisition-mail'
 
 export const maxDuration = 60
 
@@ -19,8 +19,6 @@ export async function GET(request: NextRequest) {
   if (!process.env.RESEND_API_KEY) return NextResponse.json({ processed: 0, skipped: 'resend_not_configured' })
   const from = process.env.ACQUISITION_FROM_EMAIL || process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
   if (!from) return NextResponse.json({ processed: 0, skipped: 'sender_not_configured' })
-  // Pas d'email commercial sans éditeur ni adresse postale.
-  if (!senderIdentityReady()) return NextResponse.json({ processed: 0, skipped: 'sender_identity_missing' })
 
   const admin = getSupabaseAdminClient() as any
   // Même plafond journalier que l'envoi manuel : les relances en font partie.
