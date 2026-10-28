@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { requireAdminApi } from '@/lib/admin/auth'
-import { dailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
+import { BOUNCE_RATE_WINDOW_DAYS, dailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildProspectMail } from '@/lib/admin/acquisition-mail'
 
@@ -24,8 +24,9 @@ export async function POST(request: Request) {
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
   const remaining = limit - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ error: `Limite du jour atteinte (${limit} envois). Reprends demain.` }, { status: 429 })
-  const { count: sentCount, error: bounceCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null)
-  const { count: bouncedCount, error: bouncedCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced')
+  const bounceSince = new Date(Date.now() - BOUNCE_RATE_WINDOW_DAYS * 86_400_000).toISOString()
+  const { count: sentCount, error: bounceCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null).gte('sent_at', bounceSince)
+  const { count: bouncedCount, error: bouncedCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced').gte('bounced_at', bounceSince)
   if (bounceCountError || bouncedCountError) return NextResponse.json({ error: 'Impossible de vérifier le taux de rebond.' }, { status: 500 })
   if ((sentCount ?? 0) >= 10 && ((bouncedCount ?? 0) / (sentCount ?? 1)) > 0.10) return NextResponse.json({ error: 'Envois suspendus : le taux de rebond dépasse 10 %. Vérifie les adresses avant de reprendre.' }, { status: 429 })
 

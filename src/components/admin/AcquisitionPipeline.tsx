@@ -78,7 +78,7 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
       <section aria-label="Indicateurs de prospection" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Envoyés aujourd’hui" value={`${stats.sentToday} / ${stats.dailyLimit}`} hint={`${stats.delivered} livrés au total`} />
         <StatCard label="Réponses" value={stats.replied} hint={`${stats.replyRate} % de réponse`} tone="accent" />
-        <StatCard label="Rebonds" value={`${stats.bounced} · ${stats.bounceRate} %`} hint={stats.sentTotal ? `sur ${stats.sentTotal} envoyés` : 'Aucun envoi pour l’instant'} tone={stats.bounced > 0 ? 'danger' : 'neutral'} />
+        <StatCard label="Rebonds" value={`${stats.bounced} · ${stats.bounceRate} %`} hint={stats.sentTotal ? `historique · taux sur 30 jours` : 'Aucun envoi pour l’instant'} tone={stats.bounced > 0 ? 'danger' : 'neutral'} />
         <StatCard label="Brouillons à envoyer" value={stats.drafts} hint="Relis puis envoie en une action" />
       </section>
 

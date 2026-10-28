@@ -34,4 +34,4 @@ Sous-domaine dédié (ex. hello.tryqualio.pro) avec SPF, DKIM et DMARC dans Rese
 - **Page de confidentialité** : section « Si Qualio vous a écrit sans que vous soyez client » (origine des adresses, base légale, durée de 3 ans, droits).
 - **Migration à appliquer** : `supabase/migrations/20261028100000_acquisition_unsubscribe_audit.sql`. Sans elle, l'exclusion fonctionne mais la date de désinscription n'est pas enregistrée.
 - **Relances** : une seule relance par contact. L'envoi manuel d'une relance annule celle du cron, et le cron respecte le plafond journalier et ne retente jamais un échec.
-- **Protection réputation** : les envois manuels et le cron se mettent en pause si au moins 10 messages ont été envoyés et que le taux de rebond dépasse 10 %. La page Prospection affiche alors un bandeau rouge.
+- **Protection réputation** : les envois manuels et le cron se mettent en pause si au moins 10 messages ont été envoyés sur les 30 derniers jours et que le taux de rebond de cette fenêtre dépasse 10 %. La page Prospection affiche alors un bandeau rouge ; l’historique complet reste visible séparément.

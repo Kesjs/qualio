@@ -2,6 +2,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 
 export const FOLLOW_UP_AFTER_DAYS = 4
+export const BOUNCE_RATE_WINDOW_DAYS = 30
 
 export type PipelineContact = { id: string; email: string; full_name: string | null; role: string | null; email_status: string; email_source_url: string | null; generic: boolean }
 export type QueueState = 'scan' | 'empty' | 'ready'
@@ -69,10 +70,13 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
 
   const todayStart = new Date(startOfTodayIso()).getTime()
   const sent = messages.filter((message) => message.sentAt)
+  const bounceSince = Date.now() - BOUNCE_RATE_WINDOW_DAYS * 86_400_000
+  const recentSent = sent.filter((message) => new Date(message.sentAt as string).getTime() >= bounceSince)
+  const recentBounced = messages.filter((message) => message.status === 'bounced' && new Date(message.bouncedAt ?? message.sentAt ?? message.createdAt).getTime() >= bounceSince)
   const bounced = messages.filter((message) => message.status === 'bounced').length
   const replied = messages.filter((message) => message.status === 'replied').length
   const reached = Math.max(0, sent.length - bounced)
-  const bounceRate = sent.length ? Math.round((bounced / sent.length) * 100) : 0
+  const bounceRate = recentSent.length ? Math.round((recentBounced.length / recentSent.length) * 100) : 0
   const stats: PipelineStats = {
     sentToday: sent.filter((message) => new Date(message.sentAt as string).getTime() >= todayStart).length,
     dailyLimit: dailyLimit(),
@@ -80,7 +84,7 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
     delivered: messages.filter((message) => message.deliveredAt).length,
     bounced,
     bounceRate,
-    pausedForBounces: sent.length >= 10 && bounceRate > 10,
+    pausedForBounces: recentSent.length >= 10 && bounceRate > 10,
     replied,
     replyRate: reached ? Math.round((replied / reached) * 100) : 0,
     drafts: messages.filter((message) => message.status === 'draft' || message.status === 'approved').length,

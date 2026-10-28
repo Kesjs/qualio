@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
-import { dailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
+import { BOUNCE_RATE_WINDOW_DAYS, dailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
 import { buildProspectMail } from '@/lib/admin/acquisition-mail'
 
 export const maxDuration = 60
@@ -26,8 +26,9 @@ export async function GET(request: NextRequest) {
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
   const remaining = dailyLimit() - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ processed: 0, skipped: 'daily_limit_reached' })
-  const { count: sentCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null)
-  const { count: bouncedCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced')
+  const bounceSince = new Date(Date.now() - BOUNCE_RATE_WINDOW_DAYS * 86_400_000).toISOString()
+  const { count: sentCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null).gte('sent_at', bounceSince)
+  const { count: bouncedCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced').gte('bounced_at', bounceSince)
   if ((sentCount ?? 0) >= 10 && ((bouncedCount ?? 0) / (sentCount ?? 1)) > 0.10) return NextResponse.json({ processed: 0, skipped: 'bounce_rate_above_10_percent' })
 
   const { data: due, error } = await admin
