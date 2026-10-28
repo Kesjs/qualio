@@ -78,7 +78,7 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
       <section aria-label="Indicateurs de prospection" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Envoyés aujourd’hui" value={`${stats.sentToday} / ${stats.dailyLimit}`} hint={`${stats.delivered} livrés au total`} />
         <StatCard label="Réponses" value={stats.replied} hint={`${stats.replyRate} % de réponse`} tone="accent" />
-        <StatCard label="Rebonds" value={stats.bounced} hint={stats.sentTotal ? `sur ${stats.sentTotal} envoyés` : 'Aucun envoi pour l’instant'} tone={stats.bounced > 0 ? 'danger' : 'neutral'} />
+        <StatCard label="Rebonds" value={`${stats.bounced} · ${stats.bounceRate} %`} hint={stats.sentTotal ? `sur ${stats.sentTotal} envoyés` : 'Aucun envoi pour l’instant'} tone={stats.bounced > 0 ? 'danger' : 'neutral'} />
         <StatCard label="Brouillons à envoyer" value={stats.drafts} hint="Relis puis envoie en une action" />
       </section>
 
@@ -92,12 +92,6 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
             </span>
           </div>
         )}
-      </div>
-
-      <AcquisitionAdd notify={notify} refresh={refresh} />
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/20 bg-sky-400/5 px-4 py-3">
-        <p className="text-sm text-sky-900 dark:text-sky-100">Actualise les emails et signaux de tous les prospects sans supprimer leurs domaines.</p>
-        <button type="button" onClick={() => void rescanAll()} disabled={rescanning} className={BTN_SMALL}>{rescanning ? 'Réanalyse en cours…' : 'Tout réanalyser'}</button>
       </div>
 
       <section ref={pipelineRef} aria-label="Pipeline de prospection" className="scroll-mt-24 rounded-2xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216]">
@@ -114,6 +108,14 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
           {tab === 'tracking' && <AcquisitionTracking messages={data.tracking} notify={notify} refresh={refresh} />}
         </div>
       </section>
+      <AcquisitionAdd notify={notify} refresh={refresh} />
+      <details className="rounded-xl border border-sky-400/20 bg-sky-400/5 px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-sky-900 dark:text-sky-100">Maintenance de la prospection</summary>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-sky-900 dark:text-sky-100">Actualise les emails et signaux de tous les prospects sans supprimer leurs domaines.</p>
+        <button type="button" onClick={() => void rescanAll()} disabled={rescanning} className={BTN_SMALL}>{rescanning ? 'Réanalyse en cours…' : 'Tout réanalyser'}</button>
+        </div>
+      </details>
     </div>
   )
 }

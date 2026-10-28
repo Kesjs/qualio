@@ -9,7 +9,7 @@ Flux : Ajouter (CSV ou domaines) → À contacter → Brouillons → Suivi.
 - RESEND_API_KEY : clé d'envoi
 - ACQUISITION_FROM_EMAIL : adresse d'envoi dédiée à la prospection (ex. kennedy@hello.tryqualio.pro), distincte de FEEDBACK_FROM_EMAIL pour protéger les emails du produit. À défaut, FEEDBACK_FROM_EMAIL est utilisée.
 - ACQUISITION_REPLY_TO : permet de remplacer l’adresse de réponse ; par défaut, les réponses et demandes « stop » vont à contact@tryqualio.pro, l’adresse professionnelle du site.
-- ACQUISITION_DAILY_LIMIT : plafond d'envois par jour (défaut 50)
+- ACQUISITION_DAILY_LIMIT : plafond d'envois par jour (défaut 25 au démarrage ; augmente-le seulement après une montée en charge progressive)
 - RESEND_WEBHOOK_SECRET : déjà utilisée ; dans Resend, active aussi l'événement `email.delivered` (en plus de bounced/complained)
 
 ## Trouver des prospects (OpenStreetMap)
@@ -22,7 +22,7 @@ Colonnes reconnues : email, entreprise, domaine, nom (ou prénom + nom), poste. 
 Priorité : e-commerce/D2C, SaaS B2B, agences web (mode IA). Les établissements locaux (OSM) restent possibles mais leurs avis vivent sur Google/TripAdvisor : cible moins adaptée. Santé retirée.
 
 ## Messages
-Premier mail : une seule demande (export d'avis contre 3 thèmes gratuits). Une phrase d'accroche n'est ajoutée que si le site montre des avis ou une collecte de feedback ; sinon aucune fausse personnalisation. Une seule relance, 4 jours après, avec le lien https://tryqualio.pro/exemple (avis d'exemple, à ne pas présenter comme leur rapport). Le pied de page de l'email indique l'origine de l'adresse et le « stop ». Les adresses nominatives passent avant les contact@/info@ ; les boîtes partagées sont signalées.
+Premier mail : une seule demande (trois constats gratuits). Le sujet est choisi parmi deux variantes stables et une phrase d'accroche cite uniquement un signal public réellement détecté, avec l'entreprise nommée. Une seule relance, 4 jours après, apporte un exemple différent et le lien https://tryqualio.pro/exemple (avis d'exemple, à ne pas présenter comme leur rapport). Le pied de page de l'email indique l'origine de l'adresse et le « stop ». Les adresses nominatives passent avant les contact@/info@ ; les boîtes partagées restent masquées par défaut.
 
 ## Conseils d'envoi
 Sous-domaine dédié (ex. hello.tryqualio.pro) avec SPF, DKIM et DMARC dans Resend, chauffé 2 semaines, 20 à 30 mails par jour au début, emails vérifiés avant import.
@@ -34,3 +34,4 @@ Sous-domaine dédié (ex. hello.tryqualio.pro) avec SPF, DKIM et DMARC dans Rese
 - **Page de confidentialité** : section « Si Qualio vous a écrit sans que vous soyez client » (origine des adresses, base légale, durée de 3 ans, droits).
 - **Migration à appliquer** : `supabase/migrations/20261028100000_acquisition_unsubscribe_audit.sql`. Sans elle, l'exclusion fonctionne mais la date de désinscription n'est pas enregistrée.
 - **Relances** : une seule relance par contact. L'envoi manuel d'une relance annule celle du cron, et le cron respecte le plafond journalier et ne retente jamais un échec.
+- **Protection réputation** : les envois manuels et le cron se mettent en pause si au moins 10 messages ont été envoyés et que le taux de rebond dépasse 10 %. La page Prospection affiche alors un bandeau rouge.

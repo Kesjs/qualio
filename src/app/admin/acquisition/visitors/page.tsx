@@ -59,9 +59,15 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
   const params = await searchParams
   const period = parsePeriod(params.period)
   const data = await getAcquisitionOverview(period)
-  const events = data.events as VisitorEvent[]
   const messages = data.messages as MessageRow[]
   const messageById = new Map(messages.map((message) => [message.id, message]))
+  const events = (data.events as VisitorEvent[]).filter((event) => {
+    if (event.company_domain === 'localhost' || event.company_domain === '127.0.0.1') return false
+    if (event.event_name !== 'email_clicked' || !event.acquisition_message_id) return true
+    const message = messageById.get(event.acquisition_message_id)
+    if (!message?.delivered_at) return true
+    return new Date(event.created_at).getTime() - new Date(message.delivered_at).getTime() >= 60_000
+  })
   const sessions = new Map<string, { latest: VisitorEvent; events: VisitorEvent[]; paths: Set<string> }>()
 
   for (const event of events) {

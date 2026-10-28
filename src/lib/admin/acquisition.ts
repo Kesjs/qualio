@@ -11,12 +11,12 @@ export type PipelineMessage = {
   deliveredAt: string | null; bouncedAt: string | null; bounceReason: string | null; repliedAt: string | null
   isFollowUp: boolean; followUpDue: boolean; email: string; company: string
 }
-export type PipelineStats = { sentToday: number; dailyLimit: number; sentTotal: number; delivered: number; bounced: number; replied: number; replyRate: number; drafts: number }
+export type PipelineStats = { sentToday: number; dailyLimit: number; sentTotal: number; delivered: number; bounced: number; bounceRate: number; pausedForBounces: boolean; replied: number; replyRate: number; drafts: number }
 export type PipelineData = { queue: QueueItem[]; drafts: PipelineMessage[]; tracking: PipelineMessage[]; stats: PipelineStats; failed: boolean }
 
 export function dailyLimit() {
   const value = Number(process.env.ACQUISITION_DAILY_LIMIT)
-  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 50
+  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 25
 }
 
 export function startOfTodayIso() {
@@ -72,12 +72,15 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
   const bounced = messages.filter((message) => message.status === 'bounced').length
   const replied = messages.filter((message) => message.status === 'replied').length
   const reached = Math.max(0, sent.length - bounced)
+  const bounceRate = sent.length ? Math.round((bounced / sent.length) * 100) : 0
   const stats: PipelineStats = {
     sentToday: sent.filter((message) => new Date(message.sentAt as string).getTime() >= todayStart).length,
     dailyLimit: dailyLimit(),
     sentTotal: sent.length,
     delivered: messages.filter((message) => message.deliveredAt).length,
     bounced,
+    bounceRate,
+    pausedForBounces: sent.length >= 10 && bounceRate > 10,
     replied,
     replyRate: reached ? Math.round((replied / reached) * 100) : 0,
     drafts: messages.filter((message) => message.status === 'draft' || message.status === 'approved').length,

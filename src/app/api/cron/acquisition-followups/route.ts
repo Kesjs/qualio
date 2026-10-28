@@ -28,6 +28,9 @@ export async function GET(request: NextRequest) {
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
   const remaining = dailyLimit() - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ processed: 0, skipped: 'daily_limit_reached' })
+  const { count: sentCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null)
+  const { count: bouncedCount } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced')
+  if ((sentCount ?? 0) >= 10 && ((bouncedCount ?? 0) / (sentCount ?? 1)) > 0.10) return NextResponse.json({ processed: 0, skipped: 'bounce_rate_above_10_percent' })
 
   const { data: due, error } = await admin
     .from('acquisition_messages')

@@ -25,6 +25,10 @@ export async function POST(request: Request) {
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
   const remaining = limit - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ error: `Limite du jour atteinte (${limit} envois). Reprends demain.` }, { status: 429 })
+  const { count: sentCount, error: bounceCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).not('sent_at', 'is', null)
+  const { count: bouncedCount, error: bouncedCountError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced')
+  if (bounceCountError || bouncedCountError) return NextResponse.json({ error: 'Impossible de vérifier le taux de rebond.' }, { status: 500 })
+  if ((sentCount ?? 0) >= 10 && ((bouncedCount ?? 0) / (sentCount ?? 1)) > 0.10) return NextResponse.json({ error: 'Envois suspendus : le taux de rebond dépasse 10 %. Vérifie les adresses avant de reprendre.' }, { status: 429 })
 
   const { data: messages, error } = await admin.from('acquisition_messages').select('id, subject, body, status, follow_up_of, contact:acquisition_contacts(id, email, email_status)').in('id', messageIds).in('status', ['draft', 'approved'])
   if (error) return NextResponse.json({ error: 'Impossible de charger les brouillons.' }, { status: 500 })
