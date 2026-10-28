@@ -131,7 +131,7 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
 function EmailPreview({ subject, body }: { subject: string; body: string }) {
   const { html } = renderAcquisitionEmail({ subject, body, unsubscribeUrl: '#' })
   return <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white p-2 text-left">
-    <div className="mb-2 flex items-center justify-between px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500"><span>Aperçu envoyé au prospect</span><span>avec identité, adresse et lien de désinscription</span></div>
+    <div className="mb-2 flex items-center justify-between px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500"><span>Aperçu envoyé au prospect</span><span>avec pied de mail et lien de désinscription</span></div>
     <iframe title={`Aperçu de ${subject}`} srcDoc={html} sandbox="" className="h-[25rem] w-full rounded-lg border border-stone-200 bg-white" />
   </div>
 }

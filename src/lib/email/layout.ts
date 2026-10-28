@@ -35,7 +35,9 @@ export function renderEmail(input: {
  *  Le pied de page porte les mentions obligatoires d'un email commercial : qui envoie, où, pourquoi le destinataire reçoit ce message, comment se désinscrire. */
 export function renderAcquisitionEmail(input: { subject: string; body: string; trackingUrl?: string; unsubscribeUrl?: string }) {
   const site = 'https://tryqualio.pro'
-  const identity = senderIdentityReady() ? senderIdentityLine() : 'Éditeur et adresse postale à compléter (src/lib/legal.ts)'
+  // Ne jamais exposer un placeholder technique dans un email envoyé. Les informations
+  // légales complètes restent à renseigner dans LEGAL avant une campagne réelle.
+  const identity = senderIdentityReady() ? senderIdentityLine() : 'Qualio · tryqualio.pro · contact@tryqualio.pro'
   const reason = 'Vous recevez ce message parce que votre adresse professionnelle est publiée sur votre site ou dans un annuaire public, et que notre proposition concerne votre activité.'
   const optOut = 'Pour ne plus recevoir de message de notre part, répondez « stop » ou utilisez le lien ci-dessous.'
   const paragraphs = input.body.split(/\n{2,}/).map((paragraph) => {
