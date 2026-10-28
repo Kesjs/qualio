@@ -26,17 +26,16 @@ export function buildDraft({ fullName, companyName, followUpOf, evidence }: Draf
       body: `${greeting}\n\nJe ne veux pas insister. Voici à quoi ressemble le résultat, sur des avis d’exemple : ${EXAMPLE_URL}\n\nSi ce n’est pas le bon moment, un mot suffit et je ne vous écris plus.\n\n${signature}`,
     }
   }
-  const signal = usefulEvidence(evidence ?? [])
   const company = companyName?.trim() || 'votre entreprise'
-  const observation = signal ? `En regardant ${company}, j’ai vu un signal public autour de ${signal.label.toLowerCase()}.` : `Je me demandais comment ${company} transforme aujourd’hui ses avis clients en décisions.`
   return {
     subject: SUBJECTS[stableIndex(company)],
     body: [
       greeting,
-      observation,
-      'Qualio transforme les avis clients en 3 actions prioritaires, avec leurs preuves.',
-      `Voici un exemple concret : ${EXAMPLE_URL}`,
-      'Si vous voulez, je peux vous envoyer gratuitement trois constats sur vos avis publics. Un simple « oui » suffit.',
+      'Les retours clients contiennent souvent des pistes d’amélioration précieuses. Entre les commentaires, les attentes récurrentes et les suggestions, il n’est toutefois pas toujours simple de savoir quoi prioriser.',
+      'C’est précisément ce que facilite Qualio : transformer les avis clients en trois actions prioritaires, accompagnées des retours qui les justifient.',
+      `Vous pouvez découvrir un exemple concret ici : ${EXAMPLE_URL}`,
+      `Je vous propose de réaliser gratuitement une première analyse des avis publics de ${company}, afin d’identifier trois pistes d’amélioration concrètes.`,
+      'Seriez-vous intéressé par un aperçu personnalisé, sans engagement ?',
       signature,
     ].filter(Boolean).join('\n\n'),
   }
