@@ -10,7 +10,7 @@ describe('brouillons de prospection', () => {
     expect(body).toContain('aperçu personnalisé, sans engagement')
     expect(body).not.toContain('signal')
     expect(body).toContain('Maison Dubois')
-    expect(body.match(/\?/g)).toBeNull()
+    expect(body.match(/\?/g)).toHaveLength(1)
   })
 
   it('garde le même message clair même avec des éléments de crawl', () => {
