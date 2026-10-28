@@ -4,8 +4,8 @@ export type Tab = 'queue' | 'drafts' | 'tracking'
 export type Notify = (kind: 'success' | 'error' | 'info', text: string, go?: Tab) => void
 export const FOLLOW_UP_AFTER_DAYS = 4
 
-export const BTN_SMALL = `inline-flex min-h-10 items-center justify-center rounded-lg border border-white/20 px-3 text-xs font-semibold text-stone-200 transition-colors hover:bg-white/[0.08] disabled:opacity-60 ${FOCUS}`
-export const BTN_SMALL_ACCENT = `inline-flex min-h-10 items-center justify-center rounded-lg border border-[#ee6018]/60 px-3 text-xs font-semibold text-[#ffb08a] transition-colors hover:bg-[#ee6018]/10 disabled:opacity-60 ${FOCUS}`
+export const BTN_SMALL = `inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 dark:border-white/[0.16] px-3 text-xs font-semibold text-gray-800 dark:text-zinc-200 transition-colors hover:bg-gray-100 dark:hover:bg-white/[0.08] disabled:opacity-60 ${FOCUS}`
+export const BTN_SMALL_ACCENT = `inline-flex min-h-10 items-center justify-center rounded-lg border border-[#ee6018]/60 px-3 text-xs font-semibold text-[#c2410c] dark:text-[#ffb08a] transition-colors hover:bg-[#ee6018]/10 disabled:opacity-60 ${FOCUS}`
 export const CHECKBOX = `h-5 w-5 shrink-0 rounded accent-[#c2410c] ${FOCUS}`
 
 export async function postJson(url: string, body: unknown): Promise<{ ok: boolean; data: Record<string, any> }> {

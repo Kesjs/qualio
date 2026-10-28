@@ -26,3 +26,11 @@ Premier mail : une seule demande (export d'avis contre 3 thèmes gratuits). Une 
 
 ## Conseils d'envoi
 Sous-domaine dédié (ex. hello.tryqualio.pro) avec SPF, DKIM et DMARC dans Resend, chauffé 2 semaines, 20 à 30 mails par jour au début, emails vérifiés avant import.
+
+## Conformité des envois (octobre 2026)
+- **Identité de l'expéditeur** : le pied de chaque email affiche l'éditeur, la forme juridique, l'immatriculation et l'adresse postale lus dans `src/lib/legal.ts` (la même source que les mentions légales). Tant que `publisher` et `address` sont vides, l'envoi manuel et le cron de relance sont **bloqués**.
+- **Désinscription en un clic** : chaque email porte un lien « Me désinscrire » (page publique `/desinscription`, sans compte) et les en-têtes `List-Unsubscribe` (lien https + mailto) et `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058, boutons natifs de Gmail et Apple Mail). La demande passe l'adresse en `suppressed`, annule brouillons et relances en attente, et garde la date et la source (`unsubscribed_at`, `unsubscribe_source`).
+- **« stop » par réponse** : le webhook `email.received` exclut l'adresse quand l'objet commence par « stop » (c'est ce que produit le lien mailto) et ignore les réponses automatiques (absence, accusé de réception). Un « stop » écrit dans le corps du message se traite avec le bouton « Stop reçu » du Suivi.
+- **Page de confidentialité** : section « Si Qualio vous a écrit sans que vous soyez client » (origine des adresses, base légale, durée de 3 ans, droits).
+- **Migration à appliquer** : `supabase/migrations/20261028100000_acquisition_unsubscribe_audit.sql`. Sans elle, l'exclusion fonctionne mais la date de désinscription n'est pas enregistrée.
+- **Relances** : une seule relance par contact. L'envoi manuel d'une relance annule celle du cron, et le cron respecte le plafond journalier et ne retente jamais un échec.

@@ -17,10 +17,11 @@ export async function POST(request: Request) {
   }
   if (!['sent', 'bounced'].includes(message.status)) return NextResponse.json({ error: 'Ce message n’est pas en attente de réponse.' }, { status: 409 })
   if (action === 'replied') {
-    await admin.from('acquisition_messages').update({ status: 'replied', replied_at: new Date().toISOString() }).eq('id', id)
+    await admin.from('acquisition_messages').update({ status: 'replied', replied_at: new Date().toISOString(), next_follow_up_at: null }).eq('id', id)
     return NextResponse.json({ ok: true })
   }
-  await admin.from('acquisition_messages').update({ status: 'suppressed' }).eq('id', id)
   await admin.from('acquisition_contacts').update({ email_status: 'suppressed' }).eq('id', message.contact_id)
+  await admin.from('acquisition_messages').update({ status: 'suppressed', next_follow_up_at: null }).eq('contact_id', message.contact_id).in('status', ['draft', 'approved', 'sent'])
+  await admin.from('acquisition_contacts').update({ unsubscribed_at: new Date().toISOString(), unsubscribe_source: 'admin_stop' }).eq('id', message.contact_id)
   return NextResponse.json({ ok: true })
 }

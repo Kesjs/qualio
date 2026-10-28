@@ -67,28 +67,28 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-[#161413] p-3">
-        <div className="mr-auto min-w-[13rem]"><p className="text-sm font-semibold text-stone-200">Envoi groupé</p><p className="text-xs text-stone-400">Sélectionne plusieurs messages si tu veux les envoyer ensemble.</p></div>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216] p-3">
+        <div className="mr-auto min-w-[13rem]"><p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Envoi groupé</p><p className="text-xs text-gray-500 dark:text-zinc-400">Sélectionne plusieurs messages si tu veux les envoyer ensemble.</p></div>
         <label className="flex min-h-11 items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? [] : drafts.slice(0, MAX_SEND).map((message) => message.id))} className={CHECKBOX} />Tout sélectionner</label>
         <button type="button" onClick={() => setConfirming(true)} disabled={!selected.length || busy || remainingToday <= 0} className={BTN_PRIMARY}>Envoyer {selected.length ? `les ${selected.length} sélectionnés` : 'la sélection'}</button>
         <button type="button" onClick={() => void discard()} disabled={!selected.length || busy} className={BTN_SECONDARY}>Supprimer</button>
-        <p className="text-sm text-stone-400">{remainingToday > 0 ? `${plural(remainingToday, 'envoi restant', 'envois restants')} aujourd’hui` : 'Limite du jour atteinte, reprends demain'} · {MAX_SEND} par envoi maximum</p>
+        <p className="text-sm text-gray-500 dark:text-zinc-400">{remainingToday > 0 ? `${plural(remainingToday, 'envoi restant', 'envois restants')} aujourd’hui` : 'Limite du jour atteinte, reprends demain'} · {MAX_SEND} par envoi maximum</p>
       </div>
       <ul role="list" className="space-y-3">
         {drafts.map((message) => (
-          <li key={message.id} className="rounded-2xl border border-white/10 bg-[#161413] p-4">
+          <li key={message.id} className="rounded-2xl border border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216] p-4">
             <div className="flex gap-3">
               <input type="checkbox" aria-label={`Sélectionner le message pour ${message.email}`} checked={selected.includes(message.id)} onChange={() => toggle(message.id)} className={`${CHECKBOX} mt-0.5`} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="min-w-0 text-xs text-stone-400"><span className="font-mono text-stone-200">{message.email}</span> · {message.company}{GENERIC_EMAIL.test(message.email) && <span className="ml-2 text-amber-300">Boîte partagée : réponse moins probable</span>}</p>
+                  <p className="min-w-0 text-xs text-gray-500 dark:text-zinc-400"><span className="font-mono text-gray-800 dark:text-zinc-200">{message.email}</span> · {message.company}{GENERIC_EMAIL.test(message.email) && <span className="ml-2 text-amber-700 dark:text-amber-300">Boîte partagée : réponse moins probable</span>}</p>
                   {message.isFollowUp && <Badge tone="info">Relance</Badge>}
                 </div>
                 {editing === message.id ? (
                   <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.9fr)]">
                     <div className="space-y-3">
-                    <div><label htmlFor={`sujet-${message.id}`} className="mb-1.5 block text-xs font-semibold text-stone-300">Sujet</label><input id={`sujet-${message.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} className={FIELD} /></div>
-                    <div><label htmlFor={`corps-${message.id}`} className="mb-1.5 block text-xs font-semibold text-stone-300">Message</label><textarea id={`corps-${message.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={10} maxLength={5000} className={`${FIELD} py-2 leading-6`} /></div>
+                    <div><label htmlFor={`sujet-${message.id}`} className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-zinc-300">Sujet</label><input id={`sujet-${message.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={200} className={FIELD} /></div>
+                    <div><label htmlFor={`corps-${message.id}`} className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-zinc-300">Message</label><textarea id={`corps-${message.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={10} maxLength={5000} className={`${FIELD} py-2 leading-6`} /></div>
                     <div className="flex gap-2"><button type="button" onClick={() => void save(message.id)} disabled={busy || !subject.trim() || !body.trim()} className={BTN_PRIMARY}>Enregistrer</button><button type="button" onClick={() => setEditing(null)} className={BTN_SECONDARY}>Annuler</button></div>
                     </div>
                     <EmailPreview subject={subject} body={body} />
@@ -96,12 +96,12 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
                 ) : (
                   <>
                     <p className="mt-2 font-semibold">{message.subject}</p>
-                    <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-stone-300">{message.body}</p>
+                    <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-gray-600 dark:text-zinc-300">{message.body}</p>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <button type="button" onClick={() => prepareSingleSend(message)} disabled={busy || remainingToday <= 0} className={BTN_PRIMARY}>Envoyer ce message</button>
                       <button type="button" onClick={() => setPreviewing(previewing === message.id ? null : message.id)} className={BTN_SMALL}>{previewing === message.id ? 'Masquer l’aperçu' : 'Aperçu du mail'}</button>
                       <button type="button" onClick={() => startEdit(message)} className={BTN_SMALL}>Modifier</button>
-                      <span className="text-xs text-stone-500">ou coche-le pour un envoi groupé</span>
+                      <span className="text-xs text-gray-500 dark:text-zinc-500">ou coche-le pour un envoi groupé</span>
                     </div>
                     {previewing === message.id && <EmailPreview subject={message.subject} body={message.body} />}
                   </>
@@ -113,10 +113,10 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
       </ul>
       {confirming && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm" onKeyDown={(event) => { if (event.key === 'Escape') setConfirming(false) }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="envoi-titre" className="w-full max-w-md rounded-2xl border border-white/15 bg-[#1c1917] p-6 shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-labelledby="envoi-titre" className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-white/[0.12] bg-white dark:bg-[#16181E] p-6 shadow-2xl">
             <h2 id="envoi-titre" className="text-xl font-semibold">Envoyer {plural(willSend, 'email', 'emails')} ?</h2>
-            <p className="mt-3 text-sm leading-6 text-stone-300">Les messages partent maintenant, depuis ton adresse Qualio. Tu suivras leur statut dans l’onglet Suivi.</p>
-            {selected.length > willSend && <p className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-300">Limite du jour : seuls {willSend} sur {selected.length} partiront. Les autres restent en brouillon.</p>}
+            <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-zinc-300">Les messages partent maintenant, depuis ton adresse Qualio. Tu suivras leur statut dans l’onglet Suivi.</p>
+            {selected.length > willSend && <p className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-700 dark:text-amber-300">Limite du jour : seuls {willSend} sur {selected.length} partiront. Les autres restent en brouillon.</p>}
             <div className="mt-6 flex justify-end gap-2">
               <button ref={cancelRef} type="button" onClick={() => setConfirming(false)} className={BTN_SECONDARY}>Annuler</button>
               <button type="button" onClick={() => void send()} disabled={busy || willSend === 0} className={BTN_PRIMARY}>{busy ? 'Envoi…' : 'Envoyer maintenant'}</button>
@@ -129,9 +129,9 @@ export function AcquisitionDrafts({ drafts, remainingToday, notify, refresh }: {
 }
 
 function EmailPreview({ subject, body }: { subject: string; body: string }) {
-  const { html } = renderAcquisitionEmail({ subject, body })
-  return <div className="rounded-xl border border-white/10 bg-white p-2 text-left">
-    <div className="mb-2 flex items-center justify-between px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-500"><span>Aperçu envoyé au prospect</span><span>fond blanc · logo · pied de mail</span></div>
+  const { html } = renderAcquisitionEmail({ subject, body, unsubscribeUrl: '#' })
+  return <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white p-2 text-left">
+    <div className="mb-2 flex items-center justify-between px-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-500"><span>Aperçu envoyé au prospect</span><span>avec identité, adresse et lien de désinscription</span></div>
     <iframe title={`Aperçu de ${subject}`} srcDoc={html} sandbox="" className="h-[25rem] w-full rounded-lg border border-stone-200 bg-white" />
   </div>
 }

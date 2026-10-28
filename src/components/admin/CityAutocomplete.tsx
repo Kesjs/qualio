@@ -123,7 +123,7 @@ export function CityAutocomplete({
           placeholder={placeholder}
           disabled={disabled}
           autoComplete="off"
-          className={`min-h-11 w-full rounded-lg border border-white/20 bg-[#161413] px-3 pr-8 text-sm text-[#eeeeee] placeholder:text-stone-400 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
+          className={`min-h-11 w-full rounded-lg border border-gray-300 dark:border-white/[0.16] bg-[#F8F9FA] dark:bg-[#111216] px-3 pr-8 text-sm text-gray-900 dark:text-[#eeeeee] placeholder:text-gray-400 dark:placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS}`}
         />
         {loading && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -154,7 +154,7 @@ export function CityAutocomplete({
       {open && suggestions.length > 0 && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-50 mt-1.5 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#1d1a18] p-1.5 shadow-2xl shadow-black/80"
+          className="absolute left-0 top-full z-50 mt-1.5 max-h-60 w-full overflow-y-auto rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216] p-1.5 shadow-2xl shadow-black/80"
         >
           {suggestions.map((item, index) => {
             const isActive = index === activeIndex
@@ -167,11 +167,11 @@ export function CityAutocomplete({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => pick(item)}
                 className={`flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left transition ${
-                  isActive ? 'bg-white/[0.08] text-white' : 'text-stone-300'
+                  isActive ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300'
                 }`}
               >
-                <span className="text-sm font-semibold text-white">{item.city}</span>
-                <span className="text-xs text-stone-400">{item.label}</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.city}</span>
+                <span className="text-xs text-gray-500 dark:text-zinc-400">{item.label}</span>
               </button>
             )
           })}

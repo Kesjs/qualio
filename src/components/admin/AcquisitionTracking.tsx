@@ -43,12 +43,12 @@ export function AcquisitionTracking({ messages, notify, refresh }: { messages: P
   if (!messages.length) return <EmptyState title="Aucun message envoyé" description="Dès le premier envoi, tu verras ici s’il est livré, rebondi ou s’il a reçu une réponse." />
 
   const chip = (value: Filter, label: string) => (
-    <button type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${filter === value ? 'border-white/30 bg-white/[0.1] text-white' : 'border-white/10 text-stone-400 hover:text-white'}`}>{label} <span className="font-mono text-xs">{counts[value]}</span></button>
+    <button type="button" aria-pressed={filter === value} onClick={() => setFilter(value)} className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${filter === value ? 'border-gray-400 dark:border-white/30 bg-gray-100 dark:bg-white/[0.1] text-gray-900 dark:text-white' : 'border-gray-200/80 dark:border-white/[0.08] text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'}`}>{label} <span className="font-mono text-xs">{counts[value]}</span></button>
   )
 
   return (
     <div className="space-y-4">
-      <p className="rounded-xl border border-sky-400/20 bg-sky-400/5 p-3 text-xs leading-5 text-sky-200">Les statuts Envoyé, Livré et Rebond viennent du fournisseur d’email. « Répondu » et « Stop reçu » sont enregistrés quand tu confirmes l’action ici.</p>
+      <p className="rounded-xl border border-sky-400/20 bg-sky-400/5 p-3 text-xs leading-5 text-sky-800 dark:text-sky-200">Les statuts Envoyé, Livré et Rebond viennent du fournisseur d’email. « Répondu » et « Stop reçu » sont enregistrés quand tu confirmes l’action ici.</p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrer le suivi">{chip('all', 'Tous')}{chip('due', 'À relancer')}{chip('replied', 'Répondus')}{chip('bounced', 'Rebonds')}</div>
       {visible.length === 0 ? <EmptyState title="Rien dans ce filtre" description={filter === 'due' ? `Une relance est proposée ${FOLLOW_UP_AFTER_DAYS} jours après l’envoi, sans réponse.` : undefined} /> : (
         <TableRegion label="Suivi des envois">
@@ -59,11 +59,11 @@ export function AcquisitionTracking({ messages, notify, refresh }: { messages: P
                 const status = statusOf(message)
                 const disabled = busy === message.id
                 return (
-                  <tr key={message.id} className="border-t border-white/10 align-top">
-                    <td className={TD}><span className="font-mono text-xs">{message.email}</span><span className="block text-xs text-stone-400">{message.company}</span></td>
-                    <td className={`${TD} max-w-xs`}><details><summary className="cursor-pointer font-semibold">{message.isFollowUp && <span className="text-sky-300">Relance · </span>}{message.subject}</summary><p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-stone-300">{message.body}</p></details></td>
-                    <td className={`${TD} whitespace-nowrap text-xs text-stone-300`}>{formatDateTime(message.sentAt)}</td>
-                    <td className={TD}><div className="flex flex-wrap gap-1.5"><Badge tone={status.tone}>{status.label}</Badge>{message.followUpDue && <Badge tone="warning">À relancer</Badge>}</div>{message.bounceReason && <p className="mt-1.5 max-w-[16rem] text-xs text-red-300">{message.bounceReason}</p>}</td>
+                  <tr key={message.id} className="border-t border-gray-200/80 dark:border-white/[0.08] align-top">
+                    <td className={TD}><span className="font-mono text-xs">{message.email}</span><span className="block text-xs text-gray-500 dark:text-zinc-400">{message.company}</span></td>
+                    <td className={`${TD} max-w-xs`}><details><summary className="cursor-pointer font-semibold">{message.isFollowUp && <span className="text-sky-700 dark:text-sky-300">Relance · </span>}{message.subject}</summary><p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-gray-600 dark:text-zinc-300">{message.body}</p></details></td>
+                    <td className={`${TD} whitespace-nowrap text-xs text-gray-600 dark:text-zinc-300`}>{formatDateTime(message.sentAt)}</td>
+                    <td className={TD}><div className="flex flex-wrap gap-1.5"><Badge tone={status.tone}>{status.label}</Badge>{message.followUpDue && <Badge tone="warning">À relancer</Badge>}</div>{message.bounceReason && <p className="mt-1.5 max-w-[16rem] text-xs text-red-700 dark:text-red-300">{message.bounceReason}</p>}</td>
                     <td className={TD}>
                       <div className="flex flex-wrap justify-end gap-2">
                         {message.status === 'sent' && <><button type="button" disabled={disabled} onClick={() => void mark(message.id, 'replied')} className={BTN_SMALL}>Répondu</button><button type="button" disabled={disabled} onClick={() => void mark(message.id, 'stop')} className={BTN_SMALL}>Stop reçu</button></>}

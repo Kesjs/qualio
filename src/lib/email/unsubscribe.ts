@@ -19,3 +19,22 @@ export function verifyUnsubscribeToken(token: string) {
     return value.userId
   } catch { return null }
 }
+
+/** Désinscription d'un prospect (prospection) : le jeton désigne un message envoyé, valable 1 an. */
+export function createProspectUnsubscribeToken(messageId: string) {
+  const payload = Buffer.from(JSON.stringify({ kind: 'prospect', messageId, exp: Date.now() + 365 * 86400000 })).toString('base64url')
+  const signature = createHmac('sha256', secret()).update(payload).digest('base64url')
+  return `${payload}.${signature}`
+}
+
+export function verifyProspectUnsubscribeToken(token: string) {
+  const [payload, signature] = token.split('.')
+  if (!payload || !signature) return null
+  const expected = createHmac('sha256', secret()).update(payload).digest('base64url')
+  if (signature.length !== expected.length || !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null
+  try {
+    const value = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { kind?: unknown; messageId?: unknown; exp?: unknown }
+    if (value.kind !== 'prospect' || typeof value.messageId !== 'string' || typeof value.exp !== 'number' || value.exp < Date.now()) return null
+    return value.messageId
+  } catch { return null }
+}

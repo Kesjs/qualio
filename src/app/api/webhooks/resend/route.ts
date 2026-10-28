@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
+import { AUTO_REPLY_SUBJECT, STOP_SUBJECT } from '@/lib/admin/acquisition-mail'
 
 export async function POST(request: NextRequest) {
   const secret = process.env.RESEND_WEBHOOK_SECRET
@@ -26,8 +27,18 @@ export async function POST(request: NextRequest) {
       const fromEmail = (event.data.from.match(/<([^>]+)>/)?.[1] ?? event.data.from).trim().toLowerCase()
       const { data: contact } = await admin.from('acquisition_contacts').select('id, email').eq('email', fromEmail).maybeSingle()
       if (contact) {
+        const subject = String(event.data.subject ?? '')
+        // Réponse automatique (absence, accusé) : ce n'est pas une vraie réponse, on ne change rien.
+        if (AUTO_REPLY_SUBJECT.test(subject)) return NextResponse.json({ ok: true })
         const { data: sentMessage } = await admin.from('acquisition_messages').select('id').eq('contact_id', contact.id).in('status', ['sent', 'delivered']).order('sent_at', { ascending: false }).limit(1).maybeSingle()
-        if (sentMessage) await admin.from('acquisition_messages').update({ status: 'replied', replied_at: new Date().toISOString() }).eq('id', sentMessage.id)
+        if (STOP_SUBJECT.test(subject)) {
+          // « stop » (lien mailto de désinscription) : exclusion immédiate, plus aucun envoi ni relance.
+          await admin.from('acquisition_contacts').update({ email_status: 'suppressed' }).eq('id', contact.id)
+          await admin.from('acquisition_messages').update({ status: 'suppressed', next_follow_up_at: null }).eq('contact_id', contact.id).in('status', ['draft', 'approved', 'sent'])
+          await admin.from('acquisition_contacts').update({ unsubscribed_at: new Date().toISOString(), unsubscribe_source: 'reply_stop' }).eq('id', contact.id)
+        } else if (sentMessage) {
+          await admin.from('acquisition_messages').update({ status: 'replied', replied_at: new Date().toISOString(), next_follow_up_at: null }).eq('id', sentMessage.id)
+        }
       }
       return NextResponse.json({ ok: true })
     }

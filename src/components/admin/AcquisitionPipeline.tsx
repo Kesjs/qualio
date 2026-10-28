@@ -14,9 +14,9 @@ import type { PipelineData } from '@/lib/admin/acquisition'
 type Toast = { kind: 'success' | 'error' | 'info'; text: string; go?: Tab }
 
 const TOAST_STYLE = {
-  success: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  error: 'border-red-400/30 bg-red-400/10 text-red-300',
-  info: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
+  success: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-700 dark:text-emerald-300',
+  error: 'border-red-400/30 bg-red-400/10 text-red-700 dark:text-red-300',
+  info: 'border-sky-400/30 bg-sky-400/10 text-sky-700 dark:text-sky-300',
 } as const
 const TAB_LABEL: Record<Tab, string> = { queue: 'À contacter', drafts: 'Brouillons', tracking: 'Suivi' }
 
@@ -96,15 +96,15 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
 
       <AcquisitionAdd notify={notify} refresh={refresh} />
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/20 bg-sky-400/5 px-4 py-3">
-        <p className="text-sm text-sky-100">Actualise les emails et signaux de tous les prospects sans supprimer leurs domaines.</p>
+        <p className="text-sm text-sky-900 dark:text-sky-100">Actualise les emails et signaux de tous les prospects sans supprimer leurs domaines.</p>
         <button type="button" onClick={() => void rescanAll()} disabled={rescanning} className={BTN_SMALL}>{rescanning ? 'Réanalyse en cours…' : 'Tout réanalyser'}</button>
       </div>
 
-      <section ref={pipelineRef} aria-label="Pipeline de prospection" className="scroll-mt-24 rounded-2xl border border-white/10 bg-[#1d1a18]">
-        <div role="tablist" aria-label="Étapes de prospection" className="flex gap-1 overflow-x-auto border-b border-white/10 p-2">
+      <section ref={pipelineRef} aria-label="Pipeline de prospection" className="scroll-mt-24 rounded-2xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216]">
+        <div role="tablist" aria-label="Étapes de prospection" className="flex gap-1 overflow-x-auto border-b border-gray-200/80 dark:border-white/[0.08] p-2">
           {(['queue', 'drafts', 'tracking'] as const).map((value) => (
-            <button key={value} type="button" role="tab" id={`onglet-${value}`} aria-selected={tab === value} aria-controls={`panneau-${value}`} onClick={() => setTab(value)} className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${tab === value ? 'bg-white/[0.1] text-white' : 'text-stone-400 hover:text-white'}`}>
-              {TAB_LABEL[value]}<span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-xs">{counts[value]}</span>
+            <button key={value} type="button" role="tab" id={`onglet-${value}`} aria-selected={tab === value} aria-controls={`panneau-${value}`} onClick={() => setTab(value)} className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${tab === value ? 'bg-gray-100 dark:bg-white/[0.1] text-gray-900 dark:text-white' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'}`}>
+              {TAB_LABEL[value]}<span className="rounded-full bg-gray-100 dark:bg-white/10 px-2 py-0.5 font-mono text-xs">{counts[value]}</span>
             </button>
           ))}
         </div>

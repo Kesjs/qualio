@@ -174,13 +174,13 @@ export function AdminSelect({
         aria-controls={`${selectId}-listbox`}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={onKeyDown}
-        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-white/20 bg-[#161413] px-3 text-left text-sm text-[#eeeeee] transition hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS} ${buttonClassName}`}
+        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-gray-300 dark:border-white/[0.16] bg-[#F8F9FA] dark:bg-[#111216] px-3 text-left text-sm text-gray-900 dark:text-[#eeeeee] transition hover:border-gray-400 dark:hover:border-white/30 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS} ${buttonClassName}`}
       >
-        <span className={selected ? 'truncate' : 'truncate text-stone-400'}>
+        <span className={selected ? 'truncate' : 'truncate text-gray-500 dark:text-zinc-400'}>
           {selected?.label ?? placeholder}
         </span>
         <ChevronDownIcon
-          className={`h-4 w-4 shrink-0 text-stone-400 transition-transform duration-150 ${
+          className={`h-4 w-4 shrink-0 text-gray-500 dark:text-zinc-400 transition-transform duration-150 ${
             open ? 'rotate-180 text-[#ff8a50]' : ''
           }`}
           aria-hidden
@@ -193,7 +193,7 @@ export function AdminSelect({
           id={`${selectId}-listbox`}
           role="listbox"
           aria-label={label ?? placeholder}
-          className={`absolute left-0 z-50 min-w-full max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-[#1d1a18] p-1.5 shadow-2xl shadow-black/80 ${
+          className={`absolute left-0 z-50 min-w-full max-h-64 overflow-y-auto rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-white dark:bg-[#111216] p-1.5 shadow-2xl shadow-black/80 ${
             openUpwards ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
           }`}
         >
@@ -213,8 +213,8 @@ export function AdminSelect({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => choose(option)}
                 className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${
-                  isActive ? 'bg-white/[0.08] text-white' : 'text-stone-300'
-                } ${isSelected ? 'font-semibold text-white' : ''} disabled:cursor-not-allowed disabled:opacity-40`}
+                  isActive ? 'bg-gray-100 dark:bg-white/[0.08] text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-300'
+                } ${isSelected ? 'font-semibold text-gray-900 dark:text-white' : ''} disabled:cursor-not-allowed disabled:opacity-40`}
               >
                 <span className="truncate">{option.label}</span>
                 {isSelected && (

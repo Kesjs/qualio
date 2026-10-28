@@ -25,19 +25,19 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
         <TableRegion label="Liste des comptes">
           <table className="w-full min-w-[720px] text-sm">
             <caption className="sr-only">Comptes Qualio, page {result.page}</caption>
-            <thead className="border-b border-white/10 bg-[#161413]">
+            <thead className="border-b border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216]">
               <tr><th scope="col" className={TH}>Email</th><th scope="col" className={TH}>Plan</th><th scope="col" className={TH_RIGHT}>Projets</th><th scope="col" className={TH}>Inscrit le</th><th scope="col" className={TH}>Dernière connexion</th></tr>
             </thead>
-            <tbody className="divide-y divide-white/10 bg-[#1d1a18]">
+            <tbody className="divide-y divide-gray-200/80 dark:divide-white/[0.08] bg-white dark:bg-[#111216]">
               {result.rows.map((user) => (
                 <tr key={user.id}>
                   <th scope="row" className={`${TD} max-w-[22rem] text-left font-normal`}>
-                    <span className="flex items-center gap-2"><span className="truncate text-stone-100" title={user.email ?? undefined}>{user.email ?? 'Email indisponible'}</span>{user.isAdmin && <Badge tone="accent">Admin</Badge>}</span>
+                    <span className="flex items-center gap-2"><span className="truncate text-gray-900 dark:text-zinc-100" title={user.email ?? undefined}>{user.email ?? 'Email indisponible'}</span>{user.isAdmin && <Badge tone="accent">Admin</Badge>}</span>
                   </th>
-                  <td className={TD}>{user.plan ? <Badge>{user.plan}</Badge> : <span className="text-stone-400">—</span>}</td>
+                  <td className={TD}>{user.plan ? <Badge>{user.plan}</Badge> : <span className="text-gray-500 dark:text-zinc-400">—</span>}</td>
                   <td className={`${TD} text-right font-mono`}>{user.projects}</td>
-                  <td className={`${TD} font-mono text-stone-300`}><time dateTime={user.created_at}>{formatDate(user.created_at)}</time></td>
-                  <td className={`${TD} font-mono text-stone-300`}>{user.last_sign_in_at ? <time dateTime={user.last_sign_in_at}>{formatDateTime(user.last_sign_in_at)}</time> : '—'}</td>
+                  <td className={`${TD} font-mono text-gray-600 dark:text-zinc-300`}><time dateTime={user.created_at}>{formatDate(user.created_at)}</time></td>
+                  <td className={`${TD} font-mono text-gray-600 dark:text-zinc-300`}>{user.last_sign_in_at ? <time dateTime={user.last_sign_in_at}>{formatDateTime(user.last_sign_in_at)}</time> : '—'}</td>
                 </tr>
               ))}
             </tbody>

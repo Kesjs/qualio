@@ -32,8 +32,16 @@ export default function ConfidentialitePage() {
       <LegalSection title="Cookies">
         <p>Qualio utilise uniquement ce qui est nécessaire pour vous connecter et retenir vos préférences (thème, langue, projet choisi). Avec votre accord, Qualio mesure aussi les visites et clics essentiels du site dans un but d’amélioration. Aucun cookie publicitaire ni profilage.</p>
       </LegalSection>
+      <LegalSection title="Si Qualio vous a écrit sans que vous soyez client">
+        <p><strong>Pourquoi vous avez reçu un message :</strong> Qualio écrit à des professionnels (e-commerce, agences, entreprises SaaS) pour leur proposer d’analyser gratuitement leurs avis clients. Nous n’écrivons qu’à des adresses professionnelles publiées sur le site de l’entreprise ou dans un annuaire public (par exemple OpenStreetMap), lorsque notre proposition concerne son activité.</p>
+        <p><strong>Les données concernées :</strong> votre adresse email professionnelle, votre nom et votre fonction lorsqu’ils sont publiés, le nom et le site de votre entreprise, et l’historique de nos échanges (envoi, livraison, clic sur le lien, réponse ou désinscription). Nous ne les achetons à personne et ne les revendons pas.</p>
+        <p><strong>Pourquoi nous avons le droit de le faire :</strong> notre intérêt légitime à présenter notre service à des professionnels concernés. Vous pouvez vous y opposer à tout moment, sans motif.</p>
+        <p><strong>Vous désinscrire :</strong> cliquez sur « Me désinscrire » en bas de l’email (un clic, sans compte), répondez « stop », ou écrivez à <a href={`mailto:${LEGAL.email}`} className="underline">{LEGAL.email}</a>. Nous gardons alors uniquement votre adresse dans une liste d’exclusion, pour être sûrs de ne plus vous écrire.</p>
+        <p><strong>Combien de temps :</strong> si vous ne répondez pas, vos données sont supprimées au plus tard 3 ans après notre dernier message. Si vous demandez leur suppression, nous les effaçons, hormis l’adresse conservée pour respecter votre opposition.</p>
+        <p><strong>Qui y accède :</strong> l’équipe Qualio, et nos prestataires techniques pour l’envoi et le stockage (Resend, Supabase, Vercel), dont certains sont situés hors de l’Union européenne. Vous pouvez aussi demander l’accès, la correction ou l’effacement de vos données, ou saisir l’autorité de protection des données de votre pays.</p>
+      </LegalSection>
       <LegalSection title="Les emails">
-        <p>L’email du lundi n’est envoyé que si vous l’avez accepté. Chaque message contient un lien de désinscription, et vous pouvez aussi le désactiver dans Réglages.</p>
+        <p>L’email du lundi n’est envoyé que si vous l’avez accepté. Chaque message contient un lien de désinscription, et vous pouvez aussi le désactiver dans Réglages. Les messages de présentation envoyés aux professionnels non clients sont décrits dans la section précédente.</p>
       </LegalSection>
     </LegalPage>
   )

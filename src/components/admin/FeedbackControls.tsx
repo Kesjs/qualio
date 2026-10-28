@@ -68,10 +68,10 @@ export function FeedbackControls({ feedbackId, status, priority, adminNote }: Pr
 
   const noteDirty = note.trim() !== savedNote.trim()
   return (
-    <div className="mt-4 border-t border-white/10 pt-4">
+    <div className="mt-4 border-t border-gray-200/80 dark:border-white/[0.08] pt-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
         <div>
-          <label htmlFor={`${uid}-statut`} className="mb-1.5 block text-xs font-semibold text-stone-300">Statut</label>
+          <label htmlFor={`${uid}-statut`} className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-zinc-300">Statut</label>
           <AdminSelect
             id={`${uid}-statut`}
             value={current.status}
@@ -81,7 +81,7 @@ export function FeedbackControls({ feedbackId, status, priority, adminNote }: Pr
           />
         </div>
         <div>
-          <label htmlFor={`${uid}-priorite`} className="mb-1.5 block text-xs font-semibold text-stone-300">Priorité</label>
+          <label htmlFor={`${uid}-priorite`} className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-zinc-300">Priorité</label>
           <AdminSelect
             id={`${uid}-priorite`}
             value={current.priority}
@@ -92,7 +92,7 @@ export function FeedbackControls({ feedbackId, status, priority, adminNote }: Pr
         </div>
       </div>
       <div className="mt-3">
-        <label htmlFor={`${uid}-note`} className="mb-1.5 block text-xs font-semibold text-stone-300">Note interne <span className="font-normal text-stone-400">(jamais visible par l’utilisateur)</span></label>
+        <label htmlFor={`${uid}-note`} className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-zinc-300">Note interne <span className="font-normal text-gray-500 dark:text-zinc-400">(jamais visible par l’utilisateur)</span></label>
         <textarea
           id={`${uid}-note`}
           value={note}
@@ -105,10 +105,10 @@ export function FeedbackControls({ feedbackId, status, priority, adminNote }: Pr
         />
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <button type="button" disabled={busy || !noteDirty} onClick={saveNote} className={BTN_PRIMARY}>Enregistrer la note</button>
-          <span id={`${uid}-aide`} className="text-xs text-stone-400">Ctrl ou ⌘ + Entrée pour enregistrer.</span>
+          <span id={`${uid}-aide`} className="text-xs text-gray-500 dark:text-zinc-400">Ctrl ou ⌘ + Entrée pour enregistrer.</span>
         </div>
       </div>
-      <p role={message?.kind === 'error' ? 'alert' : 'status'} className={`mt-3 min-h-5 text-sm ${message?.kind === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>{busy ? 'Enregistrement…' : message?.text}</p>
+      <p role={message?.kind === 'error' ? 'alert' : 'status'} className={`mt-3 min-h-5 text-sm ${message?.kind === 'error' ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>{busy ? 'Enregistrement…' : message?.text}</p>
     </div>
   )
 }

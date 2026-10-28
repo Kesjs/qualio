@@ -26,5 +26,7 @@ export async function POST(request: Request) {
   const draft = buildDraft({ fullName: contact.full_name, companyName: contact.company?.name, followUpOf: original, evidence: evidence ?? [] })
   const { data, error } = await admin.from('acquisition_messages').insert({ contact_id: contact.id, subject: draft.subject, body: draft.body, status: 'draft', follow_up_of: original?.id ?? null }).select('id').single()
   if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être enregistré.' }, { status: 500 })
+  // La relance se prépare à la main : le cron ne doit pas envoyer la sienne en plus.
+  if (original) await admin.from('acquisition_messages').update({ next_follow_up_at: null }).eq('id', original.id)
   return NextResponse.json({ draft: data })
 }

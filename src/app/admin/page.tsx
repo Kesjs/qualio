@@ -7,7 +7,7 @@ import { Badge, EmptyState, FOCUS, Notice, PageHeader, Panel, StatCard, emailTon
 
 export const metadata: Metadata = { title: 'Vue d’ensemble' }
 
-const LINK = `rounded text-sm font-semibold text-[#ff9a66] underline-offset-4 hover:underline ${FOCUS}`
+const LINK = `rounded text-sm font-semibold text-[#c2410c] dark:text-[#ff9a66] underline-offset-4 hover:underline ${FOCUS}`
 
 export default async function AdminPage() {
   await getAdminContext()
@@ -39,12 +39,12 @@ export default async function AdminPage() {
           {data.actions.length === 0 ? (
             <EmptyState title="Rien en attente" description="Tous les retours ont reçu une décision. Revenez après les prochains retours." />
           ) : (
-            <ul role="list" className="divide-y divide-white/10">
+            <ul role="list" className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {data.actions.map((item) => (
                 <li key={item.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{labelOf(CATEGORY_LABELS, item.category)}</p>
-                    <p className="mt-1 break-words text-sm leading-6 text-stone-300">{excerpt(item.message, 140)}</p>
+                    <p className="mt-1 break-words text-sm leading-6 text-gray-600 dark:text-zinc-300">{excerpt(item.message, 140)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     {item.priority === 'high' && <Badge tone="danger">Prioritaire</Badge>}
@@ -59,9 +59,9 @@ export default async function AdminPage() {
         <Panel id="sante-envois" title="Santé des envois" description="Emails des 7 derniers jours, par statut." action={<Link href="/admin/emails" className={LINK}>Historique</Link>}>
           <dl className="grid grid-cols-2 gap-3">
             {(['sent', 'failed', 'pending', 'suppressed'] as const).map((status) => (
-              <div key={status} className="rounded-xl border border-white/10 bg-[#161413] p-4">
-                <dt className="text-xs font-medium text-stone-400">{labelOf(EMAIL_STATUS_LABELS, status)}</dt>
-                <dd className={`mt-2 font-mono text-2xl font-semibold ${status === 'failed' && (metrics.emailsByStatus.failed ?? 0) > 0 ? 'text-red-300' : ''}`}>{metrics.emailsByStatus[status] ?? 0}</dd>
+              <div key={status} className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216] p-4">
+                <dt className="text-xs font-medium text-gray-500 dark:text-zinc-400">{labelOf(EMAIL_STATUS_LABELS, status)}</dt>
+                <dd className={`mt-2 font-mono text-2xl font-semibold ${status === 'failed' && (metrics.emailsByStatus.failed ?? 0) > 0 ? 'text-red-700 dark:text-red-300' : ''}`}>{metrics.emailsByStatus[status] ?? 0}</dd>
               </div>
             ))}
           </dl>
@@ -71,12 +71,12 @@ export default async function AdminPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel id="inscriptions" title="Inscriptions récentes" action={<Link href="/admin/users" className={LINK}>Tous les comptes</Link>}>
           {data.recentUsers.length === 0 ? <EmptyState title="Aucun compte" /> : (
-            <ul role="list" className="divide-y divide-white/10">
+            <ul role="list" className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {data.recentUsers.map((user) => (
                 <li key={user.id} className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-stone-100" title={user.email ?? undefined}>{user.email ?? 'Email indisponible'}</p>
-                    <p className="mt-1 text-xs text-stone-400">Inscrit le <time dateTime={user.created_at}>{formatDate(user.created_at)}</time></p>
+                    <p className="truncate text-sm text-gray-900 dark:text-zinc-100" title={user.email ?? undefined}>{user.email ?? 'Email indisponible'}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">Inscrit le <time dateTime={user.created_at}>{formatDate(user.created_at)}</time></p>
                   </div>
                   {user.isAdmin && <Badge tone="accent">Admin</Badge>}
                 </li>
@@ -86,11 +86,11 @@ export default async function AdminPage() {
         </Panel>
         <Panel id="projets" title="Projets récents" description="Les espaces créés en dernier.">
           {data.recentSites.length === 0 ? <EmptyState title="Aucun projet" /> : (
-            <ul role="list" className="divide-y divide-white/10">
+            <ul role="list" className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {data.recentSites.map((site) => (
                 <li key={site.id} className="py-3">
-                  <p className="truncate text-sm text-stone-100">{site.name || site.url}</p>
-                  <p className="mt-1 truncate font-mono text-xs text-stone-400">{site.url} · <time dateTime={site.created_at}>{formatDate(site.created_at)}</time></p>
+                  <p className="truncate text-sm text-gray-900 dark:text-zinc-100">{site.name || site.url}</p>
+                  <p className="mt-1 truncate font-mono text-xs text-gray-500 dark:text-zinc-400">{site.url} · <time dateTime={site.created_at}>{formatDate(site.created_at)}</time></p>
                 </li>
               ))}
             </ul>
@@ -101,12 +101,12 @@ export default async function AdminPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel id="derniers-emails" title="Derniers emails" action={<Link href="/admin/emails" className={LINK}>Voir tout</Link>}>
           {data.recentEmails.length === 0 ? <EmptyState title="Aucun email envoyé" /> : (
-            <ul role="list" className="divide-y divide-white/10">
+            <ul role="list" className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {data.recentEmails.map((email) => (
                 <li key={email.id} className="flex items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm text-stone-100" title={email.recipient}>{email.recipient}</p>
-                    <p className="mt-1 text-xs text-stone-400">{labelOf(EMAIL_TYPE_LABELS, email.event_type)} · <time dateTime={email.created_at}>{formatDateTime(email.created_at)}</time></p>
+                    <p className="truncate text-sm text-gray-900 dark:text-zinc-100" title={email.recipient}>{email.recipient}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">{labelOf(EMAIL_TYPE_LABELS, email.event_type)} · <time dateTime={email.created_at}>{formatDateTime(email.created_at)}</time></p>
                   </div>
                   <Badge tone={emailTone(email.status)}>{labelOf(EMAIL_STATUS_LABELS, email.status)}</Badge>
                 </li>
@@ -116,14 +116,14 @@ export default async function AdminPage() {
         </Panel>
         <Panel id="retours-recents" title="Retours récents" action={<Link href="/admin/feedback" className={LINK}>Voir tout</Link>}>
           {data.latestFeedback.length === 0 ? <EmptyState title="Aucun retour reçu" description="Les retours envoyés depuis le tableau de bord apparaîtront ici." /> : (
-            <ul role="list" className="divide-y divide-white/10">
+            <ul role="list" className="divide-y divide-gray-200/80 dark:divide-white/[0.08]">
               {data.latestFeedback.map((item) => (
                 <li key={item.id} className="py-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold">{labelOf(CATEGORY_LABELS, item.category)}</p>
-                    <time dateTime={item.created_at} className="font-mono text-xs text-stone-400">{formatDate(item.created_at)}</time>
+                    <time dateTime={item.created_at} className="font-mono text-xs text-gray-500 dark:text-zinc-400">{formatDate(item.created_at)}</time>
                   </div>
-                  <p className="mt-1 break-words text-sm leading-6 text-stone-300">{excerpt(item.message, 120)}</p>
+                  <p className="mt-1 break-words text-sm leading-6 text-gray-600 dark:text-zinc-300">{excerpt(item.message, 120)}</p>
                 </li>
               ))}
             </ul>

@@ -133,13 +133,13 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
         mode === value
           ? isSpecial
             ? 'bg-[#c2410c] text-white shadow-md'
-            : 'bg-white/[0.1] text-white'
+            : 'bg-gray-100 dark:bg-white/[0.1] text-gray-900 dark:text-white'
           : isSpecial
-          ? 'text-[#ff9a66] hover:bg-white/[0.06] hover:text-white'
-          : 'text-stone-400 hover:text-white'
+          ? 'text-[#c2410c] dark:text-[#ff9a66] hover:bg-gray-50 dark:hover:bg-white/[0.06] hover:text-gray-900 dark:hover:text-white'
+          : 'text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
       }`}
     >
-      {isSpecial && <SparklesIcon className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />}
+      {isSpecial && <SparklesIcon className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />}
       {label}
     </button>
   )
@@ -152,7 +152,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
     >
       <div role="tablist" aria-label="Méthode d’ajout" className="mb-4 flex flex-wrap items-center gap-2">
         {segment('ai', 'Trouver avec l’IA', true)}
-        <button type="button" onClick={() => setShowOtherMethods((value) => !value)} className="min-h-11 rounded-lg border border-white/10 px-4 text-sm font-semibold text-stone-300 hover:border-white/25 hover:text-white">
+        <button type="button" onClick={() => setShowOtherMethods((value) => !value)} className="min-h-11 rounded-lg border border-gray-200/80 dark:border-white/[0.08] px-4 text-sm font-semibold text-gray-600 dark:text-zinc-300 hover:border-gray-400 dark:hover:border-white/25 hover:text-gray-900 dark:hover:text-white">
           {showOtherMethods ? 'Masquer les autres méthodes' : 'Autres méthodes'}
         </button>
         {showOtherMethods && <>
@@ -165,7 +165,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
       {mode === 'ai' ? (
         <form onSubmit={discoverWithAi} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-white">
+            <label className="mb-1.5 block text-sm font-semibold text-gray-900 dark:text-white">
               Cible d’entreprises pour Qualio
             </label>
             <div className="mb-2 flex flex-wrap gap-1.5">
@@ -176,8 +176,8 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
                   onClick={() => setAiTarget(preset.value)}
                   className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
                     aiTarget === preset.value
-                      ? 'border-[#ff8a50] bg-[#ee6018]/20 text-[#ff9a66]'
-                      : 'border-white/10 bg-white/[0.04] text-stone-300 hover:border-white/25 hover:text-white'
+                      ? 'border-[#ff8a50] bg-[#ee6018]/20 text-[#c2410c] dark:text-[#ff9a66]'
+                      : 'border-gray-200/80 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-zinc-300 hover:border-gray-400 dark:hover:border-white/25 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   {preset.label}
@@ -196,8 +196,8 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="ai-location" className="mb-1.5 block text-sm font-semibold text-white">
-                Zone géographique ou ville <span className="font-normal text-stone-400">(optionnel)</span>
+              <label htmlFor="ai-location" className="mb-1.5 block text-sm font-semibold text-gray-900 dark:text-white">
+                Zone géographique ou ville <span className="font-normal text-gray-500 dark:text-zinc-400">(optionnel)</span>
               </label>
               <input
                 id="ai-location"
@@ -209,7 +209,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
               />
             </div>
             <div>
-              <label htmlFor="ai-limit" className="mb-1.5 block text-sm font-semibold text-white">
+              <label htmlFor="ai-limit" className="mb-1.5 block text-sm font-semibold text-gray-900 dark:text-white">
                 Nombre de prospects à trouver
               </label>
               <AdminSelect
@@ -224,7 +224,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             </div>
           </div>
 
-          <p className="text-sm leading-6 text-stone-400">
+          <p className="text-sm leading-6 text-gray-500 dark:text-zinc-400">
             L’IA identifie de vraies entreprises actives, extrait leurs noms de domaines officiels et vérifie les doublons avec ta base.
           </p>
 
@@ -236,7 +236,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             {busy ? (
               <>
                 <svg
-                  className="h-4 w-4 animate-spin text-white shrink-0"
+                  className="h-4 w-4 animate-spin text-gray-900 dark:text-white shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -259,7 +259,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
               </>
             ) : (
               <>
-                <SparklesIcon className="h-4 w-4 shrink-0 text-amber-200" aria-hidden />
+                <SparklesIcon className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-200" aria-hidden />
                 <span>Générer les prospects avec l’IA</span>
               </>
             )}
@@ -300,7 +300,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
               />
             </div>
           </div>
-          <p className="text-sm leading-6 text-stone-400">Seules les entreprises physiques locales dont le site web est renseigné sur OpenStreetMap apparaissent. Pour les e-commerces, agences ou SaaS, privilégiez l’onglet « Trouver avec l’IA ».</p>
+          <p className="text-sm leading-6 text-gray-500 dark:text-zinc-400">Seules les entreprises physiques locales dont le site web est renseigné sur OpenStreetMap apparaissent. Pour les e-commerces, agences ou SaaS, privilégiez l’onglet « Trouver avec l’IA ».</p>
           <button
             type="submit"
             disabled={busy || !city.trim()}
@@ -309,7 +309,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             {busy ? (
               <>
                 <svg
-                  className="h-4 w-4 animate-spin text-white shrink-0"
+                  className="h-4 w-4 animate-spin text-gray-900 dark:text-white shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -343,25 +343,25 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
         </form>
       ) : (
         <form onSubmit={importCsv} className="space-y-3">
-          <p className="text-sm leading-6 text-stone-400">Colonnes reconnues : email, entreprise, domaine, nom, poste. Une simple liste d’emails fonctionne aussi. Export Apollo, Hunter ou Excel (virgule ou point-virgule).</p>
+          <p className="text-sm leading-6 text-gray-500 dark:text-zinc-400">Colonnes reconnues : email, entreprise, domaine, nom, poste. Une simple liste d’emails fonctionne aussi. Export Apollo, Hunter ou Excel (virgule ou point-virgule).</p>
           <div>
             <label htmlFor="acq-file" className="mb-1.5 block text-sm font-semibold">Fichier CSV</label>
-            <input id="acq-file" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => { void readFile(event.target.files?.[0]) }} className={`${FIELD} py-2 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-stone-100`} />
+            <input id="acq-file" type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => { void readFile(event.target.files?.[0]) }} className={`${FIELD} py-2 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-gray-900 dark:file:text-zinc-100`} />
           </div>
           <div>
             <label htmlFor="acq-csv" className="mb-1.5 block text-sm font-semibold">Ou colle le contenu ici</label>
             <textarea id="acq-csv" value={csv} onChange={(event) => setCsv(event.target.value)} rows={4} placeholder={'email,entreprise\ncontact@lebistro.fr,Le Bistro'} className={`${FIELD} py-2 font-mono text-xs`} />
           </div>
           {csv.trim() && (
-            <div className="rounded-xl border border-white/10 bg-[#161413] p-4 text-sm" aria-live="polite">
-              <p><span className="font-semibold text-emerald-300">{plural(parsed.rows.length, 'ligne valide', 'lignes valides')}</span>{parsed.issues.length > 0 && <span className="text-amber-300"> · {plural(parsed.issues.length, 'ligne ignorée', 'lignes ignorées')}</span>}</p>
-              {parsed.rows.slice(0, 5).map((row) => <p key={row.email} className="mt-1.5 truncate text-stone-300"><span className="font-mono text-xs">{row.email}</span> <span className="text-stone-500">· {row.company}</span></p>)}
-              {parsed.rows.length > 5 && <p className="mt-1.5 text-xs text-stone-500">et {parsed.rows.length - 5} autres…</p>}
-              {parsed.issues.slice(0, 4).map((issue) => <p key={`${issue.line}-${issue.value}`} className="mt-1.5 text-xs text-amber-300">Ligne {issue.line} : {issue.reason}{issue.value ? ` (${issue.value})` : ''}</p>)}
-              {parsed.issues.length > 4 && <p className="mt-1.5 text-xs text-stone-500">et {parsed.issues.length - 4} autres lignes ignorées.</p>}
+            <div className="rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216] p-4 text-sm" aria-live="polite">
+              <p><span className="font-semibold text-emerald-700 dark:text-emerald-300">{plural(parsed.rows.length, 'ligne valide', 'lignes valides')}</span>{parsed.issues.length > 0 && <span className="text-amber-700 dark:text-amber-300"> · {plural(parsed.issues.length, 'ligne ignorée', 'lignes ignorées')}</span>}</p>
+              {parsed.rows.slice(0, 5).map((row) => <p key={row.email} className="mt-1.5 truncate text-gray-600 dark:text-zinc-300"><span className="font-mono text-xs">{row.email}</span> <span className="text-gray-500 dark:text-zinc-500">· {row.company}</span></p>)}
+              {parsed.rows.length > 5 && <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-500">et {parsed.rows.length - 5} autres…</p>}
+              {parsed.issues.slice(0, 4).map((issue) => <p key={`${issue.line}-${issue.value}`} className="mt-1.5 text-xs text-amber-700 dark:text-amber-300">Ligne {issue.line} : {issue.reason}{issue.value ? ` (${issue.value})` : ''}</p>)}
+              {parsed.issues.length > 4 && <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-500">et {parsed.issues.length - 4} autres lignes ignorées.</p>}
             </div>
           )}
-          <label className="flex min-h-11 items-center gap-3 text-sm text-stone-300"><input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} className="h-5 w-5 accent-[#c2410c]" />Ces emails sont déjà vérifiés (NeverBounce, ZeroBounce…)</label>
+          <label className="flex min-h-11 items-center gap-3 text-sm text-gray-600 dark:text-zinc-300"><input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} className="h-5 w-5 accent-[#c2410c]" />Ces emails sont déjà vérifiés (NeverBounce, ZeroBounce…)</label>
           <button type="submit" disabled={busy || !parsed.rows.length} className={BTN_PRIMARY}>{busy ? 'Import…' : parsed.rows.length ? `Importer ${plural(parsed.rows.length, 'contact', 'contacts')}` : 'Importer'}</button>
         </form>
       )}

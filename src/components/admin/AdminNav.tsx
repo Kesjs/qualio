@@ -33,14 +33,15 @@ export function AdminNav({ variant, collapsed = false, onNavigate }: { variant: 
       <ul role="list" className={sidebar ? 'space-y-1' : 'flex flex-wrap gap-1.5'}>
         {[...ITEMS, ...ACQUISITION].map(({ href, label, short, Icon }) => {
           const active = isActive(href)
-          const classes = sidebar
-            ? `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${active ? 'bg-white/[0.1] font-semibold text-white' : 'text-stone-300 hover:bg-white/[0.06] hover:text-white'}`
-            : `flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm ${active ? 'bg-white/[0.1] font-semibold text-white' : 'text-stone-300 hover:bg-white/[0.06]'}`
+          const activeStyle = 'border border-gray-200/90 bg-white font-semibold text-gray-900 shadow-2xs dark:border-white/[0.12] dark:bg-[#16181E] dark:text-white'
+          const idleStyle = 'border border-transparent text-gray-600 hover:bg-white/70 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white'
+          const classes = `relative flex min-h-11 items-center ${sidebar ? 'gap-3.5' : 'gap-2'} rounded-md px-3 text-sm transition-colors ${active ? activeStyle : idleStyle}`
           return (
             <li key={href}>
               <Link href={href} onClick={onNavigate} aria-current={active ? 'page' : undefined} aria-label={collapsed ? label : undefined} title={collapsed ? label : undefined} className={`${classes} ${collapsed ? 'justify-center px-0' : ''} ${FOCUS}`}>
-                <Icon size={18} aria-hidden="true" className={active ? 'text-[#ff9a66]' : 'text-stone-400'} />
+                <Icon size={18} aria-hidden="true" className={active ? 'text-[#ee6018]' : 'text-gray-400 dark:text-zinc-500'} />
                 {sidebar && !collapsed ? label : !sidebar ? short : null}
+                {active && sidebar && <span aria-hidden="true" className="absolute right-2.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-[#ee6018]" />}
               </Link>
             </li>
           )

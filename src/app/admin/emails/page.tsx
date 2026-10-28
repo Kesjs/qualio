@@ -29,18 +29,18 @@ export default async function AdminEmailsPage({ searchParams }: { searchParams: 
         <TableRegion label="Historique des emails">
           <table className="w-full min-w-[760px] text-sm">
             <caption className="sr-only">Emails envoyés, page {result.page}</caption>
-            <thead className="border-b border-white/10 bg-[#161413]">
+            <thead className="border-b border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216]">
               <tr><th scope="col" className={TH}>Date</th><th scope="col" className={TH}>Destinataire</th><th scope="col" className={TH}>Type</th><th scope="col" className={TH}>Statut</th></tr>
             </thead>
-            <tbody className="divide-y divide-white/10 bg-[#1d1a18]">
+            <tbody className="divide-y divide-gray-200/80 dark:divide-white/[0.08] bg-white dark:bg-[#111216]">
               {result.rows.map((email) => (
                 <tr key={email.id}>
-                  <td className={`${TD} whitespace-nowrap font-mono text-stone-300`}><time dateTime={email.created_at}>{formatDateTime(email.created_at)}</time></td>
-                  <th scope="row" className={`${TD} max-w-[20rem] text-left font-normal`}><span className="block truncate text-stone-100" title={email.recipient}>{email.recipient}</span></th>
-                  <td className={`${TD} text-stone-300`}>{labelOf(EMAIL_TYPE_LABELS, email.event_type)}</td>
+                  <td className={`${TD} whitespace-nowrap font-mono text-gray-600 dark:text-zinc-300`}><time dateTime={email.created_at}>{formatDateTime(email.created_at)}</time></td>
+                  <th scope="row" className={`${TD} max-w-[20rem] text-left font-normal`}><span className="block truncate text-gray-900 dark:text-zinc-100" title={email.recipient}>{email.recipient}</span></th>
+                  <td className={`${TD} text-gray-600 dark:text-zinc-300`}>{labelOf(EMAIL_TYPE_LABELS, email.event_type)}</td>
                   <td className={TD}>
                     <Badge tone={emailTone(email.status)}>{labelOf(EMAIL_STATUS_LABELS, email.status)}</Badge>
-                    {email.status === 'failed' && email.last_error && <p className="mt-1 max-w-xs break-words font-mono text-xs text-red-300">{email.last_error}</p>}
+                    {email.status === 'failed' && email.last_error && <p className="mt-1 max-w-xs break-words font-mono text-xs text-red-700 dark:text-red-300">{email.last_error}</p>}
                   </td>
                 </tr>
               ))}
