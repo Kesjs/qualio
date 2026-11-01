@@ -535,14 +535,16 @@ export default function LoginPage() {
             <AuthDivider />
             <GoogleButton onClick={handleGoogle} loading={googleLoading} label={t.labels.continueWithGoogle} />
             <GithubButton onClick={handleGithub} loading={githubLoading} />
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => setMode('otp')}
-                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: "'Manrope',sans-serif", fontSize: 13, color: C.granite }}
-              >
-                {t.labels.signInOtp}
-              </button>
-            </div>
+            {mode !== 'otp' && (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setMode('otp')}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: "'Manrope',sans-serif", fontSize: 13, color: C.granite }}
+                >
+                  {t.labels.signInOtp}
+                </button>
+              </div>
+            )}
           </>
         )}
 

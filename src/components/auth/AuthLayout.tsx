@@ -1,26 +1,30 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 
 const C = {
   canvas: '#f8faf9', surface: '#ffffff', line: '#dfe6e2',
   ink: '#17201d', orange: '#ee6018', orangeInk: '#c2410c', muted: '#68736f', subtle: '#98a29d',
 }
 
-const INTRO_KEY = 'qualio-auth-intro'
+const BENEFITS = [
+  'Tous vos avis regroupés au même endroit',
+  'Les thèmes qui reviennent, preuves à l’appui',
+  'Des recommandations à accepter, reporter ou écarter',
+]
 
 /** Carte d'exemple (mêmes données que /exemple) : montre la recommandation sourcée, pas seulement la promesse. */
-function ExampleCard({ animate }: { animate: boolean }) {
+function ExampleCard({ reduced }: { reduced: boolean }) {
   return (
     <motion.div
       className="auth-example"
       aria-hidden="true"
-      initial={animate ? { opacity: 0, y: 24 } : false}
+      initial={reduced ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: animate ? 3.2 : 0, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="auth-example-head">
         <span>Recommandation n°1</span>
@@ -33,66 +37,28 @@ function ExampleCard({ animate }: { animate: boolean }) {
         <li><span>« Où sont les factures ? »</span><time>09/10</time></li>
         <li><span>« Facturation introuvable »</span><time>03/10</time></li>
       </ul>
-      <div className="auth-example-actions">
-        <span className="is-primary">Accepter</span>
-        <span>Plus tard</span>
-        <span>Écarter</span>
-      </div>
+      <p className="auth-example-foot">Chaque recommandation cite les avis qui la justifient.</p>
     </motion.div>
   )
 }
 
 function ProductVisual() {
-  const shouldReduceMotion = useReducedMotion()
-  const typingText = 'Des décisions claires.'
-  // Animation jouée une seule fois par session ; ensuite l'état final s'affiche directement.
-  const [skip, setSkip] = useState(true)
-  const [typedText, setTypedText] = useState(typingText)
-
-  useEffect(() => {
-    let seen = false
-    try { seen = sessionStorage.getItem(INTRO_KEY) === '1' } catch { /* stockage indisponible */ }
-    if (shouldReduceMotion || seen) return
-    try { sessionStorage.setItem(INTRO_KEY, '1') } catch { /* ignoré */ }
-    setSkip(false)
-    setTypedText('')
-
-    let index = 0
-    let interval: ReturnType<typeof setInterval> | undefined
-    const timeout = setTimeout(() => {
-      interval = setInterval(() => {
-        index += 1
-        setTypedText(typingText.slice(0, index))
-        if (index >= typingText.length && interval) clearInterval(interval)
-      }, 78)
-    }, 900)
-
-    return () => {
-      clearTimeout(timeout)
-      if (interval) clearInterval(interval)
-    }
-  }, [shouldReduceMotion])
-
-  const done = skip || typedText.length === typingText.length
-
+  const reduced = Boolean(useReducedMotion())
   return (
-    <div className="auth-typography-panel" role="group" aria-label="Aperçu de Qualio">
-      <div className="auth-typography-copy">
-        <span className="sr-only">Vos avis. Des décisions claires.</span>
-        <motion.span
-          aria-hidden="true"
-          className="auth-typography-line auth-typography-line-muted"
-          initial={skip ? false : { opacity: 0, y: -120 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        >
-          Vos avis.
-        </motion.span>
-        <span aria-hidden="true" className="auth-typography-line auth-typography-line-main">
-          {typedText}<span className={`auth-typography-cursor${done ? ' is-done' : ''}`} />
-        </span>
+    <div className="auth-visual-panel" role="group" aria-label="Aperçu de Qualio">
+      <div className="auth-visual-copy">
+        <h2 className="auth-visual-title">Vos avis deviennent des décisions <span>claires</span>.</h2>
+        <p className="auth-visual-sub">Qualio lit vos retours clients, repère ce qui revient et vous dit quoi améliorer en premier.</p>
       </div>
-      <ExampleCard animate={!skip} />
+      <ExampleCard reduced={reduced} />
+      <ul className="auth-visual-benefits">
+        {BENEFITS.map((text) => (
+          <li key={text}>
+            <span className="auth-visual-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>
+            {text}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
