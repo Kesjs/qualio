@@ -3,14 +3,14 @@
  * la page affiche « À compléter » en orange et l'envoi des emails de prospection reste bloqué : ne mettez pas le site en ligne avant.
  */
 export const LEGAL = {
-  publisher: '',        // Nom de l'éditeur (personne ou société)
-  legalForm: '',        // Forme juridique, ex. entreprise individuelle, SARL
+  publisher: 'Ken Oladele',        // Nom de l'éditeur (personne ou société)
+  legalForm: 'Entrepreneur individuel',        // Forme juridique, ex. entreprise individuelle, SARL
   registration: '',     // Numéro d'immatriculation (RCCM, IFU…) s'il existe
-  address: '',          // Adresse postale
-  director: '',         // Directeur de la publication
+  address: 'Abomey-Calavi, Bénin',          // Adresse postale
+  director: 'Ken Oladele',         // Directeur de la publication
   email: 'contact@tryqualio.pro',
   host: 'Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis',
-  governingLaw: '',     // Droit applicable et juridiction, ex. « droit béninois, tribunaux de Cotonou »
+  governingLaw: 'Droit béninois, tribunaux de Cotonou',     // Droit applicable et juridiction, ex. « droit béninois, tribunaux de Cotonou »
   updatedAt: '28 octobre 2026',
 } as const
 

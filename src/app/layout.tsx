@@ -6,11 +6,18 @@ import "./globals.css";
 const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable: "--font-jetbrains-mono" });
 
+const siteUrl = "https://tryqualio.pro";
+const siteTitle = "Qualio — Transformer les avis clients en décisions";
+const siteDescription =
+  "Qualio rassemble vos avis clients, repère les thèmes qui reviennent avec les avis à l’appui, et vous dit quoi améliorer en premier.";
+
 export const metadata: Metadata = {
-  title: "Qualio — Transformer les avis en décisions",
-  description:
-    "Qualio rassemble vos avis clients, les structure par thèmes et vous aide à décider quoi améliorer.",
-  keywords: ["avis clients", "feedback", "synthèse", "recommandations"],
+  metadataBase: new URL(siteUrl),
+  title: { default: siteTitle, template: "%s" },
+  description: siteDescription,
+  keywords: ["avis clients", "analyse d'avis", "feedback clients", "synthèse IA", "recommandations produit"],
+  alternates: { canonical: "/" },
+  applicationName: "Qualio",
   icons: {
     icon: [
       { url: "/qualio-logo/export/icon/icon-orange-obsidian-512.png", sizes: "512x512", type: "image/png" },
@@ -25,9 +32,19 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Qualio — Transformer les avis en décisions",
-    description: "Collectez vos avis, comprenez les thèmes qui reviennent et décidez des prochaines actions.",
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
+    siteName: "Qualio",
+    locale: "fr_FR",
     type: "website",
+    images: [{ url: "/social/qualio-x-banner.png", width: 1500, height: 500, alt: "Qualio — transformer les avis clients en décisions" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: ["/social/qualio-x-banner.png"],
   },
 };
 
@@ -35,6 +52,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
 import NextTopLoader from 'nextjs-toploader';
+import { Analytics } from "@vercel/analytics/next";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -66,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
           </Providers>
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );

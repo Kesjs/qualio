@@ -15,9 +15,38 @@ export type PipelineMessage = {
 export type PipelineStats = { sentToday: number; dailyLimit: number; sentTotal: number; delivered: number; bounced: number; bounceRate: number; pausedForBounces: boolean; replied: number; replyRate: number; drafts: number }
 export type PipelineData = { queue: QueueItem[]; drafts: PipelineMessage[]; tracking: PipelineMessage[]; stats: PipelineStats; failed: boolean }
 
+/** Plafond maximal réglable (ACQUISITION_DAILY_LIMIT). Défaut : 80 mails par jour une fois le domaine chauffé. */
 export function dailyLimit() {
   const value = Number(process.env.ACQUISITION_DAILY_LIMIT)
-  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 25
+  return Number.isFinite(value) && value >= 1 ? Math.min(Math.floor(value), 200) : 80
+}
+
+export const WARMUP_START_LIMIT = 25
+const WARMUP_STEPS: Array<[number, number]> = [[7, 25], [14, 40], [21, 60]]
+
+/**
+ * Montée en charge automatique : 25/jour la 1re semaine, 40 la 2e, 60 la 3e, puis le plafond.
+ * Si le taux de rebond des 30 derniers jours dépasse 5 % (20 envois minimum), on retombe à 25/jour.
+ */
+export function rampedDailyLimit(input: { firstSentAt: string | null; recentSent: number; recentBounced: number; now?: number }) {
+  const cap = dailyLimit()
+  const now = input.now ?? Date.now()
+  if (input.recentSent >= 20 && input.recentBounced / input.recentSent > 0.05) return Math.min(cap, WARMUP_START_LIMIT)
+  if (!input.firstSentAt) return Math.min(cap, WARMUP_START_LIMIT)
+  const days = Math.max(0, (now - new Date(input.firstSentAt).getTime()) / 86_400_000)
+  const step = WARMUP_STEPS.find(([until]) => days < until)
+  return Math.min(cap, step ? step[1] : cap)
+}
+
+/** Version serveur : lit la date du premier envoi et le taux de rebond récent. */
+export async function effectiveDailyLimit(admin: any) {
+  const since = new Date(Date.now() - BOUNCE_RATE_WINDOW_DAYS * 86_400_000).toISOString()
+  const [first, recent, bounced] = await Promise.all([
+    admin.from('acquisition_messages').select('sent_at').not('sent_at', 'is', null).order('sent_at', { ascending: true }).limit(1).maybeSingle(),
+    admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).gte('sent_at', since),
+    admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).eq('status', 'bounced').gte('sent_at', since),
+  ])
+  return rampedDailyLimit({ firstSentAt: first.data?.sent_at ?? null, recentSent: recent.count ?? 0, recentBounced: bounced.count ?? 0 })
 }
 
 export function startOfTodayIso() {
@@ -79,7 +108,7 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
   const bounceRate = recentSent.length ? Math.round((recentBounced.length / recentSent.length) * 100) : 0
   const stats: PipelineStats = {
     sentToday: sent.filter((message) => new Date(message.sentAt as string).getTime() >= todayStart).length,
-    dailyLimit: dailyLimit(),
+    dailyLimit: rampedDailyLimit({ firstSentAt: sent.length ? sent.map((m) => m.sentAt as string).sort()[0] : null, recentSent: recentSent.length, recentBounced: recentBounced.length }),
     sentTotal: sent.length,
     delivered: messages.filter((message) => message.deliveredAt).length,
     bounced,

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
-import { dailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
+import { effectiveDailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
 import { buildProspectMail } from '@/lib/admin/acquisition-mail'
 
 export const maxDuration = 60
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   // Même plafond journalier que l'envoi manuel : les relances en font partie.
   const { count: sentToday, error: countError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).gte('sent_at', startOfTodayIso())
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
-  const remaining = dailyLimit() - (sentToday ?? 0)
+  const remaining = (await effectiveDailyLimit(admin)) - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ processed: 0, skipped: 'daily_limit_reached' })
 
   const { data: due, error } = await admin
