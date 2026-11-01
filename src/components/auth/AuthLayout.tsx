@@ -2,63 +2,77 @@
 
 import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { ArrowLeft, Check } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 
 const C = {
   canvas: '#f8faf9', surface: '#ffffff', line: '#dfe6e2',
   ink: '#17201d', orange: '#ee6018', orangeInk: '#c2410c', muted: '#68736f', subtle: '#98a29d',
 }
 
-const BENEFITS = [
-  'Tous vos avis regroupés au même endroit',
-  'Les thèmes qui reviennent, preuves à l’appui',
-  'Des recommandations à accepter, reporter ou écarter',
+type WallReview = { stars: number; quote: string; date: string; tag?: string; highlight?: boolean }
+
+/** Avis d'exemple (illustratifs, signalés comme tels sur la page) : le mur montre Qualio regrouper les avis par thème. */
+const WALL_1: WallReview[] = [
+  { stars: 5, quote: 'Support au top, merci !', date: '14/10' },
+  { stars: 2, quote: 'Où sont les factures ?', date: '12/10', tag: 'Facturation', highlight: true },
+  { stars: 4, quote: 'Prix un peu élevé pour ce que c’est.', date: '11/10' },
+  { stars: 5, quote: 'Très pratique au quotidien.', date: '09/10' },
+  { stars: 3, quote: 'Livraison plus lente que prévu.', date: '08/10' },
+  { stars: 1, quote: 'Impossible de retrouver ma facture.', date: '03/10', tag: 'Facturation' },
+]
+const WALL_2: WallReview[] = [
+  { stars: 4, quote: 'Application claire et rapide.', date: '13/10' },
+  { stars: 2, quote: 'Facturation introuvable.', date: '09/10', tag: 'Facturation' },
+  { stars: 5, quote: 'Équipe très à l’écoute.', date: '07/10' },
+  { stars: 3, quote: 'J’aimerais un export plus simple.', date: '05/10' },
+  { stars: 2, quote: 'Je n’arrive jamais à retrouver ma facture.', date: '03/10', tag: 'Facturation' },
+  { stars: 5, quote: 'Mise en place en deux minutes.', date: '02/10' },
+]
+const WALL_3: WallReview[] = [
+  { stars: 5, quote: 'Rien à redire, bravo.', date: '12/10' },
+  { stars: 3, quote: 'Un peu long à charger le soir.', date: '10/10' },
+  { stars: 4, quote: 'Les notifications sont utiles.', date: '08/10' },
+  { stars: 2, quote: 'Où trouver mes factures ?', date: '06/10', tag: 'Facturation' },
+  { stars: 5, quote: 'Commande arrivée en avance.', date: '04/10' },
+  { stars: 4, quote: 'Service client réactif.', date: '01/10' },
 ]
 
-/** Carte d'exemple (mêmes données que /exemple) : montre la recommandation sourcée, pas seulement la promesse. */
-function ExampleCard({ reduced }: { reduced: boolean }) {
+function WallColumn({ items, reverse, third }: { items: WallReview[]; reverse?: boolean; third?: boolean }) {
   return (
-    <motion.div
-      className="auth-example"
-      aria-hidden="true"
-      initial={reduced ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="auth-example-head">
-        <span>Recommandation n°1</span>
-        <span className="auth-example-tag">Exemple</span>
+    <div className={`auth-wall-col${reverse ? ' is-reverse' : ''}${third ? ' is-third' : ''}`}>
+      <div className="auth-wall-track">
+        {[0, 1].map((copy) => items.map((review, index) => (
+          <article key={`${copy}-${index}`} className={`auth-wall-card${review.highlight ? ' is-highlight' : ''}`}>
+            <div className="auth-wall-card-top">
+              <span className="auth-wall-stars">{'★'.repeat(review.stars)}<i>{'★'.repeat(5 - review.stars)}</i></span>
+              {review.tag && <span className="auth-wall-tag">{review.tag}</span>}
+            </div>
+            <p className="auth-wall-quote">{review.quote}</p>
+            <time className="auth-wall-date">{review.date}</time>
+          </article>
+        )))}
       </div>
-      <p className="auth-example-title">Rendre la facturation visible dans le menu</p>
-      <p className="auth-example-sub">14 avis sur 40 mentionnent la difficulté à retrouver leurs factures.</p>
-      <ul className="auth-example-quotes">
-        <li><span>« Je n’arrive jamais à retrouver ma facture »</span><time>12/10</time></li>
-        <li><span>« Où sont les factures ? »</span><time>09/10</time></li>
-        <li><span>« Facturation introuvable »</span><time>03/10</time></li>
-      </ul>
-      <p className="auth-example-foot">Chaque recommandation cite les avis qui la justifient.</p>
-    </motion.div>
+    </div>
   )
 }
 
 function ProductVisual() {
-  const reduced = Boolean(useReducedMotion())
   return (
     <div className="auth-visual-panel" role="group" aria-label="Aperçu de Qualio">
       <div className="auth-visual-copy">
         <h2 className="auth-visual-title">Vos avis deviennent des décisions <span>claires</span>.</h2>
         <p className="auth-visual-sub">Qualio lit vos retours clients, repère ce qui revient et vous dit quoi améliorer en premier.</p>
       </div>
-      <ExampleCard reduced={reduced} />
-      <ul className="auth-visual-benefits">
-        {BENEFITS.map((text) => (
-          <li key={text}>
-            <span className="auth-visual-check" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>
-            {text}
-          </li>
-        ))}
-      </ul>
+      <span className="sr-only">Exemples d’avis clients que Qualio regroupe par thème, comme la facturation.</span>
+      <div className="auth-wall" aria-hidden="true">
+        <div className="auth-wall-stage">
+          <WallColumn items={WALL_1} />
+          <WallColumn items={WALL_2} reverse />
+          <WallColumn items={WALL_3} third />
+        </div>
+      </div>
+      <span className="auth-wall-note" aria-hidden="true">Exemples d’avis</span>
     </div>
   )
 }

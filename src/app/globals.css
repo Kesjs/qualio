@@ -378,25 +378,32 @@ input[type='password']::-ms-clear {
 @media (max-width: 1180px) { .auth-review-panel { padding: 32px; } .auth-review-card { flex-basis: 280px; } }
 @media (prefers-reduced-motion: reduce) { .auth-review-track { animation: none; } }
 
-.auth-visual-panel { position: relative; min-height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; padding: 56px 48px; border-right: 1px solid #dfe6e2; background: radial-gradient(90% 60% at 12% 0%, rgba(238,96,24,.13), transparent 60%), radial-gradient(70% 50% at 100% 100%, rgba(71,124,90,.10), transparent 60%), #f3f6f4; color: #17201d; font-family: var(--font-manrope), 'Manrope', sans-serif; }
-.auth-visual-copy, .auth-example, .auth-visual-benefits { position: relative; z-index: 1; width: min(88%, 480px); }
-.auth-visual-title { margin: 0; font-size: clamp(1.9rem, 2.9vw, 2.75rem); font-weight: 750; line-height: 1.08; letter-spacing: -.04em; color: #17201d; text-wrap: balance; }
+.auth-visual-panel { position: relative; min-height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding: 64px 0 0; border-right: 1px solid #dfe6e2; background: radial-gradient(90% 60% at 12% 0%, rgba(238,96,24,.13), transparent 60%), radial-gradient(70% 50% at 100% 100%, rgba(71,124,90,.10), transparent 60%), #f3f6f4; color: #17201d; font-family: var(--font-manrope), 'Manrope', sans-serif; }
+.auth-visual-copy { position: relative; z-index: 2; padding: 0 clamp(32px, 5vw, 64px); }
+.auth-visual-title { margin: 0; max-width: 520px; font-size: clamp(1.9rem, 2.9vw, 2.75rem); font-weight: 750; line-height: 1.08; letter-spacing: -.04em; color: #17201d; text-wrap: balance; }
 .auth-visual-title span { color: #c2410c; }
-.auth-visual-sub { margin: 14px 0 0; max-width: 420px; font-size: 15px; line-height: 1.55; color: #5b6661; }
-.auth-example { padding: 20px; border: 1px solid #dfe6e2; border-radius: 16px; background: #fff; box-shadow: 0 30px 60px -32px rgba(23,32,29,.35), 0 2px 6px rgba(23,32,29,.05); transform: rotate(-1deg); }
-.auth-example-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5b6661; }
-.auth-example-tag { padding: 3px 8px; border-radius: 6px; background: #f2f6f3; letter-spacing: 0; text-transform: none; font-weight: 600; }
-.auth-example-title { margin: 14px 0 6px; font-size: 18px; font-weight: 650; letter-spacing: -.02em; line-height: 1.25; color: #17201d; }
-.auth-example-sub { margin: 0; font-size: 13px; line-height: 1.5; color: #5b6661; }
-.auth-example-quotes { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.auth-example-quotes li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid #eef2ef; border-radius: 8px; background: #f7f9f8; font-size: 13px; line-height: 1.4; color: #17201d; }
-.auth-example-quotes time { flex-shrink: 0; color: #5b6661; font-variant-numeric: tabular-nums; }
-.auth-example-foot { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: 12px; font-weight: 600; color: #5b6661; }
-.auth-example-foot::before { content: ''; width: 6px; height: 6px; flex-shrink: 0; border-radius: 99px; background: #ee6018; }
-.auth-visual-benefits { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
-.auth-visual-benefits li { display: flex; align-items: center; gap: 10px; font-size: 14px; line-height: 1.4; color: #3f4a46; }
-.auth-visual-check { display: inline-flex; width: 20px; height: 20px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 99px; background: rgba(71,124,90,.14); color: #477c5a; }
-@media (max-width: 1180px) { .auth-visual-panel { padding: 40px 32px; } .auth-visual-copy, .auth-example, .auth-visual-benefits { width: 92%; } }
+.auth-visual-sub { margin: 14px 0 0; max-width: 440px; font-size: 15px; line-height: 1.55; color: #5b6661; }
+.auth-wall { position: relative; flex: 1; min-height: 360px; margin-top: 12px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 84%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 84%, transparent 100%); }
+.auth-wall-stage { position: absolute; inset: -12% -8% -12% -2%; display: flex; justify-content: center; gap: 14px; transform: rotate(-6deg); }
+.auth-wall-col { flex: 0 1 250px; min-width: 0; height: 100%; overflow: hidden; }
+.auth-wall-col:nth-child(2) { margin-top: 56px; }
+.auth-wall-col.is-third { display: none; }
+@media (min-width: 1600px) { .auth-wall-col { flex-basis: 236px; } .auth-wall-col.is-third { display: block; margin-top: 18px; } }
+.auth-wall-track { animation: auth-wall-scroll 64s linear infinite; will-change: transform; }
+.auth-wall-col.is-reverse .auth-wall-track { animation-direction: reverse; animation-duration: 76s; }
+.auth-wall-col.is-third .auth-wall-track { animation-duration: 70s; }
+@keyframes auth-wall-scroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.auth-wall-card { margin-bottom: 14px; padding: 14px 16px; border: 1px solid #dfe6e2; border-radius: 12px; background: #fff; box-shadow: 0 10px 24px -18px rgba(23,32,29,.35); }
+.auth-wall-card.is-highlight { border-color: #ee6018; box-shadow: 0 0 0 3px rgba(238,96,24,.14), 0 14px 28px -18px rgba(238,96,24,.5); }
+.auth-wall-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.auth-wall-stars { color: #ee6018; font-size: 13px; letter-spacing: .06em; white-space: nowrap; }
+.auth-wall-stars i { font-style: normal; color: #e1e7e3; }
+.auth-wall-tag { padding: 2px 8px; border-radius: 99px; background: #fde8dc; color: #c2410c; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.auth-wall-quote { margin: 10px 0 8px; font-size: 15px; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; color: #17201d; text-wrap: pretty; }
+.auth-wall-date { display: block; font-size: 11px; color: #5b6661; font-variant-numeric: tabular-nums; }
+.auth-wall-note { position: absolute; left: clamp(32px, 5vw, 64px); bottom: 24px; z-index: 2; padding: 5px 11px; border: 1px solid #dfe6e2; border-radius: 99px; background: rgba(255,255,255,.9); color: #5b6661; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 1180px) { .auth-visual-panel { padding-top: 48px; } .auth-wall-col { flex-basis: 226px; } }
+@media (prefers-reduced-motion: reduce) { .auth-wall-track { animation: none; } }
 
 /* Light feedback-intelligence landing page. The existing dark marketing components
    remain available for later reference; the public home route uses this surface. */
