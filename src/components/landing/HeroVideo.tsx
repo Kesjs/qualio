@@ -6,7 +6,7 @@ import { Select } from '@/components/dashboard/Select'
 
 const POSTER = '/qualio-hero-poster.webp'
 const SRC = '/qualio-final.mp4'
-const VOICEOVER = '/qualio-voiceover.wav'
+const MUSIC_VOLUME = 0.45
 
 function formatTime(seconds: number) {
   const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
@@ -17,17 +17,16 @@ function formatTime(seconds: number) {
  * Vidéo du hero : affiche tout de suite l'image (poster), se lance quand elle est visible
  * à plus de 50 %, se met en pause quand on la quitte, et reprend là où elle s'était arrêtée.
  * Mouvement réduit : aucune lecture automatique, un bouton play s'affiche.
- * Voix : un élément <audio> invisible lit le voiceover FR de Gemini TTS en synchro avec la vidéo.
+ * Son : la musique est celle de la vidéo elle-même (pas de voix). Elle démarre coupée (les navigateurs
+ * interdisent le son automatique) et le visiteur l'active d'un clic.
  */
 export function HeroVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const audioRef = useRef<HTMLAudioElement>(null)
   const userPaused = useRef(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [playing, setPlaying] = useState(false)
-  const [voiceOn, setVoiceOn] = useState(true)
-  const [voiceBlocked, setVoiceBlocked] = useState(false)
+  const [muted, setMuted] = useState(true)
   const [ended, setEnded] = useState(false)
   const [started, setStarted] = useState(false)
   const [current, setCurrent] = useState(0)
@@ -41,22 +40,6 @@ export function HeroVideo() {
     if (hideTimer.current) clearTimeout(hideTimer.current)
     hideTimer.current = setTimeout(() => setAwake(false), 2500)
   }, [])
-
-  // Synchro audio ↔ video : l'audio suit exactement le temps de la vidéo
-  const syncAudio = useCallback(() => {
-    const video = videoRef.current
-    const audio = audioRef.current
-    if (!video || !audio || !voiceOn) return
-    // Resync si l'écart est > 0.3s
-    if (Math.abs(audio.currentTime - video.currentTime) > 0.3) {
-      audio.currentTime = video.currentTime
-    }
-    audio.playbackRate = video.playbackRate
-    if (video.paused && !audio.paused) audio.pause()
-    if (!video.paused && audio.paused && !audio.ended) {
-      void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
-    }
-  }, [voiceOn])
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -88,69 +71,41 @@ export function HeroVideo() {
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.playbackRate = playbackRate
-    if (audioRef.current) audioRef.current.playbackRate = playbackRate
   }, [playbackRate])
 
-  // Keep audio in sync on every video timeupdate
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    const handler = () => syncAudio()
-    video.addEventListener('timeupdate', handler)
-    return () => video.removeEventListener('timeupdate', handler)
-  }, [syncAudio])
+    if (videoRef.current) videoRef.current.volume = MUSIC_VOLUME
+  }, [])
 
   const toggle = () => {
     const video = videoRef.current
-    const audio = audioRef.current
     if (!video) return
     if (video.ended) {
       video.currentTime = 0
       setEnded(false)
-      if (audio) { audio.currentTime = 0 }
     }
     if (video.paused) {
       userPaused.current = false
       void video.play().catch(() => undefined)
-      if (audio && voiceOn) {
-        audio.currentTime = video.currentTime
-        void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
-      }
     } else {
       userPaused.current = true
       video.pause()
-      if (audio) audio.pause()
     }
     wake()
   }
 
   const seek = (event: PointerEvent<HTMLDivElement>) => {
     const video = videoRef.current
-    const audio = audioRef.current
     if (!video || !duration) return
     const rect = event.currentTarget.getBoundingClientRect()
     const t = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)) * duration
     video.currentTime = t
-    if (audio) audio.currentTime = t
     setEnded(false)
     setCurrent(t)
   }
 
-  // Toggle French voiceover narration
-  const toggleVoice = () => {
-    const audio = audioRef.current
-    const video = videoRef.current
-    if (!audio || !video) return
-    const next = !voiceOn
-    setVoiceOn(next)
-    if (next && !video.paused) {
-      audio.currentTime = video.currentTime
-      audio.playbackRate = video.playbackRate
-      void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
-    } else {
-      audio.pause()
-      setVoiceBlocked(false)
-    }
+  const toggleSound = () => {
+    setMuted((value) => !value)
     wake()
   }
 
@@ -173,22 +128,12 @@ export function HeroVideo() {
       onFocus={wake}
       className="group relative aspect-video w-full overflow-hidden rounded-xl border border-[#e6e6ea] bg-white"
     >
-      {/* Voiceover audio (invisible, synced to video) */}
-      <audio
-        ref={audioRef}
-        src={VOICEOVER}
-        preload="auto"
-        onEnded={() => {
-          // Audio may end before video (17.4s vs 20s), that's fine — just stay quiet
-        }}
-      />
-
       <video
         ref={videoRef}
         className="block h-full w-full object-cover"
         src={SRC}
         poster={POSTER}
-        muted
+        muted={muted}
         playsInline
         preload="auto"
         aria-label="Démonstration de Qualio"
@@ -197,23 +142,11 @@ export function HeroVideo() {
           setPlaying(true)
           setStarted(true)
           setEnded(false)
-          // Start audio in sync if voice is on
-          const audio = audioRef.current
-          const video = videoRef.current
-          if (audio && voiceOn && video) {
-            audio.currentTime = video.currentTime
-            audio.playbackRate = video.playbackRate
-            void audio.play().then(() => setVoiceBlocked(false)).catch(() => setVoiceBlocked(true))
-          }
         }}
-        onPause={() => {
-          setPlaying(false)
-          audioRef.current?.pause()
-        }}
+        onPause={() => setPlaying(false)}
         onEnded={() => {
           setPlaying(false)
           setEnded(true)
-          audioRef.current?.pause()
         }}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
@@ -230,15 +163,15 @@ export function HeroVideo() {
         </button>
       )}
 
-      {/* "Activate French narration" toast shown when playing, sound is on, but voiceover is off */}
-      {playing && (!voiceOn || voiceBlocked) && (
+      {/* Invitation à activer la musique (la vidéo démarre coupée) */}
+      {playing && muted && (
         <button
           type="button"
-          onClick={toggleVoice}
+          onClick={toggleSound}
           className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#ee6018]/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-[#ee6018] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]"
         >
           <SpeakerWaveIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Activer la narration française
+          Activer la musique
         </button>
       )}
 
@@ -259,15 +192,12 @@ export function HeroVideo() {
           onPointerDown={seek}
           onKeyDown={(event) => {
             const video = videoRef.current
-            const audio = audioRef.current
             if (!video) return
             if (event.key === 'ArrowRight') {
               video.currentTime = Math.min(duration, video.currentTime + 5)
-              if (audio) audio.currentTime = video.currentTime
             }
             if (event.key === 'ArrowLeft') {
               video.currentTime = Math.max(0, video.currentTime - 5)
-              if (audio) audio.currentTime = video.currentTime
             }
           }}
           className="group/bar flex h-6 flex-1 cursor-pointer items-center focus-visible:outline-2 focus-visible:outline-[#ee6018]"
@@ -296,22 +226,8 @@ export function HeroVideo() {
           ]}
         />
 
-        {/* French voiceover toggle button (microphone icon) */}
-        <button
-          type="button"
-          onClick={toggleVoice}
-          aria-label={voiceOn ? 'Désactiver la narration française' : 'Activer la narration française'}
-          title={voiceOn ? 'Narration FR activée' : 'Activer la narration FR'}
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-2 focus-visible:outline-[#ee6018] ${voiceOn ? 'bg-[#ee6018]/80 text-white hover:bg-[#ee6018]' : 'text-white/60 hover:bg-white/15 hover:text-white'}`}
-        >
-          {/* Mic icon via inline SVG */}
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4Zm-1 18.93V22h2v-2.07A8.001 8.001 0 0 0 20 12h-2a6 6 0 0 1-12 0H4a8.001 8.001 0 0 0 7 7.93Z" />
-          </svg>
-        </button>
-
-        <button type="button" onClick={toggleVoice} aria-label={voiceOn ? 'Couper la narration française' : 'Activer la narration française'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
-          {voiceOn ? <SpeakerWaveIcon className="h-5 w-5" /> : <SpeakerXMarkIcon className="h-5 w-5" />}
+        <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer la musique' : 'Couper la musique'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
+          {muted ? <SpeakerXMarkIcon className="h-5 w-5" /> : <SpeakerWaveIcon className="h-5 w-5" />}
         </button>
         <button type="button" onClick={fullscreen} aria-label="Plein écran" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
           <ArrowsPointingOutIcon className="h-5 w-5" />
