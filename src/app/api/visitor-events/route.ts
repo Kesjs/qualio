@@ -5,6 +5,7 @@ const ALLOWED = new Set(['page_view', 'email_clicked', 'widget_opened', 'feedbac
 function cors() { return { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } }
 
 export async function POST(request: NextRequest) {
+  if (request.cookies.get('qualio_ignore')?.value === '1') return NextResponse.json({ ok: true, ignored: true }, { headers: cors() })
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const key = typeof body?.key === 'string' ? body.key.trim() : ''
   const eventName = typeof body?.eventName === 'string' ? body.eventName.trim() : ''

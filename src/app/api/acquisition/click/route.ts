@@ -4,10 +4,12 @@ import { getSupabaseAdminClient } from '@/lib/supabase/server'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tryqualio.pro'
 
 export async function GET(request: NextRequest) {
+  const ignored = request.cookies.get('qualio_ignore')?.value === '1'
   const messageId = request.nextUrl.searchParams.get('message')?.trim() ?? ''
   if (!/^[0-9a-f-]{36}$/i.test(messageId)) return NextResponse.redirect(new URL('/', SITE_URL))
   const admin = getSupabaseAdminClient() as any
   const { data: message } = await admin.from('acquisition_messages').select('id, status').eq('id', messageId).maybeSingle()
+  if (ignored) return NextResponse.redirect(new URL('/', SITE_URL))
   if (message?.id && ['sent', 'replied'].includes(message.status)) {
     await admin.from('acquisition_messages').update({ clicked_at: new Date().toISOString() }).eq('id', message.id).is('clicked_at', null)
     const utm = { utm_source: 'email', utm_medium: 'outreach', utm_campaign: 'prospection', utm_content: message.id }

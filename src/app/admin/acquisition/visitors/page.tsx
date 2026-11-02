@@ -87,6 +87,8 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
   const actions = events.filter((event) => ['cta_clicked', 'widget_opened', 'feedback_submitted'].includes(event.event_name)).length
   const sent = messages.filter((message) => message.sent_at).length
   const delivered = messages.filter((message) => message.delivered_at).length
+  const bounced = messages.filter((message) => message.sent_at && message.status === 'bounced').length
+  const bounceRate = sent ? Math.round((bounced / sent) * 100) : 0
   const clickRate = sent ? Math.round((emailSessions.size / sent) * 100) : 0
   const actionRate = sessionRows.length ? Math.round((actions / sessionRows.length) * 100) : 0
 
@@ -123,7 +125,7 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
 
       <Panel id="funnel" title="Du message à l’action" description="Un même indicateur de période pour comprendre où l’intérêt se transforme — ou se perd.">
         <div className="grid gap-3 md:grid-cols-4">
-          <FunnelStep label="Emails envoyés" value={sent} hint={`${delivered} livrés`} />
+          <FunnelStep label="Emails envoyés" value={sent} hint={`${delivered} livrés · ${bounced} rebonds (${bounceRate} %)`} />
           <FunnelStep label="Clics confirmés" value={emailSessions.size} hint={sent ? `${clickRate} % des emails` : 'Aucun envoi sur la période'} />
           <FunnelStep label="Sessions" value={sessionRows.length} hint="visites distinctes" />
           <FunnelStep label="Actions" value={actions} hint={sessionRows.length ? `${actionRate} % des sessions` : 'Aucune session'} />
@@ -137,7 +139,7 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
           <EmptyState title="Aucun signal sur cette période" description="Les sessions apparaîtront après un clic dans un email ou une action sur le site." action={<Link href="/admin/acquisition" className={BTN_PRIMARY}>Voir la prospection</Link>} />
         ) : (
           <TableRegion label="Sessions récentes">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="border-b border-gray-200/80 dark:border-white/[0.08] bg-[#F8F9FA] dark:bg-[#111216]"><tr><th className={TH}>Session</th><th className={TH}>Source</th><th className={TH}>Activité</th><th className={TH}>Dernier signal</th><th className={TH}><span className="sr-only">Action</span></th></tr></thead>
               <tbody className="divide-y divide-gray-200/80 dark:divide-white/[0.08] bg-white dark:bg-[#111216]">
                 {sessionRows.map((session) => {
@@ -150,7 +152,7 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
                       <td className={TD}><span className="block text-gray-800 dark:text-zinc-200">{first.acquisition_message_id ? 'Email Qualio' : 'Accès direct'}</span>{contact.email && <span className="mt-1 block font-mono text-xs text-gray-500 dark:text-zinc-500">{contact.email}</span>}</td>
                       <td className={TD}><span className="block text-gray-800 dark:text-zinc-200">{session.events.length} événement(s) · {session.paths.size} page(s)</span><span className="mt-1 block text-xs text-gray-500 dark:text-zinc-500">{session.events.map((event) => EVENT_LABELS[event.event_name] ?? event.event_name).filter((label, index, list) => list.indexOf(label) === index).join(' · ')}</span></td>
                       <td className={TD}><span className="block text-gray-800 dark:text-zinc-200">{EVENT_LABELS[session.latest.event_name] ?? session.latest.event_name}</span><span className="mt-1 block font-mono text-xs text-gray-500 dark:text-zinc-500">{session.latest.path}</span></td>
-                      <td className={`${TD} text-right`}><Link href="/admin/acquisition" className={`inline-flex min-h-10 items-center rounded-lg border border-[#ee6018]/50 px-3 text-xs font-semibold text-[#c2410c] dark:text-[#ffb08a] hover:bg-[#ee6018]/10 ${FOCUS}`}>Voir la prospection</Link></td>
+                      <td className={`${TD} text-right`}><Link href="/admin/acquisition" className={`inline-flex min-h-10 items-center rounded-lg border border-[#ee6018]/50 px-3 text-xs font-semibold text-[#c2410c] dark:text-[#ffb08a] hover:bg-[#ee6018]/10 ${FOCUS}`} aria-label="Voir la prospection">Prospection</Link></td>
                     </tr>
                   )
                 })}

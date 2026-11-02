@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BTN_PRIMARY, FIELD, Panel } from '@/components/admin/ui'
 import { AdminSelect } from '@/components/admin/AdminSelect'
 import { CityAutocomplete } from '@/components/admin/CityAutocomplete'
@@ -13,14 +13,14 @@ import { toast } from 'sonner'
 type Mode = 'ai' | 'discover' | 'domains' | 'csv'
 
 const AI_TARGET_PRESETS = [
+  { label: 'E-commerce & D2C', value: 'Boutiques E-commerce et marques D2C recevant des avis clients réguliers' },
+  { label: 'Startups & SaaS B2B', value: 'Startups et éditeurs de logiciels SaaS B2B avec des utilisateurs actifs' },
+  { label: 'Agences Web & Digital', value: 'Agences web, communication et marketing digital gérant la réputation de clients' },
   {
     label: 'Restaurants francophones',
     value:
       'Restaurants et cafés indépendants francophones, avec un site officiel actif, des avis clients publics et un contact professionnel public. Priorité aux établissements qui reçoivent régulièrement des avis et pourraient bénéficier d’une analyse de feedback.',
   },
-  { label: 'E-commerce & D2C', value: 'Boutiques E-commerce et marques D2C recevant des avis clients réguliers' },
-  { label: 'Startups & SaaS B2B', value: 'Startups et éditeurs de logiciels SaaS B2B avec des utilisateurs actifs' },
-  { label: 'Agences Web & Digital', value: 'Agences web, communication et marketing digital gérant la réputation de clients' },
 ]
 
 export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: () => void }) {
@@ -30,7 +30,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
   // IA State
   const [aiTarget, setAiTarget] = useState(AI_TARGET_PRESETS[0].value)
   const [aiLocation, setAiLocation] = useState('')
-  const [aiLimit, setAiLimit] = useState('50')
+  const [aiLimit, setAiLimit] = useState('25')
 
   // OpenStreetMap State
   const [city, setCity] = useState('')
@@ -43,18 +43,30 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
   const [verified, setVerified] = useState(false)
   const [busy, setBusy] = useState(false)
 
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!busy) { setElapsed(0); return }
+    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [busy])
+
   const parsed = useMemo(() => parseImport(csv), [csv])
 
   async function discoverWithAi(event: React.FormEvent) {
     event.preventDefault()
     if (!aiTarget.trim()) return
     setBusy(true)
-    const { ok, data } = await postJson('/api/admin/acquisition/discover-ai', {
-      target: aiTarget.trim(),
-      location: aiLocation.trim() || undefined,
-      limit: Number(aiLimit),
-    })
-    setBusy(false)
+    let result: Awaited<ReturnType<typeof postJson>>
+    try {
+      result = await postJson('/api/admin/acquisition/discover-ai', {
+        target: aiTarget.trim(),
+        location: aiLocation.trim() || undefined,
+        limit: Number(aiLimit),
+      })
+    } finally {
+      setBusy(false)
+    }
+    const { ok, data } = result
 
     if (!ok) {
       const err = data.error ?? 'La génération par l’IA a échoué.'
@@ -68,8 +80,8 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
       return notify('info', msg)
     }
 
-    const countText = plural(data.added, 'entreprise réelle trouvée', 'entreprises réelles trouvées')
-    const emailText = data.withEmail ? `, dont ${data.withEmail} avec un email déjà prêt` : ''
+    const countText = plural(data.added, 'entreprise trouvée', 'entreprises trouvées')
+    const emailText = ''
     toast.success(`✨ ${countText}${emailText} (${data.provider})`, {
       description: 'Disponibles dans « À contacter ». Cliquez sur « Préparer » pour générer les messages.',
       duration: 7000,
@@ -139,7 +151,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
           : 'text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
       }`}
     >
-      {isSpecial && <SparklesIcon className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />}
+      {isSpecial && <SparklesIcon className={`h-4 w-4 shrink-0 ${mode === value ? 'text-white' : 'text-[#c2410c] dark:text-[#ff9a66]'}`} aria-hidden />}
       {label}
     </button>
   )
@@ -187,10 +199,10 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             <textarea
               value={aiTarget}
               onChange={(e) => setAiTarget(e.target.value)}
-              rows={2}
+              rows={4}
               maxLength={300}
               placeholder="Ex: Boutiques e-commerce de mode en France, Startups B2B SaaS, Agences Shopify…"
-              className={`${FIELD} py-2 leading-6`}
+              className={`${FIELD} resize-none py-2 leading-6`}
             />
           </div>
 
@@ -217,15 +229,15 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
                 value={aiLimit}
                 onChange={setAiLimit}
                 options={[
-                  { value: '25', label: '25 prospects réels' },
-                  { value: '50', label: '50 prospects réels' },
+                  { value: '25', label: '25 entreprises' },
+                  { value: '50', label: '50 entreprises' },
                 ]}
               />
             </div>
           </div>
 
           <p className="text-sm leading-6 text-gray-500 dark:text-zinc-400">
-            L’IA identifie de vraies entreprises actives, extrait leurs noms de domaines officiels et vérifie les doublons avec ta base.
+            L’IA propose des entreprises ; on contrôle que leur site répond et on écarte les doublons. Les emails sont ensuite cherchés sur leur site (« Préparer »), jamais devinés par l’IA.
           </p>
 
           <button
@@ -236,7 +248,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             {busy ? (
               <>
                 <svg
-                  className="h-4 w-4 animate-spin text-gray-900 dark:text-white shrink-0"
+                  className="h-4 w-4 animate-spin text-white shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -255,11 +267,11 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
                     d="M4 12a8 8 0 018-8v8H4z"
                   />
                 </svg>
-                <span>Recherche et analyse IA en cours…</span>
+                <span>Recherche en cours… {elapsed} s</span>
               </>
             ) : (
               <>
-                <SparklesIcon className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-200" aria-hidden />
+                <SparklesIcon className="h-4 w-4 shrink-0 text-white" aria-hidden />
                 <span>Générer les prospects avec l’IA</span>
               </>
             )}
@@ -309,7 +321,7 @@ export function AcquisitionAdd({ notify, refresh }: { notify: Notify; refresh: (
             {busy ? (
               <>
                 <svg
-                  className="h-4 w-4 animate-spin text-gray-900 dark:text-white shrink-0"
+                  className="h-4 w-4 animate-spin text-white shrink-0"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"

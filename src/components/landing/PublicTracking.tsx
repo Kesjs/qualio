@@ -25,6 +25,7 @@ export function PublicTracking({ widgetKey }: { widgetKey: string }) {
 
   useEffect(() => {
     if (consent !== 'accepted') return
+    if (document.cookie.split('; ').includes('qualio_ignore=1')) return
     const sessionId = getSessionId()
     const params = new URLSearchParams(window.location.search)
     const attribution = { acquisitionMessageId: params.get('utm_content'), utmSource: params.get('utm_source'), utmMedium: params.get('utm_medium'), utmCampaign: params.get('utm_campaign'), utmContent: params.get('utm_content') }

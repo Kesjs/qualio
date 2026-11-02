@@ -4,6 +4,7 @@ import { requireAdminApi } from '@/lib/admin/auth'
 import { effectiveDailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildProspectMail } from '@/lib/admin/acquisition-mail'
+import { bouncePause, contactSkipReason, doNotContactSet, pauseMessage } from '@/lib/admin/acquisition-guard'
 
 export const maxDuration = 60
 
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
   const from = process.env.ACQUISITION_FROM_EMAIL || process.env.FEEDBACK_FROM_EMAIL || process.env.SMTP_USER
   if (!process.env.RESEND_API_KEY || !from) return NextResponse.json({ error: 'Fournisseur d’envoi non configuré (RESEND_API_KEY et ACQUISITION_FROM_EMAIL).' }, { status: 503 })
   const admin = getSupabaseAdminClient() as any
+  const bounceState = await bouncePause(admin)
+  if (bounceState.paused) return NextResponse.json({ error: pauseMessage(bounceState) }, { status: 423 })
   const limit = await effectiveDailyLimit(admin)
 
   const { count: sentToday, error: countError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).gte('sent_at', startOfTodayIso())
@@ -25,17 +28,21 @@ export async function POST(request: Request) {
   const remaining = limit - (sentToday ?? 0)
   if (remaining <= 0) return NextResponse.json({ error: `Limite du jour atteinte (${limit} envois). Reprends demain.` }, { status: 429 })
 
-  const { data: messages, error } = await admin.from('acquisition_messages').select('id, subject, body, status, follow_up_of, contact:acquisition_contacts(id, email, email_status)').in('id', messageIds).in('status', ['draft', 'approved'])
+  const { data: messages, error } = await admin.from('acquisition_messages').select('id, subject, body, status, follow_up_of, contact:acquisition_contacts(id, email, email_status, email_source_url)').in('id', messageIds).in('status', ['draft', 'approved'])
   if (error) return NextResponse.json({ error: 'Impossible de charger les brouillons.' }, { status: 500 })
   if (!messages?.length) return NextResponse.json({ error: 'Ces brouillons ont déjà été traités.' }, { status: 409 })
 
   const batch = messages.slice(0, remaining)
+  const doNotContact = await doNotContactSet(admin, batch.map((message: any) => message.contact?.email).filter(Boolean))
+  const skipReasons = new Set<string>()
   const resend = new Resend(process.env.RESEND_API_KEY)
   let sent = 0, failed = 0, skipped = 0
   for (const message of batch) {
     const contact = message.contact
-    if (!contact?.email || ['suppressed', 'invalid'].includes(contact.email_status)) {
-      await admin.from('acquisition_messages').update({ status: 'suppressed' }).eq('id', message.id)
+    const skip = contactSkipReason(contact) ?? (doNotContact.has(String(contact.email).toLowerCase()) ? { reason: 'Déjà contactée avant la remise à zéro', permanent: true } : null)
+    if (skip) {
+      if (skip.permanent) await admin.from('acquisition_messages').update({ status: 'suppressed' }).eq('id', message.id)
+      skipReasons.add(skip.reason)
       skipped += 1
       continue
     }
@@ -55,5 +62,5 @@ export async function POST(request: Request) {
     }
     await pause(600)
   }
-  return NextResponse.json({ sent, failed, skipped, deferred: messages.length - batch.length, remainingToday: Math.max(0, remaining - sent - failed) })
+  return NextResponse.json({ sent, failed, skipped, skippedReasons: [...skipReasons], deferred: messages.length - batch.length, remainingToday: Math.max(0, remaining - sent - failed) })
 }

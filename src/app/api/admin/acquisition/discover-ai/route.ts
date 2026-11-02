@@ -91,8 +91,8 @@ export async function POST(request: Request) {
     domain: c.domain.toLowerCase(),
     website_url: `https://${c.domain.toLowerCase()}`,
     country: c.country?.slice(0, 80) || (location ? location.slice(0, 80) : 'France'),
-    company_size: c.company_size || 'PME',
-    relevance_score: 85,
+    company_size: c.company_size || null,
+    relevance_score: null,
     status: 'discovered',
     source_url: `https://${c.domain.toLowerCase()}`,
     source_notes: `IA Qualio (${provider}) · ${c.relevance_reason.slice(0, 200)}`,
@@ -113,26 +113,12 @@ export async function POST(request: Request) {
     }
   }
 
-  // Enregistrement des emails de contact déjà identifiés
-  const withEmail = fresh.filter((c) => c.contact_email && ids.has(c.domain.toLowerCase()))
-  let emailsAdded = 0
-  if (withEmail.length) {
-    const contacts = withEmail.map((c) => ({
-      company_id: ids.get(c.domain.toLowerCase()),
-      email: c.contact_email!.toLowerCase(),
-      email_status: 'public',
-      confidence: 75,
-    }))
-    for (const part of chunk(contacts, 100)) {
-      const { error } = await admin.from('acquisition_contacts').insert(part)
-      if (!error) emailsAdded += part.length
-    }
-  }
+  // Aucune adresse n'est enregistrée ici : celles que proposerait une IA ne sont pas fiables.
+  // Les emails sont recherchés ensuite sur le site officiel de chaque entreprise (analyse).
 
   return NextResponse.json({
     found: generated.length,
     added: fresh.length,
-    withEmail: emailsAdded,
     alreadyKnown: known.size,
     provider,
     companies: fresh,

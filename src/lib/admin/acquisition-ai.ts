@@ -74,6 +74,9 @@ export function cleanDomain(input: string): string | null {
  * Ping HTTP ultra-rapide pour vérifier en direct si le domaine existe et répond.
  * Évite d'insérer des domaines inactifs, morts ou mal orthographiés.
  */
+/** Un site qui répond (même protégé par un robot anti-bot) compte comme actif ; une page 404 ou une erreur serveur non. */
+const isAliveStatus = (status: number) => status < 400 || [401, 403, 405, 429].includes(status)
+
 export async function isDomainAlive(domain: string): Promise<boolean> {
   const host = cleanDomain(domain)
   if (!host) return false
@@ -91,7 +94,7 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
       redirect: 'follow',
     })
     clearTimeout(timer)
-    if (res.status < 500) return true
+    if (isAliveStatus(res.status)) return true
   } catch {
     // Si HEAD est bloqué par certains serveurs, on tente un GET léger
     try {
@@ -104,7 +107,7 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
         redirect: 'follow',
       })
       clearTimeout(timer)
-      if (res.status < 500) return true
+      if (isAliveStatus(res.status)) return true
     } catch {
       // Essai 2 : repli HTTP simple si le certificat HTTPS a un souci
       try {
@@ -113,7 +116,7 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
           headers: { 'User-Agent': userAgent },
           signal: AbortSignal.timeout(2500),
         })
-        if (res.status < 500) return true
+        if (isAliveStatus(res.status)) return true
       } catch {
         return false
       }
@@ -187,7 +190,7 @@ Règles impératives :
 2. Un nom de domaine internet réel (ex: asphalte.com, bigmamma.fr, norsys.fr, etc.). Pas d'URL inventée, pas de sous-domaine de réseau social.
 3. Format domaine : "exemple.fr" (sans https:// ni www).
 4. Indique une raison pertinente pour laquelle Qualio les intéresserait.
-5. Donne également l'adresse email de contact public officiel si connue (ex: contact@domaine.com, hello@domaine.com).`
+5. Ne donne AUCUNE adresse email : elle sera recherchée ensuite sur le site officiel.`
 
   // 1. Essai avec Gemini
   if (geminiKey) {
@@ -238,15 +241,15 @@ Règles impératives :
             .map((c) => ({
               ...c,
               domain: cleanDomain(c.domain) ?? '',
-              contact_email: c.contact_email?.trim() || undefined,
             }))
             .filter((c) => Boolean(c.name && c.domain))
 
           if (validCandidates.length > 0) {
             // Filtrage par ping HTTP en direct : seuls les sites actifs sont retenus
             const activeCompanies = await filterActiveCompanies(validCandidates)
-            const finalCompanies = (activeCompanies.length > 0 ? activeCompanies : validCandidates).slice(0, limit)
-            return { companies: finalCompanies, provider: `Gemini (${model} · Web Vérifié)` }
+            if (!activeCompanies.length) throw new Error('Aucun des domaines proposés ne répond. Réessaie avec une autre cible.')
+            const finalCompanies = activeCompanies.slice(0, limit)
+            return { companies: finalCompanies, provider: `Gemini (${model} · domaines contrôlés)` }
           }
         }
       } catch (err) {
@@ -289,8 +292,9 @@ Règles impératives :
 
         if (validCandidates.length > 0) {
           const activeCompanies = await filterActiveCompanies(validCandidates)
-          const finalCompanies = (activeCompanies.length > 0 ? activeCompanies : validCandidates).slice(0, limit)
-          return { companies: finalCompanies, provider: 'OpenAI (Web Vérifié)' }
+          if (!activeCompanies.length) throw new Error('Aucun des domaines proposés ne répond. Réessaie avec une autre cible.')
+            const finalCompanies = activeCompanies.slice(0, limit)
+          return { companies: finalCompanies, provider: 'OpenAI (domaines contrôlés)' }
         }
       }
     } catch (err) {

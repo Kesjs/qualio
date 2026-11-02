@@ -4,6 +4,7 @@ import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
 import { effectiveDailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
 import { buildProspectMail } from '@/lib/admin/acquisition-mail'
+import { bouncePause, contactSkipReason, doNotContactSet } from '@/lib/admin/acquisition-guard'
 
 export const maxDuration = 60
 
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
   if (!from) return NextResponse.json({ processed: 0, skipped: 'sender_not_configured' })
 
   const admin = getSupabaseAdminClient() as any
+  if ((await bouncePause(admin)).paused) return NextResponse.json({ processed: 0, skipped: 'paused_for_bounces' })
   // Même plafond journalier que l'envoi manuel : les relances en font partie.
   const { count: sentToday, error: countError } = await admin.from('acquisition_messages').select('id', { count: 'exact', head: true }).gte('sent_at', startOfTodayIso())
   if (countError) return NextResponse.json({ error: 'Impossible de vérifier la limite du jour.' }, { status: 500 })
@@ -29,19 +31,20 @@ export async function GET(request: NextRequest) {
 
   const { data: due, error } = await admin
     .from('acquisition_messages')
-    .select('id, contact_id, subject, sequence_stage, contact:acquisition_contacts(id, email, email_status, full_name, company_id, company:acquisition_companies(name))')
+    .select('id, contact_id, subject, sequence_stage, contact:acquisition_contacts(id, email, email_status, email_source_url, full_name, company_id, company:acquisition_companies(name))')
     .in('status', ['sent'])
     .lt('sequence_stage', MAX_FOLLOW_UPS)
     .lte('next_follow_up_at', new Date().toISOString())
     .limit(Math.min(20, remaining))
   if (error) return NextResponse.json({ error: 'Impossible de charger les relances.' }, { status: 500 })
 
+  const doNotContact = await doNotContactSet(admin, (due ?? []).map((message: any) => message.contact?.email).filter(Boolean))
   const resend = new Resend(process.env.RESEND_API_KEY)
   const giveUp = (id: string) => admin.from('acquisition_messages').update({ next_follow_up_at: null }).eq('id', id)
   let sent = 0, skipped = 0, failed = 0
   for (const message of due ?? []) {
     const contact = message.contact
-    if (!contact?.email || ['invalid', 'suppressed'].includes(contact.email_status)) { await giveUp(message.id); skipped++; continue }
+    if (contactSkipReason(contact) || doNotContact.has(String(contact?.email).toLowerCase())) { await giveUp(message.id); skipped++; continue }
     const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', contact.company_id).order('confidence', { ascending: false }).limit(3)
     const draft = buildDraft({ fullName: contact.full_name, companyName: contact.company?.name, followUpOf: { subject: message.subject }, evidence: evidence ?? [] })
     const inserted = await admin.from('acquisition_messages').insert({ contact_id: contact.id, subject: draft.subject, body: draft.body, status: 'sent', follow_up_of: message.id, sequence_stage: message.sequence_stage + 1 }).select('id').single()
