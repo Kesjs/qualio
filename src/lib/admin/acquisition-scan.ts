@@ -59,7 +59,11 @@ const PLACEHOLDER_EMAIL_HOSTS = new Set([
   'github.com',
 ])
 
-const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'hello', 'sample', 'user', 'placeholder', 'votre', 'adresse', 'email'])
+// Note : « hello » n'est volontairement pas dans cette liste, beaucoup d'agences l'utilisent comme vraie adresse de contact.
+const PLACEHOLDER_EMAIL_LOCALS = new Set(['test', 'foo', 'bar', 'example', 'demo', 'sample', 'user', 'placeholder', 'votre', 'adresse', 'email'])
+
+// Boîtes dédiées à autre chose qu'à la prospection : données personnelles, recrutement, presse, juridique.
+const ROLE_MAILBOX = /^(rgpd|dpo|gdpr|privacy|donnees|données|job|jobs|recrutement|recruitment|rh|hr|careers?|carrieres|carrières|candidatures?|presse|press|abuse|postmaster|juridique|legal)(?:[._-].*)?$/i
 
 const INVALID_EXTENSIONS = [
   '.png',
@@ -86,6 +90,8 @@ export function isUsablePublicEmail(value: string) {
   if (!local || !host || PLACEHOLDER_EMAIL_HOSTS.has(host) || PLACEHOLDER_EMAIL_LOCALS.has(local)) return false
   if (host.includes('sentry') || host.includes('wixpress') || host.includes('cloudflare') || host.includes('schema.org') || host.includes('w3.org') || host.includes('wordpress.org')) return false
   if (/^[0-9a-f]{20,}$/i.test(local)) return false // Sentry DSN hash ou token
+  if (/^u00[0-9a-f]{2}/i.test(local)) return false // reste d'un échappement unicode mal décodé (ex. u003econtact@…)
+  if (ROLE_MAILBOX.test(local)) return false
   if (local.includes('example') || local.includes('yourdomain') || local.includes('placeholder')) return false
   if (/^(noreply|no-reply|do-not-reply|donotreply|mailer-daemon)$/.test(local)) return false
   return true
@@ -114,9 +120,73 @@ function extractLeaderName(html: string): string | null {
   return null
 }
 
+function safeCodePoint(code: number) {
+  return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ''
+}
+
+/** Décode les échappements qui cachent ou déforment les adresses dans le HTML (unicode, hexadécimal, entités, %40). */
+export function decodeEscapes(input: string) {
+  return input
+    .replace(/\\u([0-9a-f]{4})/gi, (_, hex: string) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/\\x([0-9a-f]{2})/gi, (_, hex: string) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => safeCodePoint(Number(dec)))
+    .replace(/&commat;/gi, '@')
+    .replace(/&period;/gi, '.')
+    .replace(/&amp;/gi, '&')
+    .replace(/%40/g, '@')
+}
+
+/** Toutes les adresses publiques utilisables d'une page : liens mailto, adresses brutes, adresses obfusquées. */
+export function extractEmails(rawHtml: string): string[] {
+  const html = decodeEscapes(rawHtml)
+  const found = new Set<string>()
+  const add = (value: string) => {
+    const email = value.toLowerCase().replace(/^[._%+-]+/, '')
+    if (isUsablePublicEmail(email)) found.add(email)
+  }
+
+  // mailto: : les plus fiables, car intentionnels
+  for (const match of html.matchAll(/href=["']mailto:([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})[?"']/gi)) add(match[1])
+  // Adresses brutes dans le HTML
+  for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) add(match[0])
+  // Adresses obfusquées (ex: contact [at] domain [dot] fr)
+  for (const match of html.matchAll(/([A-Z0-9._%+-]{2,30})\s*(?:\[at\]|\(at\)|\s+at\s+)\s*([A-Z0-9.-]{2,30})\s*(?:\[dot\]|\(dot\)|\s+dot\s+|\.)\s*([A-Z]{2,10})/gi)) add(`${match[1]}@${match[2]}.${match[3]}`)
+  return [...found]
+}
+
+const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'gov', 'ac'])
+const BRAND_SUFFIX = /[-_]?(?:groupe|group|france|agency|agence|digital|studio|consulting)$/
+
+function bareHost(value: string) {
+  return value.replace(/^https?:\/\//, '').split('/')[0].trim().toLowerCase().replace(/^www\./, '')
+}
+
+function registrable(host: string) {
+  const labels = host.split('.')
+  if (labels.length <= 2) return host
+  const tld = labels[labels.length - 1]
+  const second = labels[labels.length - 2]
+  return labels.slice(tld.length === 2 && SECOND_LEVEL.has(second) ? -3 : -2).join('.')
+}
+
+function brand(host: string) {
+  const label = registrable(host).split('.')[0]
+  return label.replace(BRAND_SUFFIX, '') || label
+}
+
+/** L'adresse appartient-elle bien à l'entreprise ? Même domaine, sous-domaine, autre extension ou variante « -group » du même nom. */
+export function sameCompanyDomain(email: string, companyDomain: string) {
+  const emailHost = bareHost(email.split('@')[1] ?? '')
+  const host = bareHost(companyDomain)
+  if (!emailHost || !host) return false
+  return registrable(emailHost) === registrable(host) || brand(emailHost) === brand(host)
+}
+
 export async function scanCompany(admin: any, company: { id: string; domain: string }) {
   const found: Array<{ signal_type: string; label: string; source_url: string; evidence: string; confidence: number }> = []
   const emails = new Map<string, string>()
+  const foreignEmails = new Set<string>()
   let discoveredLeaderName: string | null = null
 
   // Scanner les pages les plus probantes : la page d'accueil peut contenir
@@ -159,28 +229,10 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
         discoveredLeaderName = extractLeaderName(html)
       }
 
-      // 3. Détection des liens mailto: (les plus fiables et intentionnels)
-      for (const match of html.matchAll(/href=["']mailto:([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})[?"']/gi)) {
-        const email = match[1].toLowerCase()
-        if (isUsablePublicEmail(email)) {
-          emails.set(email, url)
-        }
-      }
-
-      // 4. Détection des adresses email brutes dans le HTML
-      for (const match of html.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
-        const email = match[0].toLowerCase()
-        if (isUsablePublicEmail(email)) {
-          emails.set(email, url)
-        }
-      }
-
-      // 5. Détection des emails obfusqués (ex: contact [at] domain.fr)
-      for (const match of html.matchAll(/([A-Z0-9._%+-]{2,30})\s*(?:\[at\]|\(at\)|\s+at\s+)\s*([A-Z0-9.-]{2,30})\s*(?:\[dot\]|\(dot\)|\s+dot\s+|\.)\s*([A-Z]{2,10})/gi)) {
-        const candidate = `${match[1]}@${match[2]}.${match[3]}`.toLowerCase()
-        if (isUsablePublicEmail(candidate)) {
-          emails.set(candidate, url)
-        }
+      // 3. Emails visibles sur la page, uniquement ceux du domaine de l'entreprise
+      for (const email of extractEmails(html)) {
+        if (sameCompanyDomain(email, company.domain)) emails.set(email, url)
+        else foreignEmails.add(email)
       }
     } catch {
       /* Page inaccessible ou timeout : on passe à la suivante sans bloquer */
@@ -245,6 +297,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
   const notes = [
     `${uniqueSignals.length} signal(s)`,
     `${emails.size} email(s) public(s) détecté(s)`,
+    foreignEmails.size ? `${foreignEmails.size} email(s) d’un autre domaine ignoré(s)` : null,
     discoveredLeaderName ? `Contact : ${discoveredLeaderName}` : null,
   ].filter(Boolean).join(' · ')
 
@@ -253,5 +306,5 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
     .update({ relevance_score: score, status: 'review', source_notes: notes })
     .eq('id', company.id)
 
-  return { signals: uniqueSignals.length, emails: emails.size, score, leaderName: discoveredLeaderName }
+  return { signals: uniqueSignals.length, emails: emails.size, ignoredForeign: foreignEmails.size, score, leaderName: discoveredLeaderName }
 }
