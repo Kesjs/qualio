@@ -1,3 +1,4 @@
+import { firstHumanClick } from '@/lib/admin/acquisition-clicks'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getAdminContext } from '@/lib/admin/auth'
@@ -61,13 +62,23 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
   const data = await getAcquisitionOverview(period)
   const messages = data.messages as MessageRow[]
   const messageById = new Map(messages.map((message) => [message.id, message]))
-  const events = (data.events as VisitorEvent[]).filter((event) => {
-    if (event.company_domain === 'localhost' || event.company_domain === '127.0.0.1') return false
-    if (event.event_name !== 'email_clicked' || !event.acquisition_message_id) return true
-    const message = messageById.get(event.acquisition_message_id)
-    if (!message?.delivered_at) return true
-    return new Date(event.created_at).getTime() - new Date(message.delivered_at).getTime() >= 60_000
-  })
+  const rawEvents = (data.events as VisitorEvent[]).filter((event) => event.company_domain !== 'localhost' && event.company_domain !== '127.0.0.1')
+  // Un message = au plus un clic, et seulement s'il n'a pas l'air automatique (antivirus, passerelle mail).
+  const clicksByMessage = new Map<string, VisitorEvent[]>()
+  for (const event of rawEvents) {
+    if (event.event_name !== 'email_clicked' || !event.acquisition_message_id) continue
+    clicksByMessage.set(event.acquisition_message_id, [...(clicksByMessage.get(event.acquisition_message_id) ?? []), event])
+  }
+  const keptClicks = new Set<VisitorEvent>()
+  for (const [messageId, clicks] of clicksByMessage) {
+    const message = messageById.get(messageId)
+    const baselineValue = message?.delivered_at ?? message?.sent_at
+    const baseline = baselineValue ? new Date(baselineValue).getTime() : null
+    const times = clicks.map((click) => new Date(click.created_at).getTime())
+    const first = firstHumanClick(times, baseline)
+    if (first !== null) keptClicks.add(clicks[times.indexOf(first)])
+  }
+  const events = rawEvents.filter((event) => event.event_name !== 'email_clicked' || !event.acquisition_message_id || keptClicks.has(event))
   const sessions = new Map<string, { latest: VisitorEvent; events: VisitorEvent[]; paths: Set<string> }>()
 
   for (const event of events) {
@@ -115,7 +126,7 @@ export default async function VisitorsPage({ searchParams }: { searchParams: Pro
         </div>
         <div className="mt-6 grid divide-y divide-gray-200/80 dark:divide-white/[0.08] border-y border-gray-200/80 dark:border-white/[0.08] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
           <Metric value={sessionRows.length} label="Sessions distinctes" hint="visites observées" />
-          <Metric value={emailSessions.size} label="Depuis un email" hint="clic confirmé" />
+          <Metric value={emailSessions.size} label="Depuis un email" hint="clic probablement humain" />
           <Metric value={pageViews} label="Pages consultées" hint="événements enregistrés" />
           <Metric value={actions} label="Actions utiles" hint="CTA, widget ou avis" />
         </div>
