@@ -22,6 +22,7 @@ create index if not exists acquisition_reports_company_idx on public.acquisition
 
 alter table public.acquisition_reports enable row level security;
 
+drop policy if exists "admin only acquisition reports" on public.acquisition_reports;
 create policy "admin only acquisition reports" on public.acquisition_reports
   for all to authenticated
   using ((select auth.jwt()->'app_metadata'->>'role') = 'admin')

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
 
   let subjectName = ''
-  let source: 'app_store' | 'other' = 'other'
+  let source: 'app_store' | 'pasted' = 'pasted'
   let sourceLabel = 'Avis clients'
   let sourceUrl: string | null = null
   let reviews: PublicReview[] = []
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const { count, error: countError } = await admin
       .from('acquisition_reports')
       .select('id', { count: 'exact', head: true })
-      .is('prospect_id', null)
+      .is('company_id', null)
       .gte('created_at', oneHourAgo)
     if (!countError && (count ?? 0) >= MAX_DB_AUDITS_PER_HOUR) {
       return NextResponse.json(
@@ -110,12 +110,13 @@ export async function POST(request: NextRequest) {
       .from('acquisition_reports')
       .insert({
         token: candidateToken,
-        prospect_id: null,
-        subject_name: subjectName.slice(0, 160),
+        company_id: null,
+        subject_name: subjectName.slice(0, 200),
         source,
-        source_label: sourceLabel,
+        source_label: sourceLabel.slice(0, 60),
         source_url: sourceUrl,
         review_count: report.reviewCount,
+        average_rating: report.averageRating,
         report,
       })
       .select('token')
