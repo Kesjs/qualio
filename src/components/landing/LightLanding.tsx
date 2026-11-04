@@ -13,6 +13,7 @@ import { PricingCards } from '@/components/billing/PricingCards'
 import { WidgetLiveDemo } from './WidgetLiveDemo'
 import { HeroVideo } from './HeroVideo'
 import { HeroFloaters, HeroFrame, HeroHeadline } from './HeroMotion'
+import { LiveMiniAudit } from './LiveMiniAudit'
 
 /**
  * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
@@ -65,16 +66,24 @@ export function LightLanding() {
             </p>
             <div className="hs-rise-now mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" style={{ ['--d' as string]: '0.9s' }}>
               <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
-              <SecondaryButton onClick={() => setDemoOpen(true)}>Voir la démo</SecondaryButton>
+              <SecondaryButton href="#mini-audit">Tester sur mes avis en direct</SecondaryButton>
             </div>
-            <p className="hs-rise-now mt-4 flex items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED, ['--d' as string]: '1s' }}>
+            <p className="hs-rise-now mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs font-medium" style={{ color: MUTED, ['--d' as string]: '1s' }}>
               <Check size={14} className="text-emerald-600" aria-hidden="true" />
               <span>Sans carte bancaire</span>
               <span aria-hidden="true">·</span>
               <span>50 avis analysés gratuitement</span>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="font-semibold underline underline-offset-2 hover:text-[#0b0b0c]"
+              >
+                Voir le widget en démo
+              </button>
             </p>
             <div className="hs-rise-now mt-6 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: MUTED, ['--d' as string]: '1.1s' }}>
-              {['Import CSV', 'Widget sur votre site', 'Recommandations sourcées', 'Décisions humaines'].map((x) => (
+              {['App Store & avis collés', 'Import CSV', 'Widget sur votre site', 'Recommandations sourcées'].map((x) => (
                 <span key={x} className="rounded-md border bg-white px-2.5 py-1" style={{ borderColor: LINE }}>{x}</span>
               ))}
             </div>
@@ -95,7 +104,7 @@ export function LightLanding() {
       </section>
 
       {/* 2. Bande de réassurance */}
-      <section aria-label="En bref" className="border-y" style={{ borderColor: LINE }}>
+      <section aria-label="En bref" className="border-t" style={{ borderColor: LINE }}>
         <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-4 text-[13px] font-medium" style={{ color: MUTED }}>
           {REASSURANCE.map((x) => (
             <li key={x} className="flex items-center gap-2">
@@ -105,6 +114,9 @@ export function LightLanding() {
           ))}
         </ul>
       </section>
+
+      {/* 2b. Mini-audit gratuit en direct (preuve immédiate sur ses propres avis) */}
+      <LiveMiniAudit />
 
       {/* 3. Le problème */}
       <ProblemSection />

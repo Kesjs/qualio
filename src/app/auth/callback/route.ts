@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         if (!isAdminHost && type !== 'recovery' && user.email) {
           try {
             const admin = getSupabaseAdminClient() as any
-            const { count } = await admin.from('feedback').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+            const { count } = await admin.from('feedback_items').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
             await sendWelcomeEmail(admin, user.id, user.email, count ?? 0)
           } catch (welcomeError) { console.error('[auth-callback] welcome email failed:', welcomeError) }
         }

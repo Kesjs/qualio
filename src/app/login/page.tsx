@@ -70,9 +70,10 @@ function GithubButton({ onClick, loading }: { onClick: () => void; loading: bool
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const requestedMode = searchParams.get('mode')
-  const initialMode: AuthMode = requestedMode === 'otp' || requestedMode === 'otp-verify'
-    ? requestedMode
-    : 'otp'
+  const initialMode: AuthMode =
+    requestedMode === 'otp' || requestedMode === 'otp-verify' || requestedMode === 'reset-password'
+      ? requestedMode
+      : 'otp'
   const [mode, setMode] = useState<AuthMode>(initialMode)
 
   const { language } = useLanguage()
@@ -184,7 +185,9 @@ export default function LoginPage() {
         const paidPlan = intendedPlan === 'pro' || intendedPlan === 'agency'
         const next = paidPlan
           ? `/pricing?plan=${encodeURIComponent(intendedPlan)}&interval=${encodeURIComponent(searchParams.get('interval') || 'month')}&checkout=1`
-          : '/onboarding'
+          : redirectPath.startsWith('/onboarding')
+            ? redirectPath
+            : '/onboarding'
         window.location.replace(next)
       } else setMode('verify-email')
     } catch (err: any) {

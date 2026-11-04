@@ -20,6 +20,15 @@ export type AppStoreApp = {
 const UA = 'Mozilla/5.0 (compatible; QualioBot/1.0; +https://tryqualio.pro)'
 const COUNTRY = /^[a-z]{2}$/
 
+export const APP_STORE_COUNTRIES = [
+  { code: 'fr', label: 'France' },
+  { code: 'be', label: 'Belgique' },
+  { code: 'ch', label: 'Suisse' },
+  { code: 'ca', label: 'Canada' },
+  { code: 'us', label: 'États-Unis' },
+  { code: 'gb', label: 'Royaume-Uni' },
+] as const
+
 /** « https://apps.apple.com/fr/app/x/id123456789 » ou « 123456789 » → « 123456789 ». */
 export function appStoreIdFrom(input: string): string | null {
   const value = input.trim()

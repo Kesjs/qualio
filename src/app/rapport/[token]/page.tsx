@@ -121,6 +121,7 @@ export default async function SharedReportPage({
 
     const report = prospectRow.report as ProspectReport
     const maxBucket = Math.max(1, ...report.ratingDistribution)
+    const claimHref = `${SIGNUP}&utm_source=rapport&redirectTo=${encodeURIComponent(`/onboarding?report=${token}`)}`
     const period =
       report.periodStart && report.periodEnd && report.periodStart.slice(0, 10) !== report.periodEnd.slice(0, 10)
         ? `du ${dateFr(report.periodStart)} au ${dateFr(report.periodEnd)}`
@@ -133,9 +134,18 @@ export default async function SharedReportPage({
             <Link href="/" className={`rounded text-base font-semibold tracking-tight ${FOCUS}`}>
               Qualio
             </Link>
-            <span className="font-mono text-xs tabular-nums" style={{ color: MUTED }}>
-              Rapport du {dateFr(prospectRow.created_at)}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="hidden font-mono text-xs tabular-nums sm:inline" style={{ color: MUTED }}>
+                Rapport du {dateFr(prospectRow.created_at)}
+              </span>
+              <Link
+                href={claimHref}
+                className={`inline-flex min-h-9 items-center rounded-lg px-3.5 text-xs font-semibold text-white transition-colors hover:bg-[#9a3412] ${FOCUS}`}
+                style={{ background: ACCENT_INK }}
+              >
+                Ouvrir dans Qualio
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -258,18 +268,18 @@ export default async function SharedReportPage({
 
           <section aria-labelledby="suite" className="my-6 rounded-2xl px-6 py-10 sm:px-10" style={{ background: INK, color: '#f4f4f5' }}>
             <h2 id="suite" className="max-w-xl text-2xl font-semibold leading-tight tracking-[-0.02em] [text-wrap:balance]">
-              Ce rapport est une photo ponctuelle. Qualio automatise cette lecture chaque semaine.
+              Ce rapport est déjà prêt. Ouvrez-le dans votre espace Qualio en un clic.
             </h2>
             <p className="mt-3 max-w-[62ch] text-[15px] leading-7" style={{ color: '#b4b4bb' }}>
-              Importez un CSV, connectez le widget ou centralisez vos retours : Qualio regroupe les avis par thème, propose trois décisions sourcées et mesure leur effet 14 jours après mise en ligne.
+              Vos avis, cette synthèse et ses {report.problems.length > 1 ? `${report.problems.length} actions prioritaires` : 'recommandations'} sont pré-chargés gratuitement dans votre projet. Vous pourrez ensuite ajouter un CSV, connecter le widget et suivre l’effet de vos décisions chaque semaine.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
-                href={`${SIGNUP}&utm_source=rapport`}
+                href={claimHref}
                 className={`inline-flex min-h-11 items-center rounded-lg px-5 text-sm font-semibold text-white transition-colors hover:bg-[#9a3412] ${FOCUS}`}
                 style={{ background: ACCENT_INK }}
               >
-                Tester gratuitement sur mes retours
+                Ouvrir ce rapport dans mon espace Qualio (gratuit)
               </Link>
               <Link
                 href="/exemple"
