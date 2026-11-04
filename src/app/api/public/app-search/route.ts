@@ -26,3 +26,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'L’App Store ne répond pas pour l’instant. Réessayez dans un instant.' }, { status: 502 })
   }
 }
+

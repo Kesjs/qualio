@@ -86,3 +86,4 @@ export async function persistRecommendations(
     if (error) console.error('[Feedback synthesis] superseding old recommendations failed', error.message)
   }
 }
+

@@ -50,3 +50,4 @@ describe('mini-audit-guard', () => {
     expect(consumeAppSearchQuota('82.64.10.22', t0 + 10 * 60 * 1000 + 1).allowed).toBe(true)
   })
 })
+
