@@ -1,3 +1,4 @@
+import { loadDraftReport } from '@/lib/admin/acquisition-report-store'
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { buildDraft, GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   const { companyId } = await request.json().catch(() => ({})) as { companyId?: string }
   if (!companyId) return NextResponse.json({ error: 'Entreprise manquante.' }, { status: 400 })
   const admin = getSupabaseAdminClient() as any
-  const { data: company } = await admin.from('acquisition_companies').select('id, name, domain').eq('id', companyId).maybeSingle()
+  const { data: company } = await admin.from('acquisition_companies').select('id, name, domain, source_notes').eq('id', companyId).maybeSingle()
   if (!company) return NextResponse.json({ error: 'Entreprise introuvable.' }, { status: 404 })
 
   const load = async () => (await admin.from('acquisition_contacts').select('id, email, full_name, email_status, confidence').eq('company_id', company.id)).data ?? []
@@ -27,7 +28,8 @@ export async function POST(request: Request) {
 
   const best = [...usable].sort((a: any, b: any) => Number(GENERIC_EMAIL.test(a.email)) - Number(GENERIC_EMAIL.test(b.email)) || (b.confidence ?? 0) - (a.confidence ?? 0))[0]
   const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', company.id).order('confidence', { ascending: false }).limit(3)
-  const draft = buildDraft({ fullName: GENERIC_EMAIL.test(best.email) ? null : best.full_name, companyName: company.name, evidence: evidence ?? [] })
+  const report = await loadDraftReport(admin, company.id)
+  const draft = buildDraft({ report, fullName: GENERIC_EMAIL.test(best.email) ? null : best.full_name, companyName: company.name, companyNotes: company.source_notes, evidence: evidence ?? [] })
   const { error } = await admin.from('acquisition_messages').insert({ contact_id: best.id, subject: draft.subject, body: draft.body, status: 'draft' })
   if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être enregistré.' }, { status: 500 })
   return NextResponse.json({ scanned, emails: usable.length, drafted: 1 })

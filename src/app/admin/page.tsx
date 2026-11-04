@@ -34,6 +34,26 @@ export default async function AdminPage() {
         <StatCard label="Échecs d’envoi (7 jours)" value={failedWeek} hint={failedWeek > 0 ? 'À vérifier dans l’historique' : 'Aucun échec'} href="/admin/emails?status=failed" tone={failedWeek > 0 ? 'danger' : 'neutral'} />
       </section>
 
+      <Panel id="funnel" title="Entonnoir d’activation" description="Utilisateurs distincts ayant franchi chaque étape au moins une fois. La plus grosse chute indique où agir en premier.">
+        <ol className="space-y-3">
+          {data.funnel.map((step, index) => {
+            const previous = index === 0 ? step.value : data.funnel[index - 1].value
+            const width = data.funnel[0].value > 0 ? Math.max(2, Math.round((step.value / data.funnel[0].value) * 100)) : 0
+            return (
+              <li key={step.label} className="grid grid-cols-[10rem_1fr_7rem] items-center gap-3 text-sm">
+                <span className="font-semibold">{step.label}</span>
+                <span className="h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10" aria-hidden>
+                  <span className="block h-full rounded-full bg-[#c2410c] dark:bg-[#ff9a66]" style={{ width: `${width}%` }} />
+                </span>
+                <span className="text-right tabular-nums">
+                  {step.value}
+                  {index > 0 && <span className="ml-2 text-gray-500 dark:text-zinc-400">{percent(step.value, previous)} %</span>}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+      </Panel>
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <Panel id="actions" title="À traiter maintenant" description="Retours nouveaux, ou prioritaires et encore ouverts." action={data.actionsTotal > 0 ? <Link href="/admin/actions" className={LINK}>Tout voir ({data.actionsTotal})</Link> : undefined}>
           {data.actions.length === 0 ? (

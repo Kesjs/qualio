@@ -4,13 +4,21 @@ import { firstHumanClick, isAutomatedUserAgent, MAX_RAW_CLICKS_PER_MESSAGE } fro
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tryqualio.pro'
 
+function safeInternalPath(raw: string | null): string {
+  if (!raw) return '/'
+  const trimmed = raw.trim()
+  if (/^\/(?:rapport\/[\w-]{12,80}|exemple)$/.test(trimmed)) return trimmed
+  return '/'
+}
+
 export async function GET(request: NextRequest) {
   const ignored = request.cookies.get('qualio_ignore')?.value === '1'
   const messageId = request.nextUrl.searchParams.get('message')?.trim() ?? ''
-  if (!/^[0-9a-f-]{36}$/i.test(messageId)) return NextResponse.redirect(new URL('/', SITE_URL))
+  const targetPath = safeInternalPath(request.nextUrl.searchParams.get('to'))
+  if (!/^[0-9a-f-]{36}$/i.test(messageId)) return NextResponse.redirect(new URL(targetPath, SITE_URL))
   const admin = getSupabaseAdminClient() as any
   const { data: message } = await admin.from('acquisition_messages').select('id, status, sent_at, delivered_at').eq('id', messageId).maybeSingle()
-  if (ignored) return NextResponse.redirect(new URL('/', SITE_URL))
+  if (ignored) return NextResponse.redirect(new URL(targetPath, SITE_URL))
   if (message?.id && ['sent', 'replied'].includes(message.status)) {
     const utm = { utm_source: 'email', utm_medium: 'outreach', utm_campaign: 'prospection', utm_content: message.id }
     // Les robots (HEAD, aperçus, antivirus connus) sont redirigés sans rien enregistrer.
@@ -22,7 +30,7 @@ export async function GET(request: NextRequest) {
       const baselineValue = message.delivered_at ?? message.sent_at
       const baseline = baselineValue ? new Date(baselineValue).getTime() : null
       if (previousTimes.length < MAX_RAW_CLICKS_PER_MESSAGE) {
-        await admin.from('acquisition_visitor_events').insert({ session_id: crypto.randomUUID(), event_name: 'email_clicked', path: '/', acquisition_message_id: message.id, ...utm, consented: false })
+        await admin.from('acquisition_visitor_events').insert({ session_id: crypto.randomUUID(), event_name: 'email_clicked', path: targetPath, acquisition_message_id: message.id, ...utm, consented: false })
         // « clicked_at » n'est posé que pour le premier clic qui n'a pas l'air automatique.
         if (firstHumanClick([...previousTimes, now], baseline) === now) {
           await admin.from('acquisition_messages').update({ clicked_at: new Date(now).toISOString() }).eq('id', message.id).is('clicked_at', null)
@@ -30,9 +38,9 @@ export async function GET(request: NextRequest) {
       }
     }
     const destination = new URL('/acquisition/visite', SITE_URL)
-    destination.searchParams.set('destination', '/')
+    destination.searchParams.set('destination', targetPath)
     Object.entries(utm).forEach(([key, value]) => destination.searchParams.set(key, value))
     return NextResponse.redirect(destination)
   }
-  return NextResponse.redirect(new URL('/', SITE_URL))
+  return NextResponse.redirect(new URL(targetPath, SITE_URL))
 }

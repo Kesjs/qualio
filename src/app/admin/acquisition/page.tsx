@@ -12,8 +12,15 @@ export default async function AcquisitionPage() {
   const data = await getAcquisitionPipeline()
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PageHeader eyebrow="Acquisition" title="Trouver les premiers utilisateurs" description="Ajoute des prospects, relis les messages, envoie, puis suis les réponses : tout se fait sur cette page." />
-      {data.failed && <Notice>Une partie des données n’a pas pu être chargée. Vérifie que la migration « acquisition_tracking » est appliquée, puis recharge la page.</Notice>}
+      <PageHeader
+        title="Acquisition « Valeur d’abord »"
+        description="Cible des SaaS, marques e-commerce et agences produit, génère un vrai rapport /rapport/[token] sur leurs avis publics, puis envoie une accroche sourcée dont tu mesures l’ouverture réelle."
+      />
+      {data.failed && (
+        <Notice>
+          Une partie des données n’a pas pu être chargée. Vérifie que la base Supabase est bien active et que les migrations sont appliquées, puis recharge la page.
+        </Notice>
+      )}
       <AcquisitionPipeline data={data} />
     </div>
   )

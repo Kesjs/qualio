@@ -67,13 +67,29 @@ export async function getOverview() {
     admin.from('sites').select('user_id').limit(10000),
     fetchAuthUsers(admin),
   ])
+  // Entonnoir d'activation : nombre d'utilisateurs distincts ayant franchi chaque étape au moins une fois.
+  const [feedbackOwners, synthesisOwners, decisionOwners, paidOwners] = await Promise.all([
+    admin.from('feedback_items').select('user_id').limit(20000),
+    admin.from('feedback_syntheses').select('user_id').limit(10000),
+    admin.from('feedback_recommendations').select('user_id').in('status', ['accepted', 'done', 'dismissed']).limit(10000),
+    admin.from('billing_subscriptions').select('user_id').in('plan', ['pro', 'agency']).in('status', ['active', 'trialing']).limit(10000),
+  ])
+  const distinct = (result: any) => new Set(((result.data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id)).size
   const emailsByStatus: Record<string, number> = { pending: 0, sent: 0, failed: 0, suppressed: 0 }
   for (const row of (weekEmails.data ?? []) as Array<{ status: string }>) emailsByStatus[row.status] = (emailsByStatus[row.status] ?? 0) + 1
   const usersTotal = users.count ?? 0
   const activated = new Set(((siteOwners.data ?? []) as Array<{ user_id: string }>).map((row) => row.user_id)).size
   const sortedUsers = [...auth.users].sort(byNewest)
   const recentUsers: AdminUser[] = sortedUsers.slice(0, 6).map((user) => ({ id: user.id, email: user.email ?? null, created_at: user.created_at, last_sign_in_at: user.last_sign_in_at ?? null, isAdmin: isAllowedAdmin(user), plan: null, projects: 0 }))
-  const failed = [users, sites, feedback, newFeedback, lifecycleSent, actions, latestFeedback, recentEmails, weekEmails, recentSites, siteOwners].some((result) => result.error) || auth.failed
+  const failed = [users, sites, feedback, newFeedback, lifecycleSent, actions, latestFeedback, recentEmails, weekEmails, recentSites, siteOwners, feedbackOwners, synthesisOwners, decisionOwners, paidOwners].some((result) => result.error) || auth.failed
+  const funnel = [
+    { label: 'Inscrits', value: usersTotal },
+    { label: 'Projet créé', value: activated },
+    { label: 'Premier avis ajouté', value: distinct(feedbackOwners) },
+    { label: 'Première synthèse', value: distinct(synthesisOwners) },
+    { label: 'Première décision', value: distinct(decisionOwners) },
+    { label: 'Abonné payant', value: distinct(paidOwners) },
+  ]
   return {
     failed,
     generatedAt: new Date(),
@@ -87,6 +103,7 @@ export async function getOverview() {
       lifecycleSent: lifecycleSent.count ?? 0,
       emailsByStatus,
     },
+    funnel,
     actionsTotal: (actions.count ?? 0) as number,
     actions: (actions.data ?? []) as AdminFeedback[],
     latestFeedback: (latestFeedback.data ?? []) as AdminFeedback[],

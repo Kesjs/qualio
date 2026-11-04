@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeEscapes, extractEmails, isUsablePublicEmail, sameCompanyDomain } from '@/lib/admin/acquisition-scan'
+import { decodeEscapes, extractEmails, extractReviewSources, isUsablePublicEmail, sameCompanyDomain } from '@/lib/admin/acquisition-scan'
 
 describe('extraction des emails publics', () => {
   it('décode les échappements unicode au lieu de coller « u003e » devant l’adresse', () => {
@@ -51,5 +51,19 @@ describe('adresse du bon domaine', () => {
     expect(sameCompanyDomain('contact@lecollectiffreelance.fr', 'webedia-group.com')).toBe(false)
     expect(sameCompanyDomain('austria@nortal.com', 'skelia.com')).toBe(false)
     expect(sameCompanyDomain('agence@gmail.com', 'zebrart.fr')).toBe(false)
+  })
+})
+
+describe('détection des pages d’avis publiques sur le site', () => {
+  it('détecte App Store, Trustpilot et G2 dans le HTML', () => {
+    const html = `
+      <footer>
+        <a href="https://apps.apple.com/fr/app/mon-saas/id1492837465">iOS</a>
+        <a href="https://fr.trustpilot.com/review/mon-saas.fr">Trustpilot</a>
+        <a href="https://www.g2.com/products/mon-saas">G2</a>
+      </footer>
+    `
+    const sources = extractReviewSources(html)
+    expect(sources.map((s) => s.type)).toEqual(['app_store', 'trustpilot', 'g2'])
   })
 })

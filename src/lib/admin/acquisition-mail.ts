@@ -22,6 +22,8 @@ export function buildProspectMail(input: { messageId: string; subject: string; b
   const oneClickUrl = `${origin}/api/acquisition/unsubscribe?token=${token}`
   const trackingUrl = new URL('/api/acquisition/click', origin)
   trackingUrl.searchParams.set('message', input.messageId)
+  const reportMatch = input.body.match(/\/rapport\/([\w-]{12,80})/)
+  if (reportMatch) trackingUrl.searchParams.set('to', `/rapport/${reportMatch[1]}`)
   const { html, text } = renderAcquisitionEmail({ subject: input.subject, body: input.body, trackingUrl: trackingUrl.toString(), unsubscribeUrl })
   const replyTo = acquisitionReplyTo()
   return {

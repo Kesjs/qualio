@@ -1,3 +1,4 @@
+import { loadDraftReport } from '@/lib/admin/acquisition-report-store'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
     const contact = message.contact
     if (contactSkipReason(contact) || doNotContact.has(String(contact?.email).toLowerCase())) { await giveUp(message.id); skipped++; continue }
     const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', contact.company_id).order('confidence', { ascending: false }).limit(3)
-    const draft = buildDraft({ fullName: contact.full_name, companyName: contact.company?.name, followUpOf: { subject: message.subject }, evidence: evidence ?? [] })
+    const report = await loadDraftReport(admin, contact.company_id)
+    const draft = buildDraft({ report, fullName: contact.full_name, companyName: contact.company?.name, followUpOf: { subject: message.subject }, evidence: evidence ?? [] })
     const inserted = await admin.from('acquisition_messages').insert({ contact_id: contact.id, subject: draft.subject, body: draft.body, status: 'sent', follow_up_of: message.id, sequence_stage: message.sequence_stage + 1 }).select('id').single()
     if (inserted.error) { failed++; continue }
     // On clôt la séquence avant l'envoi : un échec ne doit jamais provoquer une nouvelle tentative le lendemain.

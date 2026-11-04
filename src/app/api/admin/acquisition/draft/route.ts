@@ -1,3 +1,4 @@
+import { loadDraftReport } from '@/lib/admin/acquisition-report-store'
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
@@ -17,13 +18,14 @@ export async function POST(request: Request) {
     contactIdValue = data.contact_id
   }
   if (!contactIdValue) return NextResponse.json({ error: 'Contact manquant.' }, { status: 400 })
-  const { data: contact } = await admin.from('acquisition_contacts').select('id, company_id, email, full_name, email_status, company:acquisition_companies(name)').eq('id', contactIdValue).maybeSingle()
+  const { data: contact } = await admin.from('acquisition_contacts').select('id, company_id, email, full_name, email_status, company:acquisition_companies(name, source_notes)').eq('id', contactIdValue).maybeSingle()
   if (!contact) return NextResponse.json({ error: 'Contact introuvable.' }, { status: 404 })
   if (['suppressed', 'invalid'].includes(contact.email_status)) return NextResponse.json({ error: 'Ce contact ne doit plus être contacté.' }, { status: 409 })
   const { data: pending } = await admin.from('acquisition_messages').select('id').eq('contact_id', contact.id).in('status', ['draft', 'approved']).limit(1)
   if (pending?.length) return NextResponse.json({ error: 'Un brouillon existe déjà pour ce contact.' }, { status: 409 })
   const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', contact.company_id).order('confidence', { ascending: false }).limit(3)
-  const draft = buildDraft({ fullName: contact.full_name, companyName: contact.company?.name, followUpOf: original, evidence: evidence ?? [] })
+  const report = await loadDraftReport(admin, contact.company_id)
+  const draft = buildDraft({ report, fullName: contact.full_name, companyName: contact.company?.name, companyNotes: contact.company?.source_notes, followUpOf: original, evidence: evidence ?? [] })
   const { data, error } = await admin.from('acquisition_messages').insert({ contact_id: contact.id, subject: draft.subject, body: draft.body, status: 'draft', follow_up_of: original?.id ?? null }).select('id').single()
   if (error) return NextResponse.json({ error: 'Le brouillon n’a pas pu être enregistré.' }, { status: 500 })
   // La relance se prépare à la main : le cron ne doit pas envoyer la sienne en plus.

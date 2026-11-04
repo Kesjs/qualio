@@ -24,6 +24,16 @@ describe('email de prospection', () => {
     expect(mail.text).toContain('/desinscription?token=')
     expect(mail.text).toContain('/confidentialite')
   })
+  it('pointe le bouton principal vers /rapport/[token] quand le message contient un rapport', () => {
+    const withReport = buildProspectMail({
+      messageId: ID,
+      subject: '80 avis App Store',
+      body: 'Bonjour,\n\nVoici le rapport : https://tryqualio.pro/rapport/tok_1234567890123456',
+      from: 'a@b.fr',
+    })
+    expect(withReport.html).toContain('Voir l’analyse de vos avis')
+    expect(withReport.html).toContain('to=%2Frapport%2Ftok_1234567890123456')
+  })
 })
 
 describe('réponses entrantes', () => {

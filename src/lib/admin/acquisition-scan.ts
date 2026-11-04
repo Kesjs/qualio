@@ -23,8 +23,36 @@ const PATHS = [
 
 const SIGNALS = [
   { type: 'feedback', label: 'Collecte de feedback détectée', words: ['feedback', 'give us feedback', 'donnez votre avis', 'votre avis', 'customer feedback'] },
-  { type: 'reviews', label: 'Avis ou témoignages détectés', words: ['reviews', 'avis clients', 'témoignages', 'testimonials', 'customer stories', 'trustpilot', 'avis vérifiés'] },
+  { type: 'reviews', label: 'Avis ou témoignages détectés', words: ['reviews', 'avis clients', 'témoignages', 'testimonials', 'customer stories', 'avis vérifiés'] },
+  { type: 'product_team', label: 'Équipe produit / support structuré', words: ['changelog', 'roadmap', 'release notes', 'intercom', 'crisp.chat', 'zendesk', 'canny.io'] },
 ]
+
+export type DiscoveredReviewSource = {
+  type: 'app_store' | 'google_play' | 'trustpilot' | 'g2' | 'capterra'
+  label: string
+  url: string
+}
+
+const REVIEW_URL_PATTERNS: Array<{ type: DiscoveredReviewSource['type']; label: string; regex: RegExp }> = [
+  { type: 'app_store', label: 'App Store', regex: /https?:\/\/apps\.apple\.com\/[a-z]{2}\/app\/[^\s"'<>]*id\d{6,12}|https?:\/\/apps\.apple\.com\/app\/[^\s"'<>]*id\d{6,12}/gi },
+  { type: 'google_play', label: 'Google Play', regex: /https?:\/\/play\.google\.com\/store\/apps\/details\?id=[A-Za-z0-9._]+/gi },
+  { type: 'trustpilot', label: 'Trustpilot', regex: /https?:\/\/(?:[a-z]{2}\.)?trustpilot\.com\/review\/[A-Za-z0-9.-]+/gi },
+  { type: 'g2', label: 'G2', regex: /https?:\/\/(?:www\.)?g2\.com\/products\/[A-Za-z0-9-]+/gi },
+  { type: 'capterra', label: 'Capterra', regex: /https?:\/\/(?:www\.)?capterra\.(?:fr|com)\/(?:software|p)\/[A-Za-z0-9/_-]+/gi },
+]
+
+/** Détecte sur le site du prospect ses vraies pages publiques d'avis (App Store, Trustpilot, G2, Capterra, Google Play). */
+export function extractReviewSources(rawHtml: string): DiscoveredReviewSource[] {
+  const html = decodeEscapes(rawHtml)
+  const byType = new Map<DiscoveredReviewSource['type'], DiscoveredReviewSource>()
+  for (const item of REVIEW_URL_PATTERNS) {
+    const match = html.match(item.regex)?.[0]
+    if (match && !byType.has(item.type)) {
+      byType.set(item.type, { type: item.type, label: item.label, url: match.replace(/[),.]+$/, '') })
+    }
+  }
+  return [...byType.values()]
+}
 
 function safeUrl(domain: string, path: string) {
   const host = domain.replace(/^https?:\/\//, '').split('/')[0].trim().toLowerCase()
@@ -183,8 +211,9 @@ export function sameCompanyDomain(email: string, companyDomain: string) {
   return registrable(emailHost) === registrable(host) || brand(emailHost) === brand(host)
 }
 
-export async function scanCompany(admin: any, company: { id: string; domain: string }) {
+export async function scanCompany(admin: any, company: { id: string; domain: string; source_notes?: string | null }) {
   const found: Array<{ signal_type: string; label: string; source_url: string; evidence: string; confidence: number }> = []
+  const reviewSources = new Map<string, DiscoveredReviewSource>()
   const emails = new Map<string, string>()
   const foreignEmails = new Set<string>()
   let discoveredLeaderName: string | null = null
@@ -220,6 +249,20 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
             source_url: url,
             evidence: `Terme détecté : “${word}”`,
             confidence: 72,
+          })
+        }
+      }
+
+      // 1b. Liens directs vers des plateformes d'avis publics (App Store, Trustpilot, G2, Capterra, Play)
+      for (const source of extractReviewSources(html)) {
+        if (!reviewSources.has(source.type)) {
+          reviewSources.set(source.type, source)
+          found.push({
+            signal_type: source.type,
+            label: `Avis publics sur ${source.label}`,
+            source_url: source.url,
+            evidence: source.url,
+            confidence: 95,
           })
         }
       }
@@ -293,18 +336,32 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
     }
   }
 
-  const score = Math.min(100, uniqueSignals.length * 16 + (emails.size ? 20 : 0))
-  const notes = [
-    `${uniqueSignals.length} signal(s)`,
-    `${emails.size} email(s) public(s) détecté(s)`,
-    foreignEmails.size ? `${foreignEmails.size} email(s) d’un autre domaine ignoré(s)` : null,
-    discoveredLeaderName ? `Contact : ${discoveredLeaderName}` : null,
+  const hasPersonalEmail = scannedEmails.some((e) => !/^(billing|support|contact|hello|info|sales|bonjour|accueil|reception|reservation|admin)@/i.test(e))
+  const score = Math.min(
+    100,
+    (reviewSources.size > 0 ? 45 : 0) +
+      (emails.size > 0 ? 25 : 0) +
+      (hasPersonalEmail || discoveredLeaderName ? 15 : 0) +
+      Math.min(15, uniqueSignals.filter((s) => !reviewSources.has(s.signal_type)).length * 8),
+  )
+  let priorAiNote = company.source_notes
+  if (priorAiNote === undefined) {
+    const { data: currentRow } = await admin.from('acquisition_companies').select('source_notes').eq('id', company.id).maybeSingle()
+    priorAiNote = currentRow?.source_notes ?? null
+  }
+  const preservedPrefix = priorAiNote && /^IA Qualio/i.test(priorAiNote) ? priorAiNote.split(' · Scan :')[0] : null
+  const scanSummary = [
+    reviewSources.size ? `Sources d’avis : ${[...reviewSources.values()].map((s) => s.label).join(', ')}` : null,
+    `${emails.size} email(s) public(s)`,
+    discoveredLeaderName ? `Dirigeant : ${discoveredLeaderName}` : null,
+    foreignEmails.size ? `${foreignEmails.size} hors-domaine ignoré(s)` : null,
   ].filter(Boolean).join(' · ')
+  const notes = preservedPrefix ? `${preservedPrefix} · Scan : ${scanSummary}` : scanSummary
 
   await admin
     .from('acquisition_companies')
     .update({ relevance_score: score, status: 'review', source_notes: notes })
     .eq('id', company.id)
 
-  return { signals: uniqueSignals.length, emails: emails.size, ignoredForeign: foreignEmails.size, score, leaderName: discoveredLeaderName }
+  return { signals: uniqueSignals.length, reviewSources: [...reviewSources.values()], emails: emails.size, ignoredForeign: foreignEmails.size, score, leaderName: discoveredLeaderName }
 }

@@ -183,7 +183,7 @@ export async function discoverCompaniesWithAi({
   const prompt = `Trouve exactement ${askCount} entreprises et marques RÉELLES existantes correspondant à la cible : « ${target} », ${locText}.
 
 Qualio est un logiciel SaaS qui permet aux entreprises de collecter, analyser et transformer leurs avis clients en décisions concrètes (synthèses IA, alertes, priorisation produit/service).
-Ces entreprises doivent être des cibles idéales pour Qualio : elles ont des clients, reçoivent des avis (ou devraient en collecter plus) et ont un site web actif.
+Ces entreprises doivent être des cibles idéales pour Qualio : elles reçoivent des retours écrits réguliers (avis publics, tickets, retours utilisateurs) ET ont une équipe qui décide quoi améliorer dans un produit, une app ou un site (ou le fait pour ses clients, dans le cas d'une agence). Exclure les commerces locaux (restaurants, hôtels, salons) et les grands groupes.
 
 Règles impératives :
 1. Uniquement de VRAIES entreprises qui existent dans la réalité.

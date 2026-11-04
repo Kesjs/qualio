@@ -4,10 +4,10 @@ import { pageCount } from '@/lib/admin/format'
 import { AdminSelect } from '@/components/admin/AdminSelect'
 
 /** Anneau de focus commun : visible sur fond sombre comme sur le panneau clair de la connexion. */
-export const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff8a50]'
-export const BTN_PRIMARY = `inline-flex min-h-11 items-center justify-center rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#9a3412] disabled:opacity-60 ${FOCUS}`
-export const BTN_SECONDARY = `inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 dark:border-white/[0.16] px-4 text-sm font-semibold text-gray-900 dark:text-[#eeeeee] transition-colors hover:bg-gray-100 dark:hover:bg-white/[0.08] disabled:opacity-60 ${FOCUS}`
-export const FIELD = `min-h-11 w-full rounded-lg border border-gray-300 dark:border-white/[0.16] bg-white dark:bg-[#16181E] px-3 text-sm text-gray-900 dark:text-[#eeeeee] placeholder:text-gray-400 dark:placeholder:text-zinc-500 ${FOCUS}`
+export const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ee6018]'
+export const BTN_PRIMARY = `inline-flex min-h-11 items-center justify-center rounded-lg bg-[#c2410c] px-4 text-sm font-semibold text-white transition-all duration-150 hover:bg-[#9a3412] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-55 ${FOCUS}`
+export const BTN_SECONDARY = `inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.05] px-4 text-sm font-semibold text-gray-800 dark:text-[#eeeeee] transition-all duration-150 hover:bg-gray-100 dark:hover:bg-white/[0.09] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-55 ${FOCUS}`
+export const FIELD = `min-h-11 w-full rounded-lg border border-gray-300 dark:border-white/[0.12] bg-white dark:bg-[#101010] px-3 text-sm text-gray-900 dark:text-[#eeeeee] placeholder:text-gray-400 dark:placeholder:text-zinc-500 transition-colors duration-150 focus:border-[#ee6018] ${FOCUS}`
 export const TH = 'whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-gray-500 dark:text-zinc-400'
 export const TH_RIGHT = 'whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.1em] text-gray-500 dark:text-zinc-400'
 export const TD = 'px-4 py-3 align-middle'
@@ -42,13 +42,13 @@ export function emailTone(status: string): Tone {
   return 'neutral'
 }
 
-export function PageHeader({ eyebrow, title, description, aside }: { eyebrow: string; title: string; description?: ReactNode; aside?: ReactNode }) {
+export function PageHeader({ eyebrow, title, description, aside }: { eyebrow?: string; title: string; description?: ReactNode; aside?: ReactNode }) {
   return (
-    <header className="flex flex-col justify-between gap-4 border-b border-gray-200/80 dark:border-white/[0.08] pb-6 sm:flex-row sm:items-end">
+    <header className="flex flex-col justify-between gap-4 border-b border-gray-200/90 dark:border-white/[0.08] pb-6 sm:flex-row sm:items-end">
       <div className="min-w-0">
-        <p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#c2410c] dark:text-[#ff9a66]">{eyebrow}</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
-        {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-zinc-400">{description}</p>}
+        {eyebrow && <p className="font-mono text-xs font-bold uppercase tracking-[0.16em] text-[#c2410c] dark:text-[#ff9a66]">{eyebrow}</p>}
+        <h1 className={`${eyebrow ? 'mt-2' : ''} text-2xl font-semibold tracking-tight sm:text-3xl`}>{title}</h1>
+        {description && <p className="mt-2 max-w-[68ch] text-sm leading-6 text-gray-600 dark:text-zinc-400">{description}</p>}
       </div>
       {aside && <div className="shrink-0">{aside}</div>}
     </header>
@@ -57,11 +57,11 @@ export function PageHeader({ eyebrow, title, description, aside }: { eyebrow: st
 
 export function Panel({ id, title, description, action, children, flush }: { id: string; title: string; description?: string; action?: ReactNode; children: ReactNode; flush?: boolean }) {
   return (
-    <section aria-labelledby={`${id}-titre`} className="rounded-2xl border border-gray-200/80 bg-white shadow-2xs dark:border-white/[0.08] dark:bg-[#111216]">
+    <section aria-labelledby={`${id}-titre`} className="rounded-2xl border border-gray-200/90 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] dark:border-white/[0.08] dark:bg-[#16181E] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
       <div className="flex flex-wrap items-start justify-between gap-3 p-5 pb-4">
         <div>
-          <h2 id={`${id}-titre`} className="text-lg font-semibold">{title}</h2>
-          {description && <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">{description}</p>}
+          <h2 id={`${id}-titre`} className="text-base font-semibold tracking-tight sm:text-lg">{title}</h2>
+          {description && <p className="mt-1 max-w-[68ch] text-sm leading-6 text-gray-600 dark:text-zinc-400">{description}</p>}
         </div>
         {action}
       </div>

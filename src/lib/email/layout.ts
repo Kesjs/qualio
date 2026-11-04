@@ -33,18 +33,20 @@ export function renderEmail(input: {
 
 /** Template sobre pour les messages d'acquisition : rendu blanc, lisible dans Gmail et mobile.
  *  Le pied de page porte les mentions obligatoires d'un email commercial : qui envoie, où, pourquoi le destinataire reçoit ce message, comment se désinscrire. */
-export function renderAcquisitionEmail(input: { subject: string; body: string; trackingUrl?: string; unsubscribeUrl?: string }) {
+export function renderAcquisitionEmail(input: { subject: string; body: string; trackingUrl?: string; ctaLabel?: string; unsubscribeUrl?: string }) {
   const site = 'https://tryqualio.pro'
   // Ne jamais exposer un placeholder technique dans un email envoyé. Les informations
   // légales complètes restent à renseigner dans LEGAL avant une campagne réelle.
   const identity = senderIdentityReady() ? senderIdentityLine() : 'Qualio · tryqualio.pro · contact@tryqualio.pro'
   const reason = 'Vous recevez ce message parce que votre adresse professionnelle est publiée sur votre site ou dans un annuaire public, et que notre proposition concerne votre activité.'
   const optOut = 'Pour ne plus recevoir de message de notre part, répondez « stop » ou utilisez le lien ci-dessous.'
+  const hasReportLink = /\/rapport\/[\w-]+/.test(input.body)
+  const buttonLabel = input.ctaLabel || (hasReportLink ? 'Voir l’analyse de vos avis' : 'Découvrir Qualio')
   const paragraphs = input.body.split(/\n{2,}/).map((paragraph) => {
-    const safe = escapeHtml(paragraph).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#c94f12;font-weight:700">$1</a>')
+    const safe = escapeHtml(paragraph).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#c2410c;font-weight:700">$1</a>')
     return `<p style="margin:0 0 20px;font-size:16px;line-height:1.7;color:#292524">${safe.replace(/\n/g, '<br />')}</p>`
   }).join('')
-  const trackingCta = input.trackingUrl ? `<p style="margin:28px 0"><a href="${escapeHtml(input.trackingUrl)}" style="display:inline-block;background:#ee6018;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">Découvrir Qualio</a></p>` : ''
+  const trackingCta = input.trackingUrl ? `<p style="margin:28px 0"><a href="${escapeHtml(input.trackingUrl)}" style="display:inline-block;background:#c2410c;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">${escapeHtml(buttonLabel)}</a></p>` : ''
   const unsubscribeLink = input.unsubscribeUrl ? `<a href="${escapeHtml(input.unsubscribeUrl)}" style="color:#57534e;text-decoration:underline">Me désinscrire</a>` : ''
   const footerLinks = [unsubscribeLink, `<a href="${site}/confidentialite" style="color:#57534e;text-decoration:underline">Confidentialité</a>`].filter(Boolean).join(' · ')
   const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#292524"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#ffffff"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background:#ffffff;border:1px solid #e7e2dc;border-radius:14px"><tr><td style="padding:30px 36px 18px;border-bottom:1px solid #eee9e3"><img src="${site}/qualio-logo/export/lockup/lockup-brand-dark-900.png" width="150" alt="Qualio" style="display:block;width:150px;height:auto;border:0" /></td></tr><tr><td style="padding:34px 36px 18px">${paragraphs}${trackingCta}</td></tr><tr><td style="padding:26px 36px 30px;border-top:1px solid #eee9e3;background:#f5f5f4"><p style="margin:0 0 4px;font-size:15px;line-height:1.5;font-weight:700;color:#292524">Qualio</p><p style="margin:0 0 18px;font-size:12px;line-height:1.5;color:#78716c">${escapeHtml(identity)}</p><p style="margin:0 0 14px;font-size:12px;line-height:1.6;color:#78716c">${escapeHtml(reason)} ${escapeHtml(optOut)}</p><p style="margin:0;font-size:12px;line-height:1.6">${footerLinks}</p></td></tr></table></td></tr></table></body></html>`

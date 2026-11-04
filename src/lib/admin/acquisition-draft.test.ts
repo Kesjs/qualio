@@ -19,6 +19,35 @@ describe('brouillons de prospection', () => {
     expect(draft.body).toContain(EXAMPLE_URL)
   })
 
+  it('agence : pitch multi-clients, une seule question', () => {
+    const { subject, body } = buildDraft({ companyName: 'Pixel Studio', companyNotes: null })
+    expect(subject).toBe('Un rapport de retours utilisateurs pour vos clients')
+    expect(body).toContain('l’un des clients de Pixel Studio')
+    expect(body).toContain(EXAMPLE_URL)
+    expect(body.match(/\?/g)).toHaveLength(1)
+  })
+
+  it('rapport public (/rapport/[token]) : valeur d’abord, sans pitch générique', () => {
+    const report = {
+      url: 'https://tryqualio.pro/rapport/abc123456789012345678',
+      reviewCount: 84,
+      sourceLabel: 'App Store',
+      subjectName: 'Swile',
+      topProblem: { title: 'Déconnexion après mise à jour iOS', mentions: 14 },
+      problemCount: 3,
+    }
+    const first = buildDraft({ fullName: 'Camille', companyName: 'Swile', report })
+    expect(first.subject).toBe('84 avis App Store de Swile, lus pour vous')
+    expect(first.body).toContain('Déconnexion après mise à jour iOS')
+    expect(first.body).toContain(report.url)
+    expect(first.body).not.toContain(EXAMPLE_URL)
+    expect(first.body.match(/\?/g)).toHaveLength(1)
+
+    const follow = buildDraft({ fullName: 'Camille', companyName: 'Swile', followUpOf: { subject: first.subject }, report })
+    expect(follow.subject).toBe(`Re: ${first.subject}`)
+    expect(follow.body).toContain(report.url)
+  })
+
   it('relance : lien exemple, propose de s’arrêter', () => {
     const { subject, body } = buildDraft({ fullName: null, companyName: 'Maison Dubois', followUpOf: { subject: 'Une question sur vos retours clients' } })
     expect(subject).toBe('Re: Une question sur vos retours clients')
