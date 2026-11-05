@@ -12,6 +12,8 @@ const PATHS = [
   '/a-propos',
   '/about',
   '/qui-sommes-nous',
+  '/politique-de-confidentialite',
+  '/privacy',
   '/cgv',
   '/conditions-generales',
   '/support',
@@ -220,7 +222,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
 
   // Scanner les pages les plus probantes : la page d'accueil peut contenir
   // des adresses historiques, de support ou de tracking qui ne sont pas le bon point d'entrée.
-  for (const path of PATHS.slice(0, 8)) {
+  for (const path of PATHS.slice(0, 11)) {
     const url = safeUrl(company.domain, path)
     if (!url) continue
 
@@ -235,6 +237,12 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
       })
 
       if (!response.ok) continue
+      let finalHost = ''
+      try {
+        finalHost = new URL(response.url).hostname
+      } catch {
+        /* ignore parsing error */
+      }
       const html = await response.text()
       const text = textFromHtml(html)
       const lower = text.toLowerCase()
@@ -272,9 +280,9 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
         discoveredLeaderName = extractLeaderName(html)
       }
 
-      // 3. Emails visibles sur la page, uniquement ceux du domaine de l'entreprise
+      // 3. Emails visibles sur la page, domaine de l'entreprise ou domaine de redirection
       for (const email of extractEmails(html)) {
-        if (sameCompanyDomain(email, company.domain)) emails.set(email, url)
+        if (sameCompanyDomain(email, company.domain) || (finalHost && sameCompanyDomain(email, finalHost))) emails.set(email, url)
         else foreignEmails.add(email)
       }
     } catch {

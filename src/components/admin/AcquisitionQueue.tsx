@@ -33,8 +33,22 @@ export function AcquisitionQueue({
   const [selected, setSelected] = useState<string[]>([])
   const [includeShared, setIncludeShared] = useState(true)
   const [onlyWithReviews, setOnlyWithReviews] = useState(false)
+  const [onlyWithEmail, setOnlyWithEmail] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const working = progress !== null
+
+  // Modal d'ajout ou modification manuelle de contact
+  const [contactModal, setContactModal] = useState<{
+    companyId: string
+    companyName: string
+    domain: string
+    contactId?: string
+    email?: string
+    fullName?: string
+  } | null>(null)
+  const [modalEmail, setModalEmail] = useState('')
+  const [modalFullName, setModalFullName] = useState('')
+  const [savingContact, setSavingContact] = useState(false)
 
   const toggle = (id: string) =>
     setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
@@ -43,9 +57,35 @@ export function AcquisitionQueue({
     const hasNamedContact = item.contacts.some((contact) => !contact.generic)
     if (!includeShared && item.contacts.length > 0 && !hasNamedContact) return false
     if (onlyWithReviews && item.reviewSources.length === 0 && !item.report) return false
+    if (onlyWithEmail && item.contacts.length === 0) return false
     return true
   })
   const allSelected = visibleItems.length > 0 && selected.length === visibleItems.length
+
+  function openContactModalFor(companyId: string, companyName: string, domain: string, contactId?: string, email?: string, fullName?: string) {
+    setContactModal({ companyId, companyName, domain, contactId, email, fullName })
+    setModalEmail(email ?? '')
+    setModalFullName(fullName ?? '')
+  }
+
+  async function handleSaveContact(event: React.FormEvent) {
+    event.preventDefault()
+    if (!contactModal || !modalEmail.trim()) return
+    setSavingContact(true)
+    const { ok, data } = await postJson('/api/admin/acquisition/contacts', {
+      companyId: contactModal.companyId,
+      contactId: contactModal.contactId,
+      email: modalEmail.trim(),
+      fullName: modalFullName.trim() || undefined,
+    })
+    setSavingContact(false)
+    if (!ok) {
+      return notify('error', data.error ?? 'Impossible d’enregistrer ce contact.')
+    }
+    setContactModal(null)
+    refresh()
+    notify('success', `Contact ${modalEmail.trim()} enregistré pour ${contactModal.companyName}. Prêt à être rédigé !`)
+  }
 
   async function prepare(ids: string[]) {
     let drafted = 0
@@ -132,6 +172,18 @@ export function AcquisitionQueue({
           Archiver
         </button>
         <div className="ml-auto flex flex-wrap items-center gap-4">
+          <label className="flex min-h-10 items-center gap-2 text-xs font-medium text-gray-600 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              checked={onlyWithEmail}
+              onChange={(event) => {
+                setOnlyWithEmail(event.target.checked)
+                setSelected([])
+              }}
+              className={CHECKBOX}
+            />
+            Prêts avec email ({items.filter((i) => i.contacts.length > 0).length})
+          </label>
           <label className="flex min-h-10 items-center gap-2 text-xs font-medium text-gray-600 dark:text-zinc-300">
             <input
               type="checkbox"
@@ -283,7 +335,17 @@ export function AcquisitionQueue({
                   <td className={TD}>
                     {first ? (
                       <div className="space-y-0.5">
-                        <span className="font-mono text-xs text-gray-900 dark:text-zinc-200">{first.email}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs text-gray-900 dark:text-zinc-200">{first.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => openContactModalFor(item.id, item.name, item.domain, first.id, first.email, first.full_name ?? undefined)}
+                            title="Modifier ce contact"
+                            className="inline-flex h-5 w-5 items-center justify-center rounded text-[11px] text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-zinc-200"
+                          >
+                            ✎
+                          </button>
+                        </div>
                         {item.contacts.length > 1 && (
                           <span className="ml-1 font-mono text-[11px] text-gray-500 dark:text-zinc-500">
                             +{item.contacts.length - 1}
@@ -311,7 +373,16 @@ export function AcquisitionQueue({
                         </div>
                       </div>
                     ) : (
-                      <Badge tone={meta.tone}>{meta.label}</Badge>
+                      <div className="flex flex-col items-start gap-1">
+                        <Badge tone={meta.tone}>{meta.label}</Badge>
+                        <button
+                          type="button"
+                          onClick={() => openContactModalFor(item.id, item.name, item.domain)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c2410c] hover:underline dark:text-[#ff9a66]"
+                        >
+                          + Ajouter email
+                        </button>
+                      </div>
                     )}
                   </td>
                   <td className={`${TD} text-right`}>
@@ -331,6 +402,98 @@ export function AcquisitionQueue({
           </tbody>
         </table>
       </TableRegion>
+
+      {contactModal && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-xs"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !savingContact) setContactModal(null)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !savingContact) setContactModal(null)
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-modal-title"
+            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-white/[0.12] dark:bg-[#16181E]"
+          >
+            <h2 id="contact-modal-title" className="text-xl font-semibold text-gray-900 dark:text-white">
+              {contactModal.contactId ? 'Modifier le contact' : 'Ajouter un contact'}
+            </h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+              Pour <strong className="text-gray-900 dark:text-white">{contactModal.companyName}</strong> ({contactModal.domain})
+            </p>
+
+            <form onSubmit={handleSaveContact} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                  Adresse email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  value={modalEmail}
+                  onChange={(e) => setModalEmail(e.target.value)}
+                  placeholder={`contact@${contactModal.domain.replace(/^www\./, '')}`}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-[#ee6018] dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-[#ee6018]"
+                />
+                {!contactModal.contactId && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-gray-500 dark:text-zinc-400">Suggestions :</span>
+                    {[
+                      `contact@${contactModal.domain.replace(/^www\./, '')}`,
+                      `hello@${contactModal.domain.replace(/^www\./, '')}`,
+                    ].map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => setModalEmail(sug)}
+                        className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 hover:border-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300"
+                      >
+                        {sug}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                  Nom du dirigeant ou contact (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={modalFullName}
+                  onChange={(e) => setModalFullName(e.target.value)}
+                  placeholder="Ex. Alexandre Martin, Sophie…"
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-[#ee6018] dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-[#ee6018]"
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={savingContact}
+                  onClick={() => setContactModal(null)}
+                  className={BTN_SECONDARY}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingContact || !modalEmail.includes('@')}
+                  className={BTN_PRIMARY}
+                >
+                  {savingContact ? 'Enregistrement…' : 'Enregistrer et rendre prêt'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
