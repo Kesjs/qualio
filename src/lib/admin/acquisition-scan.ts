@@ -206,6 +206,23 @@ function brand(host: string) {
 }
 
 /** L'adresse appartient-elle bien à l'entreprise ? Même domaine, sous-domaine, autre extension ou variante « -group » du même nom. */
+export function extractInternalContactPaths(html: string): string[] {
+  const matches = html.matchAll(/href=["']([^"'>\s]+)["']/gi)
+  const paths = new Set<string>()
+  for (const match of matches) {
+    const raw = match[1]
+    if (/contact|mentions|legal|propos|about|equipe|team|agence|privacy|confidentialite/i.test(raw)) {
+      try {
+        const pathname = raw.startsWith('http') ? new URL(raw).pathname : raw.split('?')[0].split('#')[0]
+        if (pathname && pathname.length >= 2 && pathname.length <= 80 && pathname.startsWith('/')) {
+          paths.add(pathname)
+        }
+      } catch {}
+    }
+  }
+  return [...paths].slice(0, 6)
+}
+
 export function sameCompanyDomain(email: string, companyDomain: string) {
   const emailHost = bareHost(email.split('@')[1] ?? '')
   const host = bareHost(companyDomain)
@@ -219,10 +236,17 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
   const emails = new Map<string, string>()
   const foreignEmails = new Set<string>()
   let discoveredLeaderName: string | null = null
+  let finalRedirectHost: string | null = null
 
-  // Scanner les pages les plus probantes : la page d'accueil peut contenir
-  // des adresses historiques, de support ou de tracking qui ne sont pas le bon point d'entrée.
-  for (const path of PATHS.slice(0, 11)) {
+  const pathsToScan = [...PATHS.slice(0, 11)]
+  const scannedPaths = new Set<string>()
+
+  // Scanner les pages les plus probantes et les liens internes découverts
+  for (let i = 0; i < pathsToScan.length && scannedPaths.size < 15; i += 1) {
+    const path = pathsToScan[i]
+    if (scannedPaths.has(path)) continue
+    scannedPaths.add(path)
+
     const url = safeUrl(company.domain, path)
     if (!url) continue
 
@@ -237,15 +261,26 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
       })
 
       if (!response.ok) continue
-      let finalHost = ''
       try {
-        finalHost = new URL(response.url).hostname
+        const redirected = new URL(response.url).hostname.replace(/^www\./, '').toLowerCase()
+        if (redirected && redirected !== bareHost(company.domain)) {
+          finalRedirectHost = redirected
+        }
       } catch {
         /* ignore parsing error */
       }
       const html = await response.text()
       const text = textFromHtml(html)
       const lower = text.toLowerCase()
+
+      // Si c'est la page d'accueil ou de contact, découvrir les liens internes réels vers les mentions/contact
+      if (path === '' || path === '/contact') {
+        for (const discoveredPath of extractInternalContactPaths(html)) {
+          if (!scannedPaths.has(discoveredPath) && !pathsToScan.includes(discoveredPath)) {
+            pathsToScan.push(discoveredPath)
+          }
+        }
+      }
 
       // 1. Signaux de feedback & avis
       for (const signal of SIGNALS) {
@@ -282,11 +317,37 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
 
       // 3. Emails visibles sur la page, domaine de l'entreprise ou domaine de redirection
       for (const email of extractEmails(html)) {
-        if (sameCompanyDomain(email, company.domain) || (finalHost && sameCompanyDomain(email, finalHost))) emails.set(email, url)
-        else foreignEmails.add(email)
+        if (sameCompanyDomain(email, company.domain) || (finalRedirectHost && sameCompanyDomain(email, finalRedirectHost))) {
+          emails.set(email, url)
+        } else {
+          foreignEmails.add(email)
+        }
       }
     } catch {
       /* Page inaccessible ou timeout : on passe à la suivante sans bloquer */
+    }
+  }
+
+  // Fallback intelligent si aucun email trouvé dans le HTML :
+  // Si le domaine (ou domaine redirigé) a un serveur mail actif (MX vérifié),
+  // on déduit automatiquement l'adresse standard (contact@ / hello@) au lieu de laisser le prospect bloqué.
+  if (emails.size === 0) {
+    const candidateDomains = [finalRedirectHost, company.domain].filter((d): d is string => Boolean(d))
+    for (const dom of candidateDomains) {
+      const cleanDom = dom.replace(/^www\./, '').toLowerCase()
+      for (const prefix of ['contact', 'hello']) {
+        const candidateEmail = `${prefix}@${cleanDom}`
+        try {
+          const validation = await validatePublicEmail(candidateEmail)
+          if (validation.status === 'verified') {
+            emails.set(candidateEmail, `https://${cleanDom}`)
+            break
+          }
+        } catch {
+          /* ignore DNS error */
+        }
+      }
+      if (emails.size > 0) break
     }
   }
 

@@ -74,8 +74,23 @@ export function cleanDomain(input: string): string | null {
  * Ping HTTP ultra-rapide pour vérifier en direct si le domaine existe et répond.
  * Évite d'insérer des domaines inactifs, morts ou mal orthographiés.
  */
-/** Un site qui répond (même protégé par un robot anti-bot) compte comme actif ; une page 404 ou une erreur serveur non. */
-const isAliveStatus = (status: number) => status < 400 || [401, 403, 405, 429].includes(status)
+const PARKED_INDICATORS = [
+  'hugedomains.com',
+  'dan.com',
+  'sedo.com',
+  'afternic.com',
+  'godaddy.com',
+  'domainmarket.com',
+  'namecheap.com',
+]
+
+/** Un site qui répond (même protégé par un robot anti-bot) compte comme actif s'il n'est pas une page de vente de domaine. */
+const isAliveResponse = (res: Response) => {
+  if (res.status >= 400 && ![401, 403, 405, 429].includes(res.status)) return false
+  const finalUrl = res.url.toLowerCase()
+  if (PARKED_INDICATORS.some((parked) => finalUrl.includes(parked))) return false
+  return true
+}
 
 export async function isDomainAlive(domain: string): Promise<boolean> {
   const host = cleanDomain(domain)
@@ -94,7 +109,7 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
       redirect: 'follow',
     })
     clearTimeout(timer)
-    if (isAliveStatus(res.status)) return true
+    if (isAliveResponse(res)) return true
   } catch {
     // Si HEAD est bloqué par certains serveurs, on tente un GET léger
     try {
@@ -107,7 +122,7 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
         redirect: 'follow',
       })
       clearTimeout(timer)
-      if (isAliveStatus(res.status)) return true
+      if (isAliveResponse(res)) return true
     } catch {
       // Essai 2 : repli HTTP simple si le certificat HTTPS a un souci
       try {
@@ -115,8 +130,9 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
           method: 'HEAD',
           headers: { 'User-Agent': userAgent },
           signal: AbortSignal.timeout(2500),
+          redirect: 'follow',
         })
-        if (isAliveStatus(res.status)) return true
+        if (isAliveResponse(res)) return true
       } catch {
         return false
       }
@@ -129,12 +145,21 @@ export async function isDomainAlive(domain: string): Promise<boolean> {
 /**
  * Vérifie simultanément tous les domaines générés pour ne conserver
  * QUE ceux dont le site web est réellement en ligne.
+ * Si un domaine en .com est inactif ou parqué, teste automatiquement la variante .fr.
  */
 export async function filterActiveCompanies(companies: DiscoveredAiCompany[]): Promise<DiscoveredAiCompany[]> {
   const results = await Promise.allSettled(
     companies.map(async (company) => {
-      const alive = await isDomainAlive(company.domain)
-      return { company, alive }
+      let currentDomain = company.domain
+      let alive = await isDomainAlive(currentDomain)
+      if (!alive && currentDomain.endsWith('.com')) {
+        const frDomain = currentDomain.replace(/\.com$/, '.fr')
+        if (await isDomainAlive(frDomain)) {
+          currentDomain = frDomain
+          alive = true
+        }
+      }
+      return { company: { ...company, domain: currentDomain }, alive }
     })
   )
 

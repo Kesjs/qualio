@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeEscapes, extractEmails, extractReviewSources, isUsablePublicEmail, sameCompanyDomain } from '@/lib/admin/acquisition-scan'
+import { decodeEscapes, extractEmails, extractInternalContactPaths, extractReviewSources, isUsablePublicEmail, sameCompanyDomain } from '@/lib/admin/acquisition-scan'
 
 describe('extraction des emails publics', () => {
   it('décode les échappements unicode au lieu de coller « u003e » devant l’adresse', () => {
@@ -65,5 +65,21 @@ describe('détection des pages d’avis publiques sur le site', () => {
     `
     const sources = extractReviewSources(html)
     expect(sources.map((s) => s.type)).toEqual(['app_store', 'trustpilot', 'g2'])
+  })
+
+  it('détecte les liens internes de contact et mentions légales sur les sites modernes', () => {
+    const html = `
+      <nav>
+        <a href="/legals/mentions-legales">Mentions</a>
+        <a href="/fr/contact-us?ref=header">Nous contacter</a>
+        <a href="/about/equipe#board">L’équipe</a>
+        <a href="/blog/article-1">Blog</a>
+      </nav>
+    `
+    const paths = extractInternalContactPaths(html)
+    expect(paths).toContain('/legals/mentions-legales')
+    expect(paths).toContain('/fr/contact-us')
+    expect(paths).toContain('/about/equipe')
+    expect(paths).not.toContain('/blog/article-1')
   })
 })
