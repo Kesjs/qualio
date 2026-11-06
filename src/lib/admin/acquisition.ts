@@ -35,6 +35,8 @@ export type PipelineReportSummary = {
 
 export type QueueState = 'scan' | 'empty' | 'ready'
 
+export type QueueItemCategory = 'saas' | 'agency' | 'ecommerce' | 'other'
+
 export type QueueItem = {
   id: string
   name: string
@@ -43,6 +45,7 @@ export type QueueItem = {
   relevanceScore: number | null
   notes: string | null
   isAgency: boolean
+  category: QueueItemCategory
   reviewSources: PipelineReviewSource[]
   report: PipelineReportSummary | null
   contacts: PipelineContact[]
@@ -293,13 +296,19 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
     const all = contactsByCompany.get(company.id) ?? []
     const usable = all.filter((contact) => !BLOCKED_CONTACT.has(contact.email_status))
     const alreadyContacted = usable.some((contact) => contactIdsWithMessage.has(contact.id))
+    const isAgencyCompany = isAgency(company.name, company.source_notes)
+    const isEcommerceCompany = /e-?commerce|d2c|boutique|shopify|maroquinerie|vêtement/i.test(`${company.name} ${company.source_notes ?? ''}`)
+    const isSaasCompany = !isAgencyCompany && !isEcommerceCompany && (/saas|logiciel|app\b|software|btp|b2b|compta|facturation|gestion/i.test(`${company.name} ${company.source_notes ?? ''}`))
+    const category: QueueItemCategory = isAgencyCompany ? 'agency' : isEcommerceCompany ? 'ecommerce' : isSaasCompany ? 'saas' : 'other'
+
     const base = {
       id: company.id,
       name: company.name,
       domain: company.domain,
       relevanceScore: company.relevance_score,
       notes: company.source_notes,
-      isAgency: isAgency(company.name, company.source_notes),
+      isAgency: isAgencyCompany,
+      category,
       reviewSources: reviewSourcesByCompany.get(company.id) ?? [],
       report: reportByCompany.get(company.id) ?? null,
     }

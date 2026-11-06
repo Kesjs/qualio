@@ -43,17 +43,32 @@ export function buildDraft({ fullName, companyName, companyNotes, followUpOf, ev
   // Valeur d'abord : un rapport réel sur leurs propres avis remplace tout pitch générique.
   if (report) {
     const others = report.problemCount - 1
+    const top = report.topProblem
+    if (top) {
+      const mentionsLabel = top.mentions > 1 ? `${top.mentions} avis` : '1 avis'
+      return {
+        subject: top.mentions > 1
+          ? `${report.subjectName} : « ${top.title} » revient dans ${top.mentions} avis`
+          : `${report.subjectName} : « ${top.title} » ressort des avis`,
+        body: [
+          greeting,
+          `Dans les ${report.reviewCount} derniers avis ${report.sourceLabel} de ${report.subjectName}, un point revient plus que les autres : « ${top.title} », cité dans ${mentionsLabel}.${others > 0 ? ` ${others === 1 ? 'Un autre sujet ressort' : `${others} autres sujets ressortent`} nettement.` : ''}`,
+          `Le détail, avec les avis qui l’appuient, sans inscription : ${report.url}`,
+          'Je l’ai généré avec Qualio, l’outil que je construis pour ça. Est-ce que ça correspond à ce que vous observez ?',
+          signature,
+        ].join('\n\n'),
+      }
+    }
     return {
       subject: `${report.reviewCount} avis ${report.sourceLabel} de ${report.subjectName}, lus pour vous`,
       body: [
         greeting,
         `J’ai lu les ${report.reviewCount} derniers avis ${report.sourceLabel} de ${report.subjectName} et je les ai regroupés par sujet.`,
-        report.topProblem ? `Le point qui revient le plus : « ${report.topProblem.title} », mentionné dans ${report.topProblem.mentions} avis.${others > 0 ? ` ${others === 1 ? 'Un autre sujet ressort' : `${others} autres sujets ressortent`} nettement.` : ''}` : '',
         `Le rapport complet, avec les avis qui appuient chaque point : ${report.url}`,
         'Il est à vous, sans inscription ni engagement. Je l’ai fait avec Qualio, l’outil que je construis pour ce genre d’analyse.',
         'Est-ce que ça correspond à ce que vous observez de votre côté ?',
         signature,
-      ].filter(Boolean).join('\n\n'),
+      ].join('\n\n'),
     }
   }
   if (isAgency(companyName, companyNotes)) {
@@ -61,11 +76,9 @@ export function buildDraft({ fullName, companyName, companyNotes, followUpOf, ev
       subject: AGENCY_SUBJECT,
       body: [
         greeting,
-        'Quand une agence fait évoluer le site ou l’app d’un client, les retours utilisateurs arrivent souvent en vrac : emails, formulaires, avis. Difficile d’en tirer une priorité claire à présenter au client.',
-        'Qualio regroupe ces retours par thèmes et en sort trois actions prioritaires, chacune justifiée par les retours d’origine. Le résultat se partage au client par un simple lien.',
-        `Exemple concret : ${EXAMPLE_URL}`,
-        `Je peux préparer gratuitement un premier rapport pour l’un des clients de ${company}, à partir de ses avis publics, pour que vous jugiez sur pièce.`,
-        'Ça vous intéresserait de tester sur un projet ?',
+        'Pour justifier une évolution auprès d’un client, il faut des preuves. Or les retours utilisateurs sont éparpillés entre avis, e-mails et formulaires.',
+        `Qualio les transforme en un rapport partageable par lien : trois priorités, chacune appuyée par les avis d’origine. Exemple : ${EXAMPLE_URL}`,
+        `Je peux préparer gratuitement un premier rapport pour l’un des clients de ${company}, à partir de ses avis publics. Ça vous intéresserait ?`,
         signature,
       ].join('\n\n'),
     }
@@ -74,12 +87,9 @@ export function buildDraft({ fullName, companyName, companyNotes, followUpOf, ev
     subject: SUBJECTS[stableIndex(company)],
     body: [
       greeting,
-      'Les retours clients contiennent souvent des pistes d’amélioration précieuses. Entre les commentaires, les attentes récurrentes et les suggestions, il n’est toutefois pas toujours simple de savoir quoi prioriser.',
-      'C’est précisément ce que facilite Qualio : transformer les avis clients en trois actions prioritaires, accompagnées des retours qui les justifient.',
-      `Vous pouvez découvrir un exemple concret ici : ${EXAMPLE_URL}`,
-      `Je vous propose de réaliser gratuitement une première analyse des avis publics de ${company}, afin d’identifier trois pistes d’amélioration concrètes.`,
-      'Seriez-vous intéressé par un aperçu personnalisé, sans engagement ?',
+      `Savoir quoi corriger en premier à partir de ses avis clients prend du temps. Qualio en tire trois priorités, chacune appuyée par les avis d’origine. Exemple : ${EXAMPLE_URL}`,
+      `Je peux faire gratuitement l’analyse des avis publics de ${company}. Ça vous intéresse ?`,
       signature,
-    ].filter(Boolean).join('\n\n'),
+    ].join('\n\n'),
   }
 }

@@ -187,6 +187,48 @@ export function AcquisitionReportStudio({
           ) : undefined
         }
       >
+        {/* Raccourcis Cibles Semaine 1 */}
+        <div className="mb-4 rounded-xl border border-orange-500/20 bg-orange-500/5 p-3 dark:border-orange-500/10">
+          <p className="mb-2 text-xs font-semibold text-gray-700 dark:text-zinc-200">
+            🎯 Cibles prioritaires Semaine 1 (charger en 1 clic) :
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { name: 'ScanTicket', type: 'app_store' as const, id: '454155575' },
+              { name: 'Qlower', type: 'app_store' as const, id: '1544489613' },
+              { name: 'Mes notes de frais', type: 'app_store' as const, id: '1198308993' },
+              { name: 'ATTIX', type: 'app_store' as const, id: '6748462097' },
+              { name: 'Easy Quittance', type: 'app_store' as const, id: '1667273455' },
+              { name: 'Digidop', type: 'pasted' as const, label: 'Trustpilot & avis clients', url: 'https://fr.trustpilot.com/review/digidop.fr' },
+              { name: 'Ouiflow', type: 'pasted' as const, label: 'Retours projets clients', url: 'https://ouiflow.io' },
+              { name: 'Studio HB', type: 'pasted' as const, label: 'Avis clients & partenaires', url: 'https://www.studio-hb.com' },
+              { name: 'Miyette', type: 'pasted' as const, label: 'Trustpilot', url: 'https://fr.trustpilot.com/review/miyette-paris.com' },
+              { name: 'Flotte', type: 'pasted' as const, label: 'Trustpilot', url: 'https://fr.trustpilot.com/review/flotte.fr' },
+            ].map((shortcut) => (
+              <button
+                key={shortcut.name}
+                type="button"
+                onClick={() => {
+                  setGenerated(null)
+                  setSubjectName(shortcut.name)
+                  if (shortcut.type === 'app_store') {
+                    setSource('app_store')
+                    setAppQuery(shortcut.id)
+                    void runAppSearch(shortcut.id, country)
+                  } else {
+                    setSource('pasted')
+                    setSourceLabel(shortcut.label)
+                    setSourceUrl(shortcut.url)
+                  }
+                }}
+                className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-2xs hover:border-orange-500 hover:text-orange-600 dark:border-white/[0.08] dark:bg-[#16181E] dark:text-zinc-300 dark:hover:border-orange-400 dark:hover:text-orange-400"
+              >
+                {shortcut.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div role="tablist" aria-label="Source des avis publics" className="mb-5 flex flex-wrap gap-1.5 border-b border-gray-200/80 dark:border-white/[0.06] pb-3">
           <button
             type="button"

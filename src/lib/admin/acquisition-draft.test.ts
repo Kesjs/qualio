@@ -6,8 +6,8 @@ describe('brouillons de prospection', () => {
     const { subject, body } = buildDraft({ fullName: 'Léa', companyName: 'Maison Dubois', evidence: [{ label: 'Support client détecté', evidence: null, source_url: 'https://x.fr' }] })
     expect(['Une question sur vos retours clients', 'Une idée à partir de vos avis clients']).toContain(subject)
     expect(body).toContain('Bonjour Léa,')
-    expect(body).toContain('une première analyse des avis publics')
-    expect(body).toContain('aperçu personnalisé, sans engagement')
+    expect(body).toContain('l’analyse des avis publics de Maison Dubois')
+    expect(body).toContain('Ça vous intéresse ?')
     expect(body).not.toContain('signal')
     expect(body).toContain('Maison Dubois')
     expect(body.match(/\?/g)).toHaveLength(1)
@@ -37,11 +37,15 @@ describe('brouillons de prospection', () => {
       problemCount: 3,
     }
     const first = buildDraft({ fullName: 'Camille', companyName: 'Swile', report })
-    expect(first.subject).toBe('84 avis App Store de Swile, lus pour vous')
+    expect(first.subject).toBe('Swile : « Déconnexion après mise à jour iOS » revient dans 14 avis')
     expect(first.body).toContain('Déconnexion après mise à jour iOS')
     expect(first.body).toContain(report.url)
     expect(first.body).not.toContain(EXAMPLE_URL)
     expect(first.body.match(/\?/g)).toHaveLength(1)
+
+    // Si pas de problème extrait, repli sur l'objet général
+    const firstNoTop = buildDraft({ fullName: 'Camille', companyName: 'Swile', report: { ...report, topProblem: null } })
+    expect(firstNoTop.subject).toBe('84 avis App Store de Swile, lus pour vous')
 
     const follow = buildDraft({ fullName: 'Camille', companyName: 'Swile', followUpOf: { subject: first.subject }, report })
     expect(follow.subject).toBe(`Re: ${first.subject}`)

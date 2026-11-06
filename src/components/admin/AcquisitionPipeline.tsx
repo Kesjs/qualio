@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast as sonnerToast } from 'sonner'
 import { FOCUS } from '@/components/admin/ui'
 import { AcquisitionAdd } from '@/components/admin/AcquisitionAdd'
+import { AcquisitionCampaignTracker } from '@/components/admin/AcquisitionCampaignTracker'
 import { AcquisitionDrafts } from '@/components/admin/AcquisitionDrafts'
 import { AcquisitionQueue } from '@/components/admin/AcquisitionQueue'
 import { AcquisitionReportStudio } from '@/components/admin/AcquisitionReportStudio'
@@ -148,6 +149,15 @@ export function AcquisitionPipeline({ data }: { data: PipelineData }) {
           </p>
         </div>
       </section>
+
+      <AcquisitionCampaignTracker
+        data={data}
+        onCreateReport={(target) => {
+          setReportTarget(target)
+          setTab('queue')
+        }}
+        notify={notify}
+      />
 
       <AcquisitionReportStudio
         target={reportTarget}

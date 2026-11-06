@@ -40,6 +40,7 @@ export function AcquisitionQueue({
   const [includeShared, setIncludeShared] = useState(true)
   const [onlyWithReviews, setOnlyWithReviews] = useState(false)
   const [onlyWithEmail, setOnlyWithEmail] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'saas' | 'agency' | 'ecommerce'>('all')
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const working = progress !== null
 
@@ -60,6 +61,7 @@ export function AcquisitionQueue({
     setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
 
   const visibleItems = items.filter((item) => {
+    if (categoryFilter !== 'all' && item.category !== categoryFilter) return false
     const hasNamedContact = item.contacts.some((contact) => !contact.generic)
     if (!includeShared && item.contacts.length > 0 && !hasNamedContact) return false
     if (onlyWithReviews && item.reviewSources.length === 0 && !item.report) return false
@@ -165,6 +167,34 @@ export function AcquisitionQueue({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-gray-100 pb-3 dark:border-white/[0.06]">
+        <span className="text-xs font-semibold text-gray-500 dark:text-zinc-400">Filtrer par segment :</span>
+        {(
+          [
+            { id: 'all', label: `Tous (${items.length})` },
+            { id: 'saas', label: `SaaS B2B (${items.filter((i) => i.category === 'saas').length})` },
+            { id: 'agency', label: `Agences Web (${items.filter((i) => i.category === 'agency').length})` },
+            { id: 'ecommerce', label: `E-commerce D2C (${items.filter((i) => i.category === 'ecommerce').length})` },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setCategoryFilter(tab.id)
+              setSelected([])
+            }}
+            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+              categoryFilter === tab.id
+                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                : 'text-gray-600 hover:bg-gray-100 dark:text-zinc-400 dark:hover:bg-white/[0.06]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex min-h-10 items-center gap-2.5 text-sm font-semibold">
           <input
@@ -301,7 +331,9 @@ export function AcquisitionQueue({
                       >
                         {item.name}
                       </a>
-                      {item.isAgency && <Badge tone="info">Agence</Badge>}
+                      {item.category === 'saas' && <Badge tone="info">SaaS B2B</Badge>}
+                      {item.category === 'agency' && <Badge tone="accent">Agence</Badge>}
+                      {item.category === 'ecommerce' && <Badge tone="success">D2C</Badge>}
                       {item.relevanceScore != null && (
                         <Badge tone={scoreTone(item.relevanceScore)}>
                           <span className="font-mono tabular-nums">{item.relevanceScore}</span>
