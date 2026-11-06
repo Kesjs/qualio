@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Check, ChevronDown } from 'lucide-react'
 import type { PaidPlan } from '@/lib/billing/plans'
@@ -12,15 +12,33 @@ type Interval = 'month' | 'year'
 
 const CURRENCY = '€'
 
+function PricingAutoCheckout({
+  onAutoCheckout,
+}: {
+  onAutoCheckout: (plan: PaidPlan, nextInterval: Interval) => void
+}) {
+  const searchParams = useSearchParams()
+  const checkoutStarted = useRef(false)
+
+  useEffect(() => {
+    const requestedPlan = searchParams.get('plan')
+    const requestedInterval = searchParams.get('interval')
+    if (searchParams.get('checkout') !== '1' || !isPaidPlan(requestedPlan) || checkoutStarted.current) return
+    const nextInterval = requestedInterval === 'month' || requestedInterval === 'year' ? requestedInterval : 'month'
+    checkoutStarted.current = true
+    onAutoCheckout(requestedPlan, nextInterval)
+  }, [searchParams, onAutoCheckout])
+
+  return null
+}
+
 /** Carte de tarif partagée par la landing, la page tarifs et les réglages. */
 export function PricingCards() {
-  const searchParams = useSearchParams()
   const [interval, setInterval] = useState<Interval>('month')
   const [loadingPlan, setLoadingPlan] = useState<PaidPlan | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const checkoutStarted = useRef(false)
 
-  async function checkoutPlan(plan: PaidPlan, requestedInterval: Interval = interval) {
+  const checkoutPlan = useCallback(async (plan: PaidPlan, requestedInterval: Interval) => {
     setLoadingPlan(plan)
     setError(null)
     try {
@@ -47,25 +65,21 @@ export function PricingCards() {
     } finally {
       setLoadingPlan(null)
     }
-  }
+  }, [])
 
   async function choosePlan(plan: PaidPlan) {
     // Le bouton doit toujours suivre le vrai parcours d’abonnement :
     // authentification si nécessaire, puis Checkout Stripe.
-    await checkoutPlan(plan)
+    await checkoutPlan(plan, interval)
   }
 
-  // Après l’authentification, reprendre automatiquement l’intention payante
-  // au lieu de renvoyer l’utilisateur vers un dashboard Gratuit.
-  useEffect(() => {
-    const requestedPlan = searchParams.get('plan')
-    const requestedInterval = searchParams.get('interval')
-    if (searchParams.get('checkout') !== '1' || !isPaidPlan(requestedPlan) || checkoutStarted.current) return
-    const nextInterval = requestedInterval === 'month' || requestedInterval === 'year' ? requestedInterval : 'month'
-    if (requestedInterval === 'month' || requestedInterval === 'year') setInterval(requestedInterval)
-    checkoutStarted.current = true
-    void checkoutPlan(requestedPlan, nextInterval)
-  }, [searchParams])
+  const handleAutoCheckout = useCallback(
+    (plan: PaidPlan, nextInterval: Interval) => {
+      setInterval(nextInterval)
+      void checkoutPlan(plan, nextInterval)
+    },
+    [checkoutPlan],
+  )
 
   const free = BILLING_PLANS.free
   const pro = BILLING_PLANS.pro
@@ -90,6 +104,9 @@ export function PricingCards() {
 
   return (
     <div>
+      <Suspense fallback={null}>
+        <PricingAutoCheckout onAutoCheckout={handleAutoCheckout} />
+      </Suspense>
       <div className="mt-10 flex justify-center">
         <div role="group" aria-label="Période de facturation" className={`inline-flex border p-1 ${R_BUTTON}`} style={{ borderColor: LINE, background: '#fff' }}>
           {([['month', 'Mensuel'], ['year', 'Annuel']] as const).map(([value, label]) => (

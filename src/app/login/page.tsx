@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
@@ -68,6 +68,14 @@ function GithubButton({ onClick, loading }: { onClick: () => void; loading: bool
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  )
+}
+
+function LoginContent() {
   const searchParams = useSearchParams()
   const requestedMode = searchParams.get('mode')
   const initialMode: AuthMode =

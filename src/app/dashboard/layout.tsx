@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
@@ -49,7 +49,9 @@ export default function DashboardLayout({
 
         <main className="flex-1 overflow-y-auto p-5 pb-24 md:p-8 md:pb-8 bg-white dark:bg-black transition-colors">
           <div className="mx-auto max-w-7xl">
-            {children}
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
           </div>
         </main>
 
