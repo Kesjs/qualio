@@ -238,6 +238,30 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
   let discoveredLeaderName: string | null = null
   let finalRedirectHost: string | null = null
 
+  // Préserver les sources d'avis déjà attachées à cette entreprise (ex. découverte App Store)
+  try {
+    const { data: priorReviewSignals } = await admin
+      .from('acquisition_signals')
+      .select('signal_type, label, source_url')
+      .eq('company_id', company.id)
+      .in('signal_type', ['app_store', 'google_play', 'trustpilot', 'g2', 'capterra'])
+    const labelMap: Record<string, string> = {
+      app_store: 'App Store',
+      google_play: 'Google Play',
+      trustpilot: 'Trustpilot',
+      g2: 'G2',
+      capterra: 'Capterra',
+    }
+    for (const sig of priorReviewSignals ?? []) {
+      const t = String(sig.signal_type) as DiscoveredReviewSource['type']
+      if (labelMap[t] && sig.source_url && !reviewSources.has(t)) {
+        reviewSources.set(t, { type: t, label: labelMap[t], url: String(sig.source_url) })
+      }
+    }
+  } catch {
+    /* ignore optional pre-hydration */
+  }
+
   const pathsToScan = [...PATHS.slice(0, 11)]
   const scannedPaths = new Set<string>()
 
@@ -418,7 +442,7 @@ export async function scanCompany(admin: any, company: { id: string; domain: str
     const { data: currentRow } = await admin.from('acquisition_companies').select('source_notes').eq('id', company.id).maybeSingle()
     priorAiNote = currentRow?.source_notes ?? null
   }
-  const preservedPrefix = priorAiNote && /^IA Qualio/i.test(priorAiNote) ? priorAiNote.split(' · Scan :')[0] : null
+  const preservedPrefix = priorAiNote && /^(?:IA Qualio|App Store)/i.test(priorAiNote) ? priorAiNote.split(' · Scan :')[0] : null
   const scanSummary = [
     reviewSources.size ? `Sources d’avis : ${[...reviewSources.values()].map((s) => s.label).join(', ')}` : null,
     `${emails.size} email(s) public(s)`,

@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowTopRightOnSquareIcon, DocumentChartBarIcon } from '@heroicons/react/20/solid'
+import { ArrowTopRightOnSquareIcon, DocumentChartBarIcon, PencilSquareIcon } from '@heroicons/react/20/solid'
 import { Badge, BTN_PRIMARY, BTN_SECONDARY, EmptyState, TableRegion, TD, TH } from '@/components/admin/ui'
 import { BTN_SMALL, BTN_SMALL_ACCENT, CHECKBOX, plural, postJson, type Notify, type ReportTarget } from '@/components/admin/acquisition-shared'
 import type { QueueItem } from '@/lib/admin/acquisition'
+
+function cleanSourceNotes(notes: string): string {
+  return notes
+    .replace(/^IA Qualio \((?:[^)(]|\([^)(]*\))*\) · /, '')
+    .trim()
+}
 
 const STATE: Record<QueueItem['state'], { label: string; tone: 'warning' | 'accent' | 'danger'; action: string }> = {
   scan: { label: 'À scanner', tone: 'warning', action: 'Scanner & rédiger' },
@@ -61,6 +67,9 @@ export function AcquisitionQueue({
     return true
   })
   const allSelected = visibleItems.length > 0 && selected.length === visibleItems.length
+  const deadQueueIds = items
+    .filter((item) => item.state === 'empty' && item.contacts.length === 0 && item.reviewSources.length === 0 && !item.report)
+    .map((item) => item.id)
 
   function openContactModalFor(companyId: string, companyName: string, domain: string, contactId?: string, email?: string, fullName?: string) {
     setContactModal({ companyId, companyName, domain, contactId, email, fullName })
@@ -119,10 +128,11 @@ export function AcquisitionQueue({
     else notify('info', parts || 'Aucun nouveau brouillon à créer.')
   }
 
-  async function archive() {
-    const { ok, data } = await postJson('/api/admin/acquisition/archive', { companyIds: selected })
+  async function archiveIds(idsToArchive: string[]) {
+    if (!idsToArchive.length) return
+    const { ok, data } = await postJson('/api/admin/acquisition/archive', { companyIds: idsToArchive })
     if (!ok) return notify('error', data.error ?? 'Archivage impossible.')
-    setSelected([])
+    setSelected((prev) => prev.filter((id) => !idsToArchive.includes(id)))
     refresh()
     notify('success', `${plural(data.archived, 'prospect archivé', 'prospects archivés')}.`)
   }
@@ -143,7 +153,12 @@ export function AcquisitionQueue({
     return (
       <EmptyState
         title="File de prospection vide"
-        description="Lance une recherche ciblée (Agences, SaaS ou E-commerce) dans le panneau « Ajouter des prospects » ci-dessous."
+        description="Lance une recherche dans « Alimenter & qualifier le pipeline de prospects » ci-dessous (Découverte IA Web ou Apps & SaaS avec avis vérifiés)."
+        action={
+          <a href="#ajouter" className={BTN_PRIMARY}>
+            Trouver des prospects qualifiés
+          </a>
+        }
       />
     )
   }
@@ -168,9 +183,20 @@ export function AcquisitionQueue({
         >
           {working ? `Analyse ${progress.done + 1}/${progress.total}…` : `Préparer (${selected.length})`}
         </button>
-        <button type="button" onClick={() => void archive()} disabled={!selected.length || working} className={BTN_SECONDARY}>
+        <button type="button" onClick={() => void archiveIds(selected)} disabled={!selected.length || working} className={BTN_SECONDARY}>
           Archiver
         </button>
+        {deadQueueIds.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void archiveIds(deadQueueIds)}
+            disabled={working}
+            title="Archive les prospects déjà scannés qui n’ont ni email public ni fiche d’avis liée"
+            className={BTN_SMALL}
+          >
+            Écarter sans-issue (<span className="font-mono tabular-nums">{deadQueueIds.length}</span>)
+          </button>
+        )}
         <div className="ml-auto flex flex-wrap items-center gap-4">
           <label className="flex min-h-10 items-center gap-2 text-xs font-medium text-gray-600 dark:text-zinc-300">
             <input
@@ -285,7 +311,7 @@ export function AcquisitionQueue({
                     <span className="mt-0.5 block font-mono text-xs text-gray-500 dark:text-zinc-400">{item.domain}</span>
                     {item.notes && (
                       <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-zinc-400">
-                        {item.notes.replace(/^IA Qualio \([^)]+\) · /, '')}
+                        {cleanSourceNotes(item.notes)}
                       </p>
                     )}
                   </td>
@@ -341,9 +367,10 @@ export function AcquisitionQueue({
                             type="button"
                             onClick={() => openContactModalFor(item.id, item.name, item.domain, first.id, first.email, first.full_name ?? undefined)}
                             title="Modifier ce contact"
-                            className="inline-flex h-5 w-5 items-center justify-center rounded text-[11px] text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-zinc-200"
+                            aria-label={`Modifier le contact ${first.email}`}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-zinc-200"
                           >
-                            ✎
+                            <PencilSquareIcon className="h-3.5 w-3.5" aria-hidden />
                           </button>
                         </div>
                         {item.contacts.length > 1 && (

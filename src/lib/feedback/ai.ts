@@ -85,11 +85,15 @@ Règles strictes :
 // Keep the fallback chain on models supported by the production Gemini API.
 // The previous lite aliases returned 404 for the configured production key.
 export const GEMINI_PRIMARY_FALLBACK = 'gemini-3.8-flash'
-export const GEMINI_SECONDARY_FALLBACK = 'gemini-3.6-flash'
-export const GEMINI_TERTIARY_FALLBACK = 'gemini-3.5-flash-lite'
+export const GEMINI_SECONDARY_FALLBACK = 'gemini-3.5-flash-lite'
+export const GEMINI_TERTIARY_FALLBACK = 'gemini-3.1-flash-lite'
+
+const DEPRECATED_GEMINI_MODEL = /^gemini-(?:1\.|2\.|3\.6)/i
 
 export function getGeminiModelCandidates(configuredModel?: string) {
-  return Array.from(new Set([configuredModel || 'gemini-3.8-flash', GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK, GEMINI_TERTIARY_FALLBACK]))
+  const trimmed = configuredModel?.trim()
+  const preferred = trimmed && !DEPRECATED_GEMINI_MODEL.test(trimmed) ? trimmed : GEMINI_PRIMARY_FALLBACK
+  return Array.from(new Set([preferred, GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK, GEMINI_TERTIARY_FALLBACK]))
 }
 
 function getProviderStatus(error: unknown): number | null {
@@ -219,7 +223,7 @@ export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]
   let meta: FeedbackSynthesis['_meta'] | undefined
   if (provider === 'gemini') {
     if (!process.env.GEMINI_API_KEY) { console.error('[Feedback synthesis] GEMINI_API_KEY manquante : ajoutez-la dans les variables d’environnement Vercel.'); return null }
-    const model = process.env.GEMINI_FEEDBACK_MODEL || 'gemini-2.5-flash'
+    const model = process.env.GEMINI_FEEDBACK_MODEL || GEMINI_PRIMARY_FALLBACK
     return generateGeminiSynthesis(feedback, model)
   } else {
     if (!process.env.OPENAI_API_KEY) { console.error('[Feedback synthesis] OPENAI_API_KEY manquante : ajoutez-la dans les variables d’environnement Vercel (ou choisissez FEEDBACK_AI_PROVIDER=gemini).'); return null }

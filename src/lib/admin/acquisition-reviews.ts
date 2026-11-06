@@ -37,12 +37,13 @@ export function appStoreIdFrom(input: string): string | null {
   return match?.[1] ?? null
 }
 
-export async function searchAppStore(term: string, country = 'fr'): Promise<AppStoreApp[]> {
+export async function searchAppStore(term: string, country = 'fr', limit = 6): Promise<AppStoreApp[]> {
   const cc = COUNTRY.test(country) ? country : 'fr'
+  const clampedLimit = Math.min(Math.max(Math.floor(limit) || 6, 1), 200)
   const id = appStoreIdFrom(term)
   const url = id
     ? `https://itunes.apple.com/lookup?id=${id}&country=${cc}`
-    : `https://itunes.apple.com/search?term=${encodeURIComponent(term.trim().slice(0, 100))}&entity=software&country=${cc}&limit=6`
+    : `https://itunes.apple.com/search?term=${encodeURIComponent(term.trim().slice(0, 100))}&entity=software&country=${cc}&limit=${clampedLimit}`
   const response = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' })
   if (!response.ok) throw new Error(`L’App Store a répondu ${response.status}.`)
   const data = (await response.json()) as { results?: Array<Record<string, any>> }
