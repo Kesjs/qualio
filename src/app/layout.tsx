@@ -38,13 +38,13 @@ export const metadata: Metadata = {
     siteName: "Qualio",
     locale: "fr_FR",
     type: "website",
-    images: [{ url: "/social/qualio-x-banner.png", width: 1500, height: 500, alt: "Qualio — transformer les avis clients en décisions" }],
+    images: [{ url: "/social/qualio-og.png", width: 1200, height: 630, alt: "Qualio — des clients plus satisfaits grâce à leurs propres avis" }],
   },
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/social/qualio-x-banner.png"],
+    images: ["/social/qualio-og.png"],
   },
 };
 
