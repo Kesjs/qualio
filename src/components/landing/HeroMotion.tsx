@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 
 /*
- * Moment signature du hero : « Des avis dispersés » → « Une décision suivie ».
+ * Moment signature du hero : « Des clients plus satisfaits » → « grâce à leurs propres avis »
  *  - Le titre arrive mot par mot (CSS pur, visible dès le premier rendu, sans dépendre de React).
  *  - Des fragments d'avis entrent dispersés autour du titre puis se resserrent (grand écran seulement).
  *  - La maquette sous le titre se redresse au défilement.
@@ -30,15 +30,15 @@ function Words({ text, start }: { text: string; start: number }) {
 }
 
 export function HeroHeadline() {
-  const first = 'Des avis dispersés'
+  const first = 'Des clients plus satisfaits'
   const secondStart = 0.1 + first.split(' ').length * WORD_STEP + 0.12
   const markDelay = secondStart + 0.2
   return (
-    <h1 className="mx-auto text-[clamp(2.25rem,5.8vw,4.75rem)] font-semibold leading-[1.02] tracking-[-0.04em] [text-wrap:balance]">
-      <span className="block lg:whitespace-nowrap"><Words text={first} start={0.1} /></span>
+    <h1 className="mx-auto text-[clamp(2.25rem,5.2vw,4.25rem)] font-semibold leading-[1.02] tracking-[-0.04em] [text-wrap:balance]">
+      <span className="block"><Words text={first} start={0.1} /></span>
       <span className="mt-2 block text-[#c2410c]">
         <span className="lp-mark" style={{ '--d': `${markDelay}s` } as Vars}>
-          <Words text="Une décision suivie" start={secondStart} />
+          <Words text="grâce à leurs propres avis" start={secondStart} />
           <span className="lp-mark-dot" aria-hidden="true" style={{ '--d': `${markDelay + 0.85}s` } as Vars} />
         </span>
       </span>

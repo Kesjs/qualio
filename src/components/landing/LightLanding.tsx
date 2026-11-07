@@ -14,6 +14,7 @@ import { WidgetLiveDemo } from './WidgetLiveDemo'
 import { HeroVideo } from './HeroVideo'
 import { HeroFloaters, HeroFrame, HeroHeadline } from './HeroMotion'
 import { LiveMiniAudit } from './LiveMiniAudit'
+import { CycleSection } from './CycleSection'
 
 /**
  * Landing (`/`) : le hero est adapté au texte actuel tout en conservant la mise en page
@@ -62,7 +63,7 @@ export function LightLanding() {
           <div className="w-full">
             <HeroHeadline />
             <p className="hs-rise-now mx-auto mt-7 max-w-2xl text-base leading-relaxed sm:text-lg" style={{ color: MUTED, ['--d' as string]: '0.75s' }}>
-              Qualio regroupe vos retours, fait émerger les thèmes qui reviennent, propose des recommandations sourcées et vous aide à suivre ce que votre équipe décide ensuite.
+              Fini de relire des centaines d’avis à la main. Qualio repère ce qui revient, vous dit quoi améliorer en premier, et vous suivez l’effet sur vos prochains avis.
             </p>
             <div className="hs-rise-now mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" style={{ ['--d' as string]: '0.9s' }}>
               <PrimaryButton href={SIGNUP}>Commencer</PrimaryButton>
@@ -114,6 +115,9 @@ export function LightLanding() {
           ))}
         </ul>
       </section>
+
+      {/* 2a. Le cycle : un avis bien traité, c'est un client qui reste (le résultat avant le produit) */}
+      <CycleSection />
 
       {/* 2b. Mini-audit gratuit en direct (preuve immédiate sur ses propres avis) */}
       <LiveMiniAudit />

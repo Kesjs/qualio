@@ -17,10 +17,17 @@ function getSessionId() {
 
 export function PublicTracking({ widgetKey }: { widgetKey: string }) {
   const [consent, setConsent] = useState<Consent>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const saved = window.localStorage.getItem(CONSENT_KEY)
-    if (saved === 'accepted' || saved === 'refused') setConsent(saved)
+    if (saved === 'accepted' || saved === 'refused') {
+      setConsent(saved)
+      return
+    }
+    // Le visiteur voit d'abord l'offre : la barre n'apparaît qu'après un court instant.
+    const id = window.setTimeout(() => setReady(true), 2500)
+    return () => window.clearTimeout(id)
   }, [])
 
   useEffect(() => {
@@ -54,9 +61,9 @@ export function PublicTracking({ widgetKey }: { widgetKey: string }) {
     setConsent(value)
   }
 
-  if (consent) return null
-  return <aside role="dialog" aria-label="Préférences de mesure d’audience" className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-[#e6e6ea] bg-white p-5 shadow-[0_18px_55px_rgba(11,11,12,0.16)] sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-    <p className="text-sm leading-6 text-[#62626b]">Qualio mesure uniquement les visites et les clics essentiels pour améliorer le site. Aucun outil publicitaire ni profilage.</p>
-    <div className="flex shrink-0 gap-2"><button type="button" onClick={() => choose('refused')} className="min-h-10 rounded-lg px-3 text-xs font-semibold text-[#62626b] hover:bg-[#f6f6f7]">Refuser</button><button type="button" onClick={() => choose('accepted')} className="min-h-10 rounded-lg bg-[#18181b] px-3 text-xs font-semibold text-white hover:bg-black">Accepter</button></div>
+  if (consent || !ready) return null
+  return <aside role="dialog" aria-label="Préférences de mesure d’audience" className="fixed inset-x-3 z-[60] mx-auto flex max-w-xl items-center gap-3 rounded-xl border border-[#e6e6ea] bg-white px-3.5 py-2.5 shadow-[0_8px_30px_rgba(11,11,12,0.14)] sm:inset-x-4 sm:max-w-2xl sm:gap-6 sm:px-4" style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+    <p className="min-w-0 flex-1 text-xs leading-snug text-[#62626b]">Nous mesurons les visites et clics essentiels, sans publicité ni profilage. <a href="/confidentialite" className="font-semibold underline underline-offset-2">En savoir plus</a></p>
+    <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => choose('refused')} className="min-h-9 rounded-lg px-2.5 text-xs font-semibold text-[#62626b] hover:bg-[#f6f6f7]">Refuser</button><button type="button" onClick={() => choose('accepted')} className="min-h-9 rounded-lg bg-[#18181b] px-3 text-xs font-semibold text-white hover:bg-black">Accepter</button></div>
   </aside>
 }
