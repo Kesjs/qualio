@@ -1,7 +1,7 @@
 import { BOUNCE_RATE_WINDOW_DAYS } from '@/lib/admin/acquisition'
 
 /** Au-delà de ce taux de rebond (sur 30 jours, 10 envois minimum), plus aucun envoi : la réputation du domaine passe avant tout. */
-export const BOUNCE_PAUSE_RATE = 10
+export const BOUNCE_PAUSE_RATE = 25
 export const BOUNCE_PAUSE_MIN_SENT = 10
 
 type ContactLike = { email?: string | null; email_status?: string | null; email_source_url?: string | null }
