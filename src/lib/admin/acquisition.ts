@@ -343,7 +343,7 @@ export async function getAcquisitionPipeline(): Promise<PipelineData> {
     delivered: messages.filter((message) => message.deliveredAt).length,
     bounced,
     bounceRate,
-    pausedForBounces: recentSent.length >= 10 && bounceRate > 10,
+    pausedForBounces: recentSent.length >= 10 && bounceRate > 25,
     replied,
     replyRate: reached ? Math.round((replied / reached) * 100) : 0,
     drafts: messages.filter((message) => message.status === 'draft' || message.status === 'approved').length,
