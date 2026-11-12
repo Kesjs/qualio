@@ -20,6 +20,7 @@ import { APP_STORE_COUNTRIES, parsePastedReviews, type AppStoreApp } from '@/lib
 import type { PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
+import { Select } from '@/components/dashboard/Select'
 import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { Banner, btnQuiet, GeneratingPanel, surface } from '@/components/dashboard/weekly/bricks'
 import {
@@ -48,6 +49,11 @@ type ClaimPreview = {
 
 const DRAFT_KEY = 'qualio:onboarding-draft'
 const SELECTED_SITE_KEY = 'qualio:selected-site'
+
+const APP_STORE_COUNTRY_OPTIONS = APP_STORE_COUNTRIES.map((c) => ({
+  value: c.code,
+  label: `${c.label} (${c.code.toUpperCase()})`,
+}))
 
 async function readJson(response: Response) {
   return response.json().catch(() => ({}))
@@ -844,18 +850,16 @@ Consignes :
                   </p>
 
                   <form onSubmit={(e) => void searchIosApps(e)} className="flex flex-col gap-2.5 sm:flex-row">
-                    <select
-                      aria-label="Pays de l’App Store"
+                    <Select
+                      label="Pays de l’App Store"
                       value={appCountry}
-                      onChange={(e) => setAppCountry(e.target.value)}
-                      className={`${selectClass} min-h-11 sm:w-36`}
-                    >
-                      {APP_STORE_COUNTRIES.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.label} ({c.code.toUpperCase()})
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setAppCountry}
+                      options={APP_STORE_COUNTRY_OPTIONS}
+                      disabled={searchingApps || busy}
+                      className="w-full sm:w-48 sm:shrink-0"
+                      buttonClassName={`${selectClass} !min-h-11 w-full`}
+                      listClassName="min-w-[210px]"
+                    />
                     <input
                       value={appQuery}
                       onChange={(e) => setAppQuery(e.target.value)}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Lock, Search, Sparkles, Star } from 'lucide-react'
 import { APP_STORE_COUNTRIES, parsePastedReviews, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
 import { REPORT_MIN_REVIEWS, type ReportProblem } from '@/lib/admin/acquisition-report'
+import { Select } from '@/components/dashboard/Select'
 import {
   ACCENT,
   ACCENT_INK,
@@ -38,6 +39,11 @@ type MiniAuditResult = {
 }
 
 const SAMPLE_APPS = ['Qonto', 'Doctolib', 'Pennylane'] as const
+
+const COUNTRY_OPTIONS = APP_STORE_COUNTRIES.map((c) => ({
+  value: c.code,
+  label: `${c.label} (${c.code.toUpperCase()})`,
+}))
 
 export function LiveMiniAudit() {
   const [mode, setMode] = useState<Mode>('app_store')
@@ -204,19 +210,16 @@ export function LiveMiniAudit() {
           {mode === 'app_store' && (
             <div className="mt-5 space-y-4">
               <form onSubmit={onSubmitSearch} className="flex flex-col gap-2.5 sm:flex-row">
-                <select
-                  aria-label="Pays de l’App Store"
+                <Select
+                  label="Pays de l’App Store"
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className={`h-11 border bg-white px-3 text-sm font-medium sm:w-36 ${R_BUTTON} ${FOCUS}`}
-                  style={{ borderColor: LINE, color: INK }}
-                >
-                  {APP_STORE_COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label} ({c.code.toUpperCase()})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCountry}
+                  options={COUNTRY_OPTIONS}
+                  disabled={searching || analyzing}
+                  className="w-full sm:w-48 sm:shrink-0"
+                  buttonClassName={`!h-11 !text-sm font-medium !border-[#e6e6ea] !text-[#0b0b0c] hover:!border-[#0b0b0c] ${R_BUTTON}`}
+                  listClassName="!min-w-[210px] !border-[#e6e6ea] !shadow-xl !shadow-black/10"
+                />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
