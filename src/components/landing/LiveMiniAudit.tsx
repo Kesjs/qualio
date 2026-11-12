@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Lock, Search, Sparkles, Star } from 'lucide-react'
-import { APP_STORE_COUNTRIES, parsePastedReviews, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
+import { APP_STORE_COUNTRIES, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
 import { REPORT_MIN_REVIEWS, type ReportProblem } from '@/lib/admin/acquisition-report'
 import { Select } from '@/components/dashboard/Select'
 import {
@@ -22,8 +22,6 @@ import {
   SOFT,
 } from './tokens'
 import { Eyebrow, Reveal, Section, UnderlineWord } from './primitives'
-
-type Mode = 'app_store' | 'pasted'
 
 type MiniAuditResult = {
   subjectName: string
@@ -46,15 +44,10 @@ const COUNTRY_OPTIONS = APP_STORE_COUNTRIES.map((c) => ({
 }))
 
 export function LiveMiniAudit() {
-  const [mode, setMode] = useState<Mode>('app_store')
   const [country, setCountry] = useState('fr')
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [apps, setApps] = useState<AppStoreApp[]>([])
-
-  const [subjectName, setSubjectName] = useState('')
-  const [pastedText, setPastedText] = useState('')
-  const detectedCount = useMemo(() => (pastedText.trim() ? parsePastedReviews(pastedText).length : 0), [pastedText])
 
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzingLabel, setAnalyzingLabel] = useState('')
@@ -80,7 +73,7 @@ export function LiveMiniAudit() {
       const found = body.apps ?? []
       setApps(found)
       if (found.length === 0) {
-        setError('Aucune application trouvée sur cet App Store. Essayez un autre nom ou collez vos avis.')
+        setError('Aucune application trouvée sur cet App Store. Essayez un autre nom.')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Recherche App Store indisponible.')
@@ -121,36 +114,6 @@ export function LiveMiniAudit() {
     }
   }
 
-  async function runPastedAudit(event: FormEvent) {
-    event.preventDefault()
-    if (detectedCount < REPORT_MIN_REVIEWS) {
-      setError(`Collez au moins ${REPORT_MIN_REVIEWS} avis séparés par une ligne vide pour obtenir un diagnostic fiable.`)
-      return
-    }
-    setError(null)
-    setResult(null)
-    setAnalyzing(true)
-    setAnalyzingLabel('Regroupement des retours par thème et extraction des preuves…')
-    try {
-      const response = await fetch('/api/public/mini-audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'pasted',
-          subjectName: subjectName.trim() || 'Mon produit',
-          text: pastedText,
-        }),
-      })
-      const body = (await response.json().catch(() => ({}))) as MiniAuditResult & { error?: string }
-      if (!response.ok) throw new Error(body.error ?? 'L’analyse n’a pas pu aboutir.')
-      setResult(body)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'L’analyse n’a pas pu aboutir.')
-    } finally {
-      setAnalyzing(false)
-    }
-  }
-
   const unlockHref = result?.token
     ? `${SIGNUP}&utm_source=mini_audit&redirectTo=${encodeURIComponent(`/onboarding?report=${result.token}`)}`
     : `${SIGNUP}&utm_source=mini_audit`
@@ -165,183 +128,120 @@ export function LiveMiniAudit() {
           Voyez le <UnderlineWord>problème n° 1</UnderlineWord> qui ressort de vos vrais avis.
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed" style={{ color: MUTED }}>
-          Cherchez une application iOS ou collez quelques avis Trustpilot, Google ou G2 : Qualio extrait immédiatement la friction principale, les verbatims qui la prouvent et l’action produit recommandée.
+          Indiquez une application iOS : Qualio extrait immédiatement la friction principale, les verbatims qui la prouvent et l’action produit recommandée.
         </p>
       </Reveal>
 
       <Reveal delay={0.06} variant="focus" className="mx-auto mt-10 max-w-4xl">
         <div className={`border bg-white p-5 sm:p-8 ${R_CARD}`} style={{ borderColor: LINE }}>
-          {/* Sélecteur de source */}
+          {/* En-tête de l’aperçu */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: LINE }}>
-            <div role="tablist" aria-label="Source de l’aperçu gratuit" className="inline-flex rounded-lg p-1" style={{ background: SOFT }}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'app_store'}
-                onClick={() => {
-                  setMode('app_store')
-                  setError(null)
-                }}
-                className={`px-3.5 py-2 text-xs font-semibold transition ${R_CHIP} ${FOCUS}`}
-                style={mode === 'app_store' ? { background: '#fff', color: INK, boxShadow: '0 1px 2px rgba(11,11,12,0.06)' } : { color: MUTED }}
-              >
-                Application iOS (App Store)
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'pasted'}
-                onClick={() => {
-                  setMode('pasted')
-                  setError(null)
-                }}
-                className={`px-3.5 py-2 text-xs font-semibold transition ${R_CHIP} ${FOCUS}`}
-                style={mode === 'pasted' ? { background: '#fff', color: INK, boxShadow: '0 1px 2px rgba(11,11,12,0.06)' } : { color: MUTED }}
-              >
-                Coller mes avis (Trustpilot, G2, Google…)
-              </button>
-            </div>
+            <span className="inline-flex items-center gap-2 text-xs font-semibold" style={{ color: INK }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: ACCENT }} />
+              Application iOS (App Store)
+            </span>
             <span className="font-mono text-xs tabular-nums" style={{ color: MUTED }}>
               Gratuit · résultat en ~10 s
             </span>
           </div>
 
-          {/* Mode 1 : Recherche App Store */}
-          {mode === 'app_store' && (
-            <div className="mt-5 space-y-4">
-              <form onSubmit={onSubmitSearch} className="flex flex-col gap-2.5 sm:flex-row">
-                <Select
-                  label="Pays de l’App Store"
-                  value={country}
-                  onChange={setCountry}
-                  options={COUNTRY_OPTIONS}
-                  disabled={searching || analyzing}
-                  className="w-full sm:w-48 sm:shrink-0"
-                  buttonClassName={`!h-11 !text-sm font-medium !border-[#e6e6ea] !text-[#0b0b0c] hover:!border-[#0b0b0c] ${R_BUTTON}`}
-                  listClassName="!min-w-[210px] !border-[#e6e6ea] !shadow-xl !shadow-black/10"
-                />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Nom de votre app iOS ou lien apps.apple.com…"
-                  className={`h-11 flex-1 border bg-white px-3.5 text-sm outline-none transition focus:border-[#0b0b0c] ${R_BUTTON} ${FOCUS}`}
-                  style={{ borderColor: LINE, color: INK }}
-                />
-                <button
-                  type="submit"
-                  disabled={searching || analyzing}
-                  className={`inline-flex h-11 items-center justify-center gap-2 px-5 text-sm font-semibold text-white transition hover:bg-[#a8370a] disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
-                  style={{ background: ACCENT_INK }}
-                >
-                  <Search size={15} aria-hidden="true" />
-                  {searching ? 'Recherche…' : 'Chercher'}
-                </button>
-              </form>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: MUTED }}>
-                <span>Pas d’app sous la main ? Tester sur :</span>
-                {SAMPLE_APPS.map((sample) => (
-                  <button
-                    key={sample}
-                    type="button"
-                    disabled={searching || analyzing}
-                    onClick={() => {
-                      setQuery(sample)
-                      void searchIos(sample)
-                    }}
-                    className={`border bg-white px-2.5 py-1 font-medium transition hover:border-[#0b0b0c] disabled:opacity-50 ${R_CHIP} ${FOCUS}`}
-                    style={{ borderColor: LINE, color: INK }}
-                  >
-                    {sample}
-                  </button>
-                ))}
-              </div>
-
-              {apps.length > 0 && !analyzing && (
-                <ul className="divide-y rounded-xl border" style={{ borderColor: LINE }}>
-                  {apps.map((app) => (
-                    <li
-                      key={app.id}
-                      className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between"
-                      style={{ borderColor: LINE }}
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        {app.icon ? (
-                          <img src={app.icon} alt="" className="h-10 w-10 shrink-0 rounded-xl border" style={{ borderColor: LINE }} />
-                        ) : (
-                          <span className="h-10 w-10 shrink-0 rounded-xl" style={{ background: SOFT }} />
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold" style={{ color: INK }}>
-                            {app.name}
-                          </p>
-                          <p className="flex flex-wrap items-center gap-2 text-xs" style={{ color: MUTED }}>
-                            <span className="truncate">{app.seller}</span>
-                            {app.rating != null && (
-                              <span className="inline-flex items-center gap-1 font-mono tabular-nums">
-                                <Star size={12} fill={ACCENT} color={ACCENT} aria-hidden="true" />
-                                {app.rating.toFixed(1)}
-                              </span>
-                            )}
-                            {app.ratingCount != null && (
-                              <span className="font-mono tabular-nums">{app.ratingCount.toLocaleString('fr-FR')} notes</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void runAppAudit(app)}
-                        disabled={analyzing}
-                        className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 px-4 text-xs font-semibold text-white transition hover:bg-[#27272a] disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
-                        style={{ background: INK }}
-                      >
-                        <Sparkles size={14} aria-hidden="true" />
-                        Analyser les avis récents
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {/* Mode 2 : Coller des avis */}
-          {mode === 'pasted' && (
-            <form onSubmit={(e) => void runPastedAudit(e)} className="mt-5 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-                <input
-                  value={subjectName}
-                  onChange={(e) => setSubjectName(e.target.value)}
-                  placeholder="Nom de votre produit ou boutique (facultatif)"
-                  className={`h-11 border bg-white px-3.5 text-sm outline-none transition focus:border-[#0b0b0c] ${R_BUTTON} ${FOCUS}`}
-                  style={{ borderColor: LINE, color: INK }}
-                />
-                <span className="font-mono text-xs font-medium tabular-nums" style={{ color: detectedCount >= REPORT_MIN_REVIEWS ? ACCENT_INK : MUTED }}>
-                  {detectedCount} / {REPORT_MIN_REVIEWS} avis minimum
-                </span>
-              </div>
-              <textarea
-                value={pastedText}
-                onChange={(e) => setPastedText(e.target.value)}
-                rows={5}
-                placeholder={`Collez au moins ${REPORT_MIN_REVIEWS} avis séparés par une ligne vide :\n\nLa livraison était rapide mais impossible de suivre le colis depuis son mobile.\n\nLe service client répond vite, par contre le formulaire de retour demande trois fois le numéro de commande…`}
-                className={`w-full border bg-white p-3.5 text-sm leading-6 outline-none transition focus:border-[#0b0b0c] ${R_BUTTON} ${FOCUS}`}
+          {/* Recherche App Store */}
+          <div className="mt-5 space-y-4">
+            <form onSubmit={onSubmitSearch} className="flex flex-col gap-2.5 sm:flex-row">
+              <Select
+                label="Pays de l’App Store"
+                value={country}
+                onChange={setCountry}
+                options={COUNTRY_OPTIONS}
+                disabled={searching || analyzing}
+                className="w-full sm:w-48 sm:shrink-0"
+                buttonClassName={`!h-11 !text-sm font-medium !border-[#e6e6ea] !text-[#0b0b0c] hover:!border-[#0b0b0c] ${R_BUTTON}`}
+                listClassName="!min-w-[210px] !border-[#e6e6ea] !shadow-xl !shadow-black/10"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Nom de votre app iOS ou lien apps.apple.com…"
+                className={`h-11 flex-1 border bg-white px-3.5 text-sm outline-none transition focus:border-[#0b0b0c] ${R_BUTTON} ${FOCUS}`}
                 style={{ borderColor: LINE, color: INK }}
               />
               <button
                 type="submit"
-                disabled={analyzing || detectedCount < REPORT_MIN_REVIEWS}
+                disabled={searching || analyzing}
                 className={`inline-flex h-11 items-center justify-center gap-2 px-5 text-sm font-semibold text-white transition hover:bg-[#a8370a] disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
                 style={{ background: ACCENT_INK }}
               >
-                <Sparkles size={15} aria-hidden="true" />
-                {detectedCount >= REPORT_MIN_REVIEWS
-                  ? `Extraire le problème n° 1 sur ${detectedCount} avis`
-                  : `Collez au moins ${REPORT_MIN_REVIEWS} avis`}
+                <Search size={15} aria-hidden="true" />
+                {searching ? 'Recherche…' : 'Chercher'}
               </button>
             </form>
-          )}
+
+            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: MUTED }}>
+              <span>Pas d’app sous la main ? Tester sur :</span>
+              {SAMPLE_APPS.map((sample) => (
+                <button
+                  key={sample}
+                  type="button"
+                  disabled={searching || analyzing}
+                  onClick={() => {
+                    setQuery(sample)
+                    void searchIos(sample)
+                  }}
+                  className={`border bg-white px-2.5 py-1 font-medium transition hover:border-[#0b0b0c] disabled:opacity-50 ${R_CHIP} ${FOCUS}`}
+                  style={{ borderColor: LINE, color: INK }}
+                >
+                  {sample}
+                </button>
+              ))}
+            </div>
+
+            {apps.length > 0 && !analyzing && (
+              <ul className="divide-y rounded-xl border" style={{ borderColor: LINE }}>
+                {apps.map((app) => (
+                  <li
+                    key={app.id}
+                    className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between"
+                    style={{ borderColor: LINE }}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      {app.icon ? (
+                        <img src={app.icon} alt="" className="h-10 w-10 shrink-0 rounded-xl border" style={{ borderColor: LINE }} />
+                      ) : (
+                        <span className="h-10 w-10 shrink-0 rounded-xl" style={{ background: SOFT }} />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold" style={{ color: INK }}>
+                          {app.name}
+                        </p>
+                        <p className="flex flex-wrap items-center gap-2 text-xs" style={{ color: MUTED }}>
+                          <span className="truncate">{app.seller}</span>
+                          {app.rating != null && (
+                            <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                              <Star size={12} fill={ACCENT} color={ACCENT} aria-hidden="true" />
+                              {app.rating.toFixed(1)}
+                            </span>
+                          )}
+                          {app.ratingCount != null && (
+                            <span className="font-mono tabular-nums">{app.ratingCount.toLocaleString('fr-FR')} notes</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void runAppAudit(app)}
+                      disabled={analyzing}
+                      className={`inline-flex h-10 shrink-0 items-center justify-center gap-2 px-4 text-xs font-semibold text-white transition hover:bg-[#27272a] disabled:opacity-50 ${R_BUTTON} ${FOCUS}`}
+                      style={{ background: INK }}
+                    >
+                      <Sparkles size={14} aria-hidden="true" />
+                      Analyser les avis récents
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {/* Erreur éventuelle */}
           {error && (
