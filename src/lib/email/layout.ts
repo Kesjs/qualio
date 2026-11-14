@@ -43,7 +43,7 @@ export function reportCardSummary(card: ReportCard) {
 /** Carte récapitulative : image cliquable + bloc texte. Le bloc texte reste lisible quand les images sont bloquées (cas courant en prospection à froid). */
 function renderReportCardHtml(card: ReportCard, trackingUrl?: string) {
   const link = (inner: string) => (trackingUrl ? `<a href="${escapeHtml(trackingUrl)}" style="text-decoration:none;color:inherit">${inner}</a>` : inner)
-  const image = link(`<img src="${escapeHtml(card.imageUrl)}" width="548" alt="${escapeHtml(reportCardSummary(card))}" style="display:block;width:100%;max-width:548px;height:auto;border:0;border-radius:10px" />`)
+  const image = link(`<img src="${escapeHtml(card.imageUrl)}" width="548" alt="${escapeHtml(reportCardSummary(card))}" style="display:block;width:100%;max-width:548px;height:auto;border:1px solid #e7e2dc;border-radius:10px" />`)
   const rows = card.problems.map((problem, index) => `<tr><td valign="top" style="padding:6px 10px 6px 0;font-size:14px;line-height:1.5;font-weight:700;color:#c2410c;width:18px">${index + 1}.</td><td style="padding:6px 0;font-size:14px;line-height:1.5;color:#292524">${escapeHtml(problem.title)} <span style="color:#78716c">· ${escapeHtml(plural(problem.mentions, 'avis', 'avis'))}</span></td></tr>`).join('')
   const quote = card.quote
     ? `<p style="margin:14px 0 0;padding:10px 14px;border-left:3px solid #fdba74;background:#fffaf6;font-size:14px;line-height:1.6;font-style:italic;color:#44403c">« ${escapeHtml(card.quote.text)} »${card.quote.rating != null ? ` <span style="font-style:normal;color:#78716c">(${card.quote.rating}/5)</span>` : ''}</p>`

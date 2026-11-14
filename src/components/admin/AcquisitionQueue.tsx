@@ -42,7 +42,7 @@ export function AcquisitionQueue({
   const [onlyWithReviews, setOnlyWithReviews] = useState(false)
   const [onlyWithEmail, setOnlyWithEmail] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'saas' | 'agency' | 'ecommerce'>('all')
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [progress, setProgress] = useState<{ mode: 'prepare' | 'report'; done: number; total: number } | null>(null)
   const working = progress !== null
 
   // Modal d'ajout ou modification manuelle de contact
@@ -109,7 +109,7 @@ export function AcquisitionQueue({
     let noEmail = 0
     let existing = 0
     for (let index = 0; index < ids.length; index += 1) {
-      setProgress({ done: index, total: ids.length })
+      setProgress({ mode: 'prepare', done: index, total: ids.length })
       const { ok, data } = await postJson('/api/admin/acquisition/prepare', { companyId: ids[index] })
       if (!ok) {
         setProgress(null)
@@ -152,7 +152,7 @@ export function AcquisitionQueue({
     for (let index = 0; index < ids.length; index += 1) {
       const item = items.find((candidate) => candidate.id === ids[index])
       if (!item) continue
-      setProgress({ done: index, total: ids.length })
+      setProgress({ mode: 'report', done: index, total: ids.length })
       const app = item.report ? null : appStoreSourceOf(item)
       if (app) {
         const { ok } = await postJson('/api/admin/acquisition/reports', {
@@ -269,16 +269,17 @@ export function AcquisitionQueue({
           disabled={!selected.length || working}
           className={BTN_PRIMARY}
         >
-          {working ? `Analyse ${progress.done + 1}/${progress.total}…` : `Préparer (${selected.length})`}
+          {progress?.mode === 'prepare' ? `Analyse ${progress.done + 1}/${progress.total}…` : `Préparer (${selected.length})`}
         </button>
         <button
           type="button"
           onClick={() => void prepareWithReport(selectedAppStoreIds)}
           disabled={!selectedAppStoreIds.length || working}
           title="Pour les apps App Store sélectionnées : génère le rapport d’avis puis le brouillon, prêts à relire"
-          className={BTN_PRIMARY}
+          className={`${BTN_SECONDARY} gap-1.5`}
         >
-          {`Rapport + brouillon (${selectedAppStoreIds.length})`}
+          <DocumentChartBarIcon className="h-4 w-4 text-[#c2410c] dark:text-[#ff9a66]" aria-hidden />
+          {progress?.mode === 'report' ? `Rapport ${progress.done + 1}/${progress.total}…` : `Rapport + brouillon (${selectedAppStoreIds.length})`}
         </button>
         <button type="button" onClick={() => void archiveIds(selected)} disabled={!selected.length || working} className={BTN_SECONDARY}>
           Archiver
@@ -517,14 +518,20 @@ export function AcquisitionQueue({
                         <DocumentChartBarIcon className="h-3.5 w-3.5 text-[#c2410c] dark:text-[#ff9a66]" aria-hidden />
                         {item.report ? 'Refaire rapport' : 'Créer rapport'}
                       </button>
-                      {!item.report && appStoreSourceOf(item) && (
-                        <button type="button" onClick={() => void prepareWithReport([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
-                          Rapport + brouillon
+                      {!item.report && appStoreSourceOf(item) ? (
+                        <>
+                          <button type="button" onClick={() => void prepareWithReport([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
+                            Rapport + brouillon
+                          </button>
+                          <button type="button" onClick={() => void prepare([item.id])} disabled={working} className={BTN_SMALL}>
+                            {actionLabel}
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" onClick={() => void prepare([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
+                          {actionLabel}
                         </button>
                       )}
-                      <button type="button" onClick={() => void prepare([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
-                        {actionLabel}
-                      </button>
                     </div>
                   </td>
                 </tr>

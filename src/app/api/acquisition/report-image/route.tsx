@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   return new ImageResponse(
     (
-      <div style={{ width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column', background: '#ffffff', padding: 56, color: INK }}>
+      <div style={{ width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column', background: '#ffffff', border: `2px solid ${LINE}`, borderRadius: 24, padding: 54, color: INK }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', fontSize: 36, fontWeight: 700, color: ACCENT }}>Qualio</div>
           <div style={{ display: 'flex', fontSize: 26, color: MUTED }}>{`Analyse des avis ${card.sourceLabel}`}</div>
