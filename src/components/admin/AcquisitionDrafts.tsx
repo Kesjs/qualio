@@ -6,6 +6,7 @@ import { Badge, BTN_PRIMARY, BTN_SECONDARY, EmptyState, FIELD } from '@/componen
 import { BTN_SMALL, CHECKBOX, plural, postJson, type Notify, type ReportTarget } from '@/components/admin/acquisition-shared'
 import type { PipelineMessage } from '@/lib/admin/acquisition'
 import { renderAcquisitionEmail } from '@/lib/email/layout'
+import { reportTokenFromBody, type ReportCard } from '@/lib/admin/acquisition-report-card'
 import { GENERIC_EMAIL, isAgency } from '@/lib/admin/acquisition-draft'
 
 const MAX_SEND = 25
@@ -321,7 +322,18 @@ export function AcquisitionDrafts({
 }
 
 function EmailPreview({ subject, body }: { subject: string; body: string }) {
-  const { html } = renderAcquisitionEmail({ subject, body, trackingUrl: '#apercu', unsubscribeUrl: '#desinscription' })
+  const [card, setCard] = useState<ReportCard | null>(null)
+  const reportToken = reportTokenFromBody(body)
+  useEffect(() => {
+    if (!reportToken) { setCard(null); return }
+    let cancelled = false
+    fetch(`/api/admin/acquisition/report-card?token=${encodeURIComponent(reportToken)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (!cancelled) setCard(data?.card ?? null) })
+      .catch(() => { if (!cancelled) setCard(null) })
+    return () => { cancelled = true }
+  }, [reportToken])
+  const { html } = renderAcquisitionEmail({ subject, body, trackingUrl: '#apercu', unsubscribeUrl: '#desinscription', card })
   return (
     <div className="rounded-xl border border-gray-200/90 bg-gray-50 p-2 text-left dark:border-white/[0.08] dark:bg-[#101010]">
       <div className="mb-2 flex items-center justify-between px-2 font-mono text-[11px] text-gray-500 dark:text-zinc-400">

@@ -34,6 +34,26 @@ describe('email de prospection', () => {
     expect(withReport.html).toContain('Voir l’analyse de vos avis')
     expect(withReport.html).toContain('to=%2Frapport%2Ftok_1234567890123456')
   })
+  it('ajoute la carte récap (image cliquable + priorités) quand un rapport est fourni, en échappant le contenu', () => {
+    const card = {
+      token: 'tok_1234567890123456',
+      subjectName: 'App <b>Test</b>',
+      sourceLabel: 'App Store',
+      reviewCount: 120,
+      averageRating: 3.8,
+      distribution: [10, 8, 12, 40, 50],
+      problems: [{ title: 'Synchronisation défaillante', mentions: 14 }, { title: 'Prix jugé trop élevé', mentions: 9 }],
+      quote: { text: 'Impossible de synchroniser mes données', rating: 2 },
+      reportUrl: 'https://tryqualio.pro/rapport/tok_1234567890123456',
+      imageUrl: 'https://tryqualio.pro/api/acquisition/report-image?t=tok_1234567890123456',
+    }
+    const mail = buildProspectMail({ messageId: ID, subject: 'S', body: 'Bonjour,\n\nhttps://tryqualio.pro/rapport/tok_1234567890123456', from: 'a@b.fr', card })
+    expect(mail.html).toContain('report-image?t=tok_1234567890123456')
+    expect(mail.html).toContain('3,8/5')
+    expect(mail.html).toContain('Synchronisation défaillante')
+    expect(mail.html).not.toContain('<b>Test</b>')
+    expect(mail.text).toContain('Prix jugé trop élevé')
+  })
 })
 
 describe('réponses entrantes', () => {

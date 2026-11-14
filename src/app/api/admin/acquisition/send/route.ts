@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { effectiveDailyLimit, FOLLOW_UP_AFTER_DAYS, startOfTodayIso } from '@/lib/admin/acquisition'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
-import { buildProspectMail } from '@/lib/admin/acquisition-mail'
+import { buildProspectMailWithReport } from '@/lib/admin/acquisition-mail'
 import { bouncePause, contactSkipReason, doNotContactSet, pauseMessage } from '@/lib/admin/acquisition-guard'
 
 export const maxDuration = 60
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       skipped += 1
       continue
     }
-    const mail = buildProspectMail({ messageId: message.id, subject: message.subject, body: message.body, from })
+    const mail = await buildProspectMailWithReport(admin, { messageId: message.id, subject: message.subject, body: message.body, from })
     const result = await resend.emails.send({
       from: `Qualio <${from}>`, to: contact.email, subject: message.subject, html: mail.html, text: mail.text, replyTo: mail.replyTo, headers: mail.headers,
     })

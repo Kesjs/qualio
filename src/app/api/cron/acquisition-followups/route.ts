@@ -4,7 +4,7 @@ import { Resend } from 'resend'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { buildDraft } from '@/lib/admin/acquisition-draft'
 import { effectiveDailyLimit, startOfTodayIso } from '@/lib/admin/acquisition'
-import { buildProspectMail } from '@/lib/admin/acquisition-mail'
+import { buildProspectMailWithReport } from '@/lib/admin/acquisition-mail'
 import { bouncePause, contactSkipReason, doNotContactSet } from '@/lib/admin/acquisition-guard'
 
 export const maxDuration = 60
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (inserted.error) { failed++; continue }
     // On clôt la séquence avant l'envoi : un échec ne doit jamais provoquer une nouvelle tentative le lendemain.
     await giveUp(message.id)
-    const mail = buildProspectMail({ messageId: inserted.data.id, subject: draft.subject, body: draft.body, from })
+    const mail = await buildProspectMailWithReport(admin, { messageId: inserted.data.id, subject: draft.subject, body: draft.body, from })
     const result = await resend.emails.send({ from: `Qualio <${from}>`, to: contact.email, subject: draft.subject, html: mail.html, text: mail.text, replyTo: mail.replyTo, headers: mail.headers })
     if (result.error) {
       await admin.from('acquisition_messages').update({ status: 'bounced', bounced_at: new Date().toISOString(), bounce_reason: String(result.error.message ?? 'Erreur Resend').slice(0, 200) }).eq('id', inserted.data.id)

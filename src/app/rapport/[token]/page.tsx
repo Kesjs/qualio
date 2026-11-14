@@ -5,13 +5,26 @@ import { notFound } from 'next/navigation'
 import { StarIcon } from '@heroicons/react/20/solid'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { isAutomatedUserAgent } from '@/lib/admin/acquisition-clicks'
+import { reportImageUrl } from '@/lib/admin/acquisition-report-url'
 import type { ProspectReport, ReportProblem } from '@/lib/admin/acquisition-report'
 import { ACCENT, ACCENT_INK, FOCUS, INK, LINE, MUTED, SIGNUP, SOFT } from '@/components/landing/tokens'
 
 export const dynamic = 'force-dynamic'
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: 'Rapport d’analyse · Qualio',
   robots: { index: false, follow: false },
+}
+
+/** Aperçu de partage (LinkedIn, X, WhatsApp) : l'image générée pour ce rapport. */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params
+  if (!/^[\w-]{12,80}$/.test(token)) return BASE_METADATA
+  const image = reportImageUrl(token)
+  return {
+    ...BASE_METADATA,
+    openGraph: { title: 'Rapport d’analyse · Qualio', type: 'website', images: [{ url: image, width: 1200, height: 600 }] },
+    twitter: { card: 'summary_large_image', title: 'Rapport d’analyse · Qualio', images: [image] },
+  }
 }
 
 const dateFr = (value: string | null) =>

@@ -5,6 +5,7 @@ import { ArrowTopRightOnSquareIcon, DocumentChartBarIcon, PencilSquareIcon } fro
 import { Badge, BTN_PRIMARY, BTN_SECONDARY, EmptyState, TableRegion, TD, TH } from '@/components/admin/ui'
 import { BTN_SMALL, BTN_SMALL_ACCENT, CHECKBOX, plural, postJson, type Notify, type ReportTarget } from '@/components/admin/acquisition-shared'
 import type { QueueItem } from '@/lib/admin/acquisition'
+import { parseAppStoreUrl } from '@/lib/admin/app-store-url'
 
 function cleanSourceNotes(notes: string): string {
   return notes
@@ -73,6 +74,11 @@ export function AcquisitionQueue({
     .filter((item) => item.state === 'empty' && item.contacts.length === 0 && item.reviewSources.length === 0 && !item.report)
     .map((item) => item.id)
 
+  const selectedAppStoreIds = selected.filter((id) => {
+    const item = items.find((candidate) => candidate.id === id)
+    return Boolean(item && appStoreSourceOf(item))
+  })
+
   function openContactModalFor(companyId: string, companyName: string, domain: string, contactId?: string, email?: string, fullName?: string) {
     setContactModal({ companyId, companyName, domain, contactId, email, fullName })
     setModalEmail(email ?? '')
@@ -127,6 +133,58 @@ export function AcquisitionQueue({
       .filter(Boolean)
       .join(', ')
     if (drafted) notify('success', `${plural(drafted, 'brouillon prêt', 'brouillons prêts')} à relire${parts ? ` (${parts})` : ''}.`, 'drafts')
+    else notify('info', parts || 'Aucun nouveau brouillon à créer.')
+  }
+
+  /** Fiche App Store exploitable pour générer un rapport (identifiant lisible dans l'URL). */
+  function appStoreSourceOf(item: QueueItem) {
+    const url = item.reviewSources.find((source) => source.type === 'app_store')?.url ?? null
+    const parsed = parseAppStoreUrl(url)
+    return url && parsed ? { url, ...parsed } : null
+  }
+
+  /** Un clic : génère le rapport App Store (si absent), puis le brouillon pré-rempli avec le lien du rapport. Rien n'est envoyé : tu relis puis tu envoies. */
+  async function prepareWithReport(ids: string[]) {
+    let drafted = 0
+    let withoutReport = 0
+    let noEmail = 0
+    let existing = 0
+    for (let index = 0; index < ids.length; index += 1) {
+      const item = items.find((candidate) => candidate.id === ids[index])
+      if (!item) continue
+      setProgress({ done: index, total: ids.length })
+      const app = item.report ? null : appStoreSourceOf(item)
+      if (app) {
+        const { ok } = await postJson('/api/admin/acquisition/reports', {
+          source: 'app_store',
+          appId: app.appId,
+          appName: item.name,
+          appUrl: app.url,
+          country: app.country,
+          companyId: item.id,
+        })
+        // Pas assez d'avis ou lecture impossible : on n'écrit pas de brouillon générique à la place du rapport.
+        if (!ok) { withoutReport += 1; continue }
+      }
+      const { ok, data } = await postJson('/api/admin/acquisition/prepare', { companyId: item.id })
+      if (!ok) {
+        setProgress(null)
+        refresh()
+        return notify('error', `${data.error ?? 'La préparation a échoué.'} ${drafted ? `${plural(drafted, 'brouillon prêt', 'brouillons prêts')} avant l’erreur.` : ''}`.trim())
+      }
+      if (data.drafted) drafted += 1
+      else if (!data.emails) noEmail += 1
+      else existing += 1
+    }
+    setProgress(null)
+    setSelected([])
+    refresh()
+    const parts = [
+      withoutReport ? `${plural(withoutReport, 'app ignorée (pas assez d’avis publics)', 'apps ignorées (pas assez d’avis publics)')}` : '',
+      noEmail ? `${plural(noEmail, 'site sans email public', 'sites sans email public')}` : '',
+      existing ? `${existing} déjà en brouillon` : '',
+    ].filter(Boolean).join(', ')
+    if (drafted) notify('success', `${plural(drafted, 'brouillon avec rapport prêt', 'brouillons avec rapport prêts')} à relire${parts ? ` (${parts})` : ''}.`, 'drafts')
     else notify('info', parts || 'Aucun nouveau brouillon à créer.')
   }
 
@@ -212,6 +270,15 @@ export function AcquisitionQueue({
           className={BTN_PRIMARY}
         >
           {working ? `Analyse ${progress.done + 1}/${progress.total}…` : `Préparer (${selected.length})`}
+        </button>
+        <button
+          type="button"
+          onClick={() => void prepareWithReport(selectedAppStoreIds)}
+          disabled={!selectedAppStoreIds.length || working}
+          title="Pour les apps App Store sélectionnées : génère le rapport d’avis puis le brouillon, prêts à relire"
+          className={BTN_PRIMARY}
+        >
+          {`Rapport + brouillon (${selectedAppStoreIds.length})`}
         </button>
         <button type="button" onClick={() => void archiveIds(selected)} disabled={!selected.length || working} className={BTN_SECONDARY}>
           Archiver
@@ -450,6 +517,11 @@ export function AcquisitionQueue({
                         <DocumentChartBarIcon className="h-3.5 w-3.5 text-[#c2410c] dark:text-[#ff9a66]" aria-hidden />
                         {item.report ? 'Refaire rapport' : 'Créer rapport'}
                       </button>
+                      {!item.report && appStoreSourceOf(item) && (
+                        <button type="button" onClick={() => void prepareWithReport([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
+                          Rapport + brouillon
+                        </button>
+                      )}
                       <button type="button" onClick={() => void prepare([item.id])} disabled={working} className={BTN_SMALL_ACCENT}>
                         {actionLabel}
                       </button>
