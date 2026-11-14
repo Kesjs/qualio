@@ -93,7 +93,10 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
     <>
       {/* 1. Modal de configuration rapide */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4"
+          style={{ colorScheme: 'light' }}
+        >
           <div
             className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity"
             onClick={onClose}
@@ -131,7 +134,7 @@ export function WidgetLiveDemo({ isOpen, onClose, onActivated }: WidgetLiveDemoP
             </div>
 
             {/* Customization controls */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2 pt-4 sm:px-7 sm:pt-6">
+            <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-4 sm:px-7 sm:pb-5 sm:pt-6">
               <div className="space-y-4 sm:space-y-5">
               {/* Couleur d'accent */}
               <div>

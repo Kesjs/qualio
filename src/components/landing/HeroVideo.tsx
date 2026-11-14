@@ -210,6 +210,7 @@ export function HeroVideo() {
         <span className="shrink-0 font-mono text-[11px] tabular-nums sm:text-xs">{formatTime(current)} / {formatTime(duration)}</span>
 
         <Select
+          tone="dark"
           label="Vitesse de lecture"
           value={String(playbackRate)}
           onChange={(val) => setPlaybackRate(Number(val))}

@@ -218,7 +218,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   return (
     // « Réduire les animations » : désactive aussi les transformations Framer Motion (doc 3.9, point 5).
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen bg-white font-sans" style={{ color: INK, scrollBehavior: 'smooth' }}>
+      <div className="qualio-light-surface min-h-screen bg-white font-sans" style={{ color: INK, colorScheme: 'light', scrollBehavior: 'smooth' }}>
         <Navbar />
         <main>{children}</main>
         <Footer />

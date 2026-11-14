@@ -295,7 +295,7 @@ export function ContactClient() {
                       onChange={(e) => setName(e.target.value)}
                       maxLength={120}
                       autoComplete="name"
-                      className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
+                      className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-[#0b0b0c] placeholder:text-zinc-500 transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
                       style={{ borderColor: LINE }}
                     />
                   </div>
@@ -313,7 +313,7 @@ export function ContactClient() {
                       onChange={(e) => setEmail(e.target.value)}
                       maxLength={254}
                       autoComplete="email"
-                      className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
+                      className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-[#0b0b0c] placeholder:text-zinc-500 transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
                       style={{ borderColor: LINE }}
                     />
                   </div>
@@ -325,11 +325,12 @@ export function ContactClient() {
                     Objet de votre demande <span className="text-red-500">*</span>
                   </label>
                   <Select
+                    tone="light"
                     label="Objet de votre demande"
                     value={subject}
                     onChange={(val) => setSubject(val)}
                     options={SUBJECT_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-                    buttonClassName="bg-white border-zinc-200 focus-visible:border-zinc-900 focus-visible:ring-zinc-900/10 text-sm"
+                    buttonClassName="bg-white border-zinc-200 text-[#0b0b0c] hover:border-zinc-300 focus-visible:border-zinc-900 focus-visible:ring-zinc-900/10 text-sm"
                   />
                 </div>
 
@@ -351,7 +352,7 @@ export function ContactClient() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     maxLength={5000}
-                    className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm leading-relaxed transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
+                    className="mt-1.5 w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm leading-relaxed text-[#0b0b0c] placeholder:text-zinc-500 transition focus:border-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900/10"
                     style={{ borderColor: LINE }}
                   />
                 </div>

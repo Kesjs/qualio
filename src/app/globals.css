@@ -685,3 +685,36 @@ input[type='password']::-ms-clear {
 @media (prefers-reduced-motion: reduce) {
   .sidebar-icon-calendar, .sidebar-icon-chat, .sidebar-icon-plus, .sidebar-icon-sparkles, .sidebar-icon-settings { animation: none !important; }
 }
+
+/* Masque visuellement les barres de défilement tout en préservant le scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Force les pages publiques (SiteShell) en color-scheme clair même si le thème global par défaut est sombre */
+html:has(.qualio-light-surface),
+.qualio-light-surface {
+  color-scheme: light !important;
+}
+html:has(.qualio-light-surface) {
+  background-color: #ffffff !important;
+}
+.qualio-light-surface input:-webkit-autofill,
+.qualio-light-surface input:-webkit-autofill:hover,
+.qualio-light-surface input:-webkit-autofill:focus,
+.qualio-light-surface textarea:-webkit-autofill,
+.qualio-light-surface textarea:-webkit-autofill:hover,
+.qualio-light-surface textarea:-webkit-autofill:focus,
+.qualio-light-surface select:-webkit-autofill,
+.qualio-light-surface select:-webkit-autofill:hover,
+.qualio-light-surface select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0b0b0c;
+  caret-color: #0b0b0c;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}

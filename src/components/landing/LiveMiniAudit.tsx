@@ -149,6 +149,7 @@ export function LiveMiniAudit() {
           <div className="mt-5 space-y-4">
             <form onSubmit={onSubmitSearch} className="flex flex-col gap-2.5 sm:flex-row">
               <Select
+                tone="light"
                 label="Pays de l’App Store"
                 value={country}
                 onChange={setCountry}
