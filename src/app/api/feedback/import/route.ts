@@ -1,7 +1,8 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
+import { ONBOARDING_IMPORT_LIMIT } from '@/lib/billing/plans'
 import { getFeedbackCapacity, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
-import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
+import { classifyPendingFeedback } from '@/lib/feedback/classify'
 import { analyzeCsv, CSV_MAX_BYTES } from '@/lib/csv'
 
 const MAX_CONTENT_LENGTH = 2000
@@ -20,8 +21,9 @@ export async function POST(request: NextRequest) {
   const supabase = await getSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const body = await request.json().catch(() => null) as { siteId?: unknown; csv?: unknown } | null
+  const body = await request.json().catch(() => null) as { siteId?: unknown; csv?: unknown; onboarding?: unknown } | null
   const siteId = typeof body?.siteId === 'string' ? body.siteId.trim() : ''
+  const isOnboarding = body?.onboarding === true
   const csv = typeof body?.csv === 'string' ? body.csv.replace(/^\uFEFF/, '') : ''
   if (!siteId || !csv) return NextResponse.json({ error: 'Choisissez un projet et un fichier CSV.' }, { status: 400 })
   if (new TextEncoder().encode(csv).byteLength > CSV_MAX_BYTES) return NextResponse.json({ error: 'Le fichier CSV ne doit pas dépasser 5 Mo.' }, { status: 413 })
@@ -57,12 +59,18 @@ export async function POST(request: NextRequest) {
     const source = (values[sourceIndex] ?? '').trim().slice(0, 40) || 'csv'
     rowsToImport.push({ user_id: user.id, site_id: siteId, source: 'csv', content, author_name: (values[authorIndex] ?? '').trim().slice(0, 160) || null, author_email: (values[emailIndex] ?? '').trim().slice(0, 320) || null, created_at: date ?? new Date().toISOString(), metadata: { imported_source: source, classification_status: 'pending' } })
   })
-  // Doc 3.5 : on importe jusqu'à la limite du plan, le reste est ignoré avec la raison.
+  // Doc 3.5 : on importe jusqu'à la limite du plan (ou le plafond d'onboarding), le reste est ignoré avec la raison.
+  const maxAllowed = isOnboarding ? Math.min(capacity.remaining, ONBOARDING_IMPORT_LIMIT) : capacity.remaining
   let overflowCount = 0
-  if (rowsToImport.length > capacity.remaining) {
-    overflowCount = rowsToImport.length - capacity.remaining
-    rowsToImport.splice(capacity.remaining)
-    reasons.push({ line: 0, reason: `${overflowCount} avis ignoré${overflowCount > 1 ? 's' : ''} : la limite de ${capacity.limit.toLocaleString('fr-FR')} avis par projet de votre plan est atteinte` })
+  if (rowsToImport.length > maxAllowed) {
+    overflowCount = rowsToImport.length - maxAllowed
+    rowsToImport.splice(maxAllowed)
+    reasons.push({
+      line: 0,
+      reason: isOnboarding && capacity.remaining > ONBOARDING_IMPORT_LIMIT
+        ? `${overflowCount} avis ignoré${overflowCount > 1 ? 's' : ''} : l’import d’onboarding est limité aux ${ONBOARDING_IMPORT_LIMIT} premiers avis`
+        : `${overflowCount} avis ignoré${overflowCount > 1 ? 's' : ''} : la limite de ${capacity.limit.toLocaleString('fr-FR')} avis par projet de votre plan est atteinte`,
+    })
   }
   if (!rowsToImport.length) {
     const nextStep = plan === 'free' ? 'Passez à Pro pour augmenter votre capacité.' : plan === 'pro' ? 'Archivez des avis ou passez à Agence pour augmenter votre capacité.' : 'Archivez des avis ou contactez Qualio pour une capacité adaptée.'
@@ -71,13 +79,7 @@ export async function POST(request: NextRequest) {
   const { data: inserted, error } = await (supabase as any).from('feedback_items').insert(rowsToImport).select('id, site_id, content')
   if (error) return NextResponse.json({ error: 'Les avis n’ont pas pu être importés. Aucun fichier supplémentaire n’a été créé.' }, { status: 500 })
   if (inserted?.length) after(async () => {
-    const batchSize = 100
-    for (let offset = 0; offset < inserted.length; offset += batchSize) {
-      const batch = inserted.slice(offset, offset + batchSize)
-      await Promise.all(batch.map(async (item: { id: string; site_id: string; content: string }) => {
-        try { await classifyAndSaveFeedback(getSupabaseAdminClient(), item.id, item.site_id, item.content) } catch (classificationError) { console.error('[Feedback import] async classification failed', classificationError) }
-      }))
-    }
+    try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: inserted.length, batchSize: 20, concurrency: 2 }) } catch (classificationError) { console.error('[Feedback import] async classification failed', classificationError) }
   })
   return NextResponse.json({ imported: rowsToImport.length, skipped: rows.length - 1 - rowsToImport.length, reasons, limit: capacity.limit, plan, limitReached: overflowCount > 0, overflow: overflowCount })
 }

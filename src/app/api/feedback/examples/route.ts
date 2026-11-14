@@ -1,4 +1,5 @@
 import { after, NextRequest, NextResponse } from 'next/server'
+import { ONBOARDING_IMPORT_LIMIT } from '@/lib/billing/plans'
 import { classifyPendingFeedback } from '@/lib/feedback/classify'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -35,11 +36,12 @@ export async function POST(request: NextRequest) {
   if (!site) return NextResponse.json({ error: 'Projet introuvable.' }, { status: 404 })
   const { data: existing } = await (supabase as any).from('feedback_items').select('id').eq('user_id', user.id).eq('site_id', siteId).contains('metadata', { is_example: true }).limit(1)
   if (existing?.length) return NextResponse.json({ imported: 0, alreadyPresent: true })
-  const { error } = await (supabase as any).from('feedback_items').insert(EXAMPLES.map((content, index) => ({ user_id: user.id, site_id: siteId, source: 'manual', content, author_name: `Exemple ${index + 1}`, theme: null, sentiment: null, confidence: null, metadata: { is_example: true, classification_status: 'pending' } })))
+  const items = EXAMPLES.slice(0, ONBOARDING_IMPORT_LIMIT)
+  const { error } = await (supabase as any).from('feedback_items').insert(items.map((content, index) => ({ user_id: user.id, site_id: siteId, source: 'manual', content, author_name: `Exemple ${index + 1}`, theme: null, sentiment: null, confidence: null, metadata: { is_example: true, classification_status: 'pending' } })))
   if (error) return NextResponse.json({ error: 'Impossible de charger les avis d’exemple.' }, { status: 500 })
   // Les exemples n'étaient jamais classés : ni thème, ni sentiment, donc un écran Détails vide.
-  after(async () => { try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId) } catch (error) { console.error('[Feedback examples] classification failed', error) } })
-  return NextResponse.json({ imported: EXAMPLES.length }, { status: 201 })
+  after(async () => { try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: items.length, batchSize: items.length, concurrency: 1 }) } catch (error) { console.error('[Feedback examples] classification failed', error) } })
+  return NextResponse.json({ imported: items.length }, { status: 201 })
 }
 
 export async function DELETE(request: NextRequest) {

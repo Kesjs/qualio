@@ -10,11 +10,12 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const [{ data }, { data: siteRows }] = await Promise.all([
     (supabase as any).from('billing_subscriptions').select('plan, status, source, provider, provider_price_id, stripe_price_id, current_period_end, cancel_at_period_end').eq('user_id', user.id).maybeSingle(),
-    supabase.from('sites').select('id, created_at').eq('user_id', user.id),
+    supabase.from('sites').select('id, created_at, onboarding_completed_at').eq('user_id', user.id),
   ])
 
   const plan = resolvePlan(data)
   const projectCount = siteRows?.length ?? 0
+  const hasCompletedOnboarding = (siteRows ?? []).some((row: { onboarding_completed_at?: string | null }) => Boolean(row.onboarding_completed_at))
   const writableSiteIds = writableSiteIdsFor(siteRows ?? [], BILLING_PLANS[plan].projects)
   const limits = BILLING_PLANS[plan]
   const effectiveStatus = plan === 'free' ? 'free' : data?.status ?? 'free'
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
     cancelAtPeriodEnd: data?.cancel_at_period_end ?? false,
     limits: { projects: limits.projects, feedbackPerProject: limits.feedbackPerProject, synthesisCooldownHours: limits.synthesisCooldownHours, synthesisQuota: limits.synthesisQuota ?? null, widget: limits.widget },
     usage: { projects: projectCount },
+    hasCompletedOnboarding,
     writableSiteIds,
     site,
   })

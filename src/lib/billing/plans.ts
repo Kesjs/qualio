@@ -62,6 +62,9 @@ export const BILLING_PLANS = {
   },
 } as const
 
+/** Plafond d'avis importés lors d'un parcours d'onboarding pour garder de la capacité sur le plan Gratuit. */
+export const ONBOARDING_IMPORT_LIMIT = 15
+
 /** Avis du widget reçus au-delà de la limite du plan, conservés mais non analysés (plafond anti-abus). */
 export const LOCKED_FEEDBACK_MAX = 100
 

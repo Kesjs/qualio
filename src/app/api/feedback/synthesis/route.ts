@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
-import { classifyPendingFeedback } from '@/lib/feedback/classify'
+import { backfillThemesFromSynthesis, classifyPendingFeedback } from '@/lib/feedback/classify'
 import { BILLING_PLANS } from '@/lib/billing/plans'
 import { getSynthesisAvailability, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Terminez la configuration de votre projet avant de lancer une synthèse.', code: 'onboarding_incomplete' }, { status: 409 })
   }
 
-  // Les avis jamais classés (échec passé, exemples, avis débloqués) le sont maintenant : la synthèse et l'écran Détails en dépendent.
-  try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: 30, budgetMs: 15_000 }) } catch (error) { console.error('[Feedback synthesis] pending classification failed', error) }
+  // Les avis sans sentiment sont classés en lot avant la synthèse ; les thèmes manquants seront complétés après génération.
+  try { await classifyPendingFeedback(getSupabaseAdminClient(), siteId, { limit: 40, batchSize: 20, concurrency: 2, budgetMs: 12_000, onlyMissingSentiment: true }) } catch (error) { console.error('[Feedback synthesis] pending classification failed', error) }
 
   const [plan, { data: feedback, error: feedbackError }] = await Promise.all([
     getUserPlan(supabase, user.id),
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   if (nextAvailableAt) return NextResponse.json({ error: 'Votre prochaine synthèse n’est pas encore disponible.', quota: 'synthesis', plan, cooldownHours: BILLING_PLANS[plan].synthesisCooldownHours, lastSynthesisAt: lastManualAt, nextAvailableAt }, { status: 429 })
 
   const { count: recentCount } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId).gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
-  if ((recentCount ?? 0) > 0) return NextResponse.json({ error: 'Une synthèse vient déjà d’être générée. Attendez quelques minutes avant de recommencer.' }, { status: 429 })
+  if ((recentCount ?? 0) > 0) return NextResponse.json({ error: 'Une synthèse vient déjà d’être générée. Attendez quelques minutes avant de recommencer.', quota: 'recent' }, { status: 429 })
 
   const { count: previousSyntheses } = await (supabase as any).from('feedback_syntheses').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('site_id', siteId)
   const firstSynthesis = (previousSyntheses ?? 0) === 0
@@ -81,6 +81,11 @@ export async function POST(request: NextRequest) {
       await (supabase as any).from('feedback_syntheses').delete().eq('id', saved.id).eq('user_id', user.id)
       console.error('[Feedback synthesis] recommendation persistence failed', recommendationError)
       return NextResponse.json({ error: 'La synthèse n’a pas été enregistrée complètement. Réessayez.' }, { status: 500 })
+    }
+    try {
+      await backfillThemesFromSynthesis(getSupabaseAdminClient(), siteId, synthesis)
+    } catch (backfillError) {
+      console.error('[Feedback synthesis] theme backfill failed', backfillError)
     }
     void recordProductEvent(getSupabaseAdminClient(), user.id, firstSynthesis ? 'first_synthesis' : 'synthesis_generated', `synthesis:${saved.id}`, { site_id: siteId, plan })
     const updatedAvailability = await getSynthesisAvailability(supabase, siteId, plan)

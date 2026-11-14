@@ -36,14 +36,22 @@ export function WeeklyPage() {
   // Quelle que soit la façon de se connecter (mot de passe, code, Google, GitHub), un compte sans projet passe par l'onboarding.
   const noProject = data?.state === 'no_project'
   useEffect(() => { if (noProject) router.replace('/onboarding') }, [noProject, router])
+  const resetSynthesisError = generateSynthesis.reset
+  useEffect(() => { resetSynthesisError() }, [siteId, resetSynthesisError])
 
   const header = (
     <PageHeader
       title="Cette semaine"
       description="Les recommandations tirées de vos avis"
       actions={data && setupComplete && data.state !== 'empty' && data.state !== 'warming' ? (
-        <SynthesisRefresh generateError={generateSynthesis.error} billing={billing} generating={generateSynthesis.isPending}
-          onGenerate={() => generateSynthesis.mutate(data.project.id, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['billing-status-header'] }) } })} />
+        <SynthesisRefresh
+          generateError={generateSynthesis.error}
+          billing={billing}
+          generating={generateSynthesis.isPending}
+          hasSynthesis={Boolean(data.synthesis)}
+          unsynthesized={data.counts.unsynthesized}
+          onGenerate={() => generateSynthesis.mutate(data.project.id, { onSettled: () => { void queryClient.invalidateQueries({ queryKey: ['billing-status-header'] }) } })}
+        />
       ) : undefined}
     />
   )

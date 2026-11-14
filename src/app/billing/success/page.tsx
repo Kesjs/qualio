@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { startBillingConfirmationPoll, type BillingConfirmationState } from '@/lib/billing/success-poll'
+import { isConfirmedBillingStatus, startBillingConfirmationPoll, type BillingConfirmationState, type BillingStatusResponse } from '@/lib/billing/success-poll'
 
 export default function BillingSuccessPage() {
   const router = useRouter()
   const [state, setState] = useState<BillingConfirmationState>('checking')
+  const [targetPath, setTargetPath] = useState<'/onboarding' | '/dashboard'>('/onboarding')
   const stopPollingRef = useRef<(() => void) | null>(null)
   const redirectTimerRef = useRef<number | null>(null)
   const [retryKey, setRetryKey] = useState(0)
@@ -23,17 +24,21 @@ export default function BillingSuccessPage() {
           const response = await fetch('/api/billing/status', { cache: 'no-store' })
           if (response.status === 401) return { state: 'unauthorized' as const }
           if (!response.ok) return { state: 'pending' as const }
-          const data = await response.json() as { plan?: string; status?: string }
-          if (data.plan !== 'free' && (data.status === 'active' || data.status === 'trialing')) return { state: 'confirmed' as const, data }
+          const data = await response.json() as BillingStatusResponse
+          if (isConfirmedBillingStatus(data)) return { state: 'confirmed' as const, data }
           return { state: 'pending' as const }
         } catch {
           return { state: 'pending' as const }
         }
       },
-      onState: (nextState) => {
+      onState: (nextState, data) => {
         if (cancelled) return
         setState(nextState)
-        if (nextState === 'confirmed') redirectTimerRef.current = window.setTimeout(() => router.replace('/onboarding'), 1_200)
+        if (nextState === 'confirmed') {
+          const nextTarget = data?.hasCompletedOnboarding ? '/dashboard' : '/onboarding'
+          setTargetPath(nextTarget)
+          redirectTimerRef.current = window.setTimeout(() => router.replace(nextTarget), 1_200)
+        }
       },
     })
 
@@ -61,10 +66,10 @@ export default function BillingSuccessPage() {
           {confirmed ? 'Votre abonnement est actif.' : unauthorized ? 'Reconnectez-vous pour voir votre abonnement.' : delayed ? 'La confirmation prend plus de temps que prévu.' : 'Nous confirmons votre paiement.'}
         </h1>
         <p className="mt-3 text-sm leading-6 text-gray-500 dark:text-zinc-400">
-          {confirmed ? 'Votre paiement est confirmé. Nous vous guidons maintenant dans la configuration de votre espace avant son ouverture.' : unauthorized ? 'Votre session a expiré. Reconnectez-vous pour vérifier l’activation de votre abonnement.' : delayed ? 'Votre paiement a bien été transmis, mais la confirmation prend plus de temps que prévu. Votre accès sera activé automatiquement, vous n’avez rien à repayer.' : 'Votre paiement a été transmis. Nous attendons la confirmation sécurisée de GeniusPay.'}
+          {confirmed ? (targetPath === '/dashboard' ? 'Votre paiement est confirmé. Votre espace va s’ouvrir dans un instant.' : 'Votre paiement est confirmé. Nous vous guidons maintenant dans la configuration de votre espace avant son ouverture.') : unauthorized ? 'Votre session a expiré. Reconnectez-vous pour vérifier l’activation de votre abonnement.' : delayed ? 'Votre paiement a bien été transmis, mais la confirmation prend plus de temps que prévu. Votre accès sera activé automatiquement, vous n’avez rien à repayer.' : 'Votre paiement a été transmis. Nous attendons la confirmation sécurisée de GeniusPay.'}
         </p>
         {checking && <div className="mx-auto mt-6 h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#c2410c] motion-reduce:animate-none" role="status" aria-label="Vérification en cours" />}
-        {confirmed && <Link href="/onboarding" className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[#c2410c] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#9a3412]">Continuer vers la configuration</Link>}
+        {confirmed && <Link href={targetPath} className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[#c2410c] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#9a3412]">{targetPath === '/dashboard' ? 'Ouvrir mon espace' : 'Continuer vers la configuration'}</Link>}
         {delayed && <div className="mt-6 flex flex-col items-center gap-3"><button type="button" onClick={() => setRetryKey((key) => key + 1)} className="inline-flex min-h-11 items-center rounded-lg bg-[#c2410c] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#9a3412]">Revérifier maintenant</button><Link href="/contact" className="text-sm font-semibold text-gray-600 underline underline-offset-4 dark:text-zinc-300">Contacter le support</Link></div>}
         {unauthorized && <Link href="/login" className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-[#c2410c] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#9a3412]">Se reconnecter</Link>}
       </section>

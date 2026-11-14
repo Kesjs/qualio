@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
 import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
-
-function normalizeProjectUrl(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.trim()) return null
-  const candidate = value.trim().startsWith('http') ? value.trim() : `https://${value.trim()}`
-  try {
-    const url = new URL(candidate)
-    if (!['http:', 'https:'].includes(url.protocol)) return null
-    if (['localhost', '127.0.0.1', '::1'].includes(url.hostname)) return null
-    return url.toString().replace(/\/$/, '')
-  } catch {
-    return null
-  }
-}
+import { parseOptionalProjectUrl } from '@/lib/projects/url'
 
 export async function GET() {
   const supabase = await getSupabaseServerClient()
@@ -35,14 +23,15 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json().catch(() => null) as { name?: unknown; url?: unknown } | null
+  const body = await req.json().catch(() => null) as { name?: unknown; url?: unknown; completeOnboarding?: unknown } | null
   const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 160) : ''
-  const projectUrl = normalizeProjectUrl(body?.url)
+  const parsedUrl = parseOptionalProjectUrl(body?.url)
+  if (parsedUrl.error) {
+    return NextResponse.json({ error: parsedUrl.error }, { status: 400 })
+  }
+  const projectUrl = parsedUrl.url
   if (!name && !projectUrl) {
     return NextResponse.json({ error: 'Ajoutez un nom de projet ou une URL valide.' }, { status: 400 })
-  }
-  if (body?.url && !projectUrl) {
-    return NextResponse.json({ error: 'L’URL doit commencer par http:// ou https://.' }, { status: 400 })
   }
 
   const { data: subscription } = await (supabase as any)
@@ -78,7 +67,12 @@ export async function POST(req: NextRequest) {
   const admin = getSupabaseAdminClient() as any
   const { data: site, error } = await admin
     .from('sites')
-    .insert({ user_id: user.id, url: projectUrl, name: name || null })
+    .insert({
+      user_id: user.id,
+      url: projectUrl,
+      name: name || null,
+      ...(body?.completeOnboarding === true ? { onboarding_completed_at: new Date().toISOString() } : {}),
+    })
     .select('id, user_id, url, name, onboarding_method, onboarding_completed_at, sector, created_at, updated_at')
     .single()
 

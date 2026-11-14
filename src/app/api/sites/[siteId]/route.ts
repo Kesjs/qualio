@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient, getSupabaseAdminClient } from '@/lib/supabase/server'
+import { PROJECT_SECTORS } from '@/lib/projects/sectors'
+import { parseOptionalProjectUrl } from '@/lib/projects/url'
 
 type Params = { params: Promise<{ siteId: string }> }
-
-import { PROJECT_SECTORS } from '@/lib/projects/sectors'
 
 async function getUser() {
   const supabase = await getSupabaseServerClient()
@@ -41,18 +41,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
   if (body && 'url' in body) {
     if (body.url !== null && typeof body.url !== 'string') return NextResponse.json({ error: 'URL invalide.' }, { status: 400 })
-    if (typeof body.url === 'string' && body.url.trim()) {
-      const candidate = body.url.trim().startsWith('http') ? body.url.trim() : `https://${body.url.trim()}`
-      try {
-        const parsed = new URL(candidate)
-        if (!['http:', 'https:'].includes(parsed.protocol) || ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname)) throw new Error('invalid')
-        updates.url = parsed.toString().replace(/\/$/, '')
-      } catch {
-        return NextResponse.json({ error: 'L’URL doit être publique et commencer par http:// ou https://.' }, { status: 400 })
-      }
-    } else {
-      updates.url = null
-    }
+    const parsedUrl = parseOptionalProjectUrl(body.url)
+    if (parsedUrl.error) return NextResponse.json({ error: parsedUrl.error }, { status: 400 })
+    updates.url = parsedUrl.url
   }
   if (body && 'onboarding_method' in body) {
     if (body.onboarding_method !== null && body.onboarding_method !== 'widget' && body.onboarding_method !== 'import') return NextResponse.json({ error: 'Méthode d’onboarding invalide.' }, { status: 400 })

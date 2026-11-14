@@ -95,13 +95,19 @@ export async function fetchAppStoreReviews(appId: string, country = 'fr', maxPag
 
 const STAR_LINE = /^\s*(?:([1-5])\s*(?:\/\s*5|étoiles?|stars?|★)|(★{1,5})☆*)\s*$/i
 
+export type PastedReviewsAnalysis = {
+  reviews: PublicReview[]
+  ignoredShortCount: number
+}
+
 /**
  * Avis collés depuis n'importe quelle plateforme : un avis par bloc, séparés par une ligne vide.
  * Une ligne isolée « 4/5 », « 2 étoiles » ou « ★★☆☆☆ » donne la note du bloc.
+ * Les blocs non vides de moins de 15 caractères sont comptés à part pour informer l'utilisateur.
  */
-export function parsePastedReviews(text: string): PublicReview[] {
+export function analyzePastedReviews(text: string): PastedReviewsAnalysis {
   const now = new Date().toISOString()
-  return text
+  const parsed = text
     .replace(/\r\n?/g, '\n')
     .split(/\n\s*\n/)
     .map((block, index) => {
@@ -114,6 +120,15 @@ export function parsePastedReviews(text: string): PublicReview[] {
       })
       return { id: `p${index + 1}`, content: lines.join(' ').replace(/\s+/g, ' ').trim(), rating: rating as number | null, title: null, created_at: now }
     })
-    .filter((review) => review.content.length >= 15)
-    .slice(0, 400)
+
+  const nonEmpty = parsed.filter((review) => review.content.length > 0)
+  const valid = nonEmpty.filter((review) => review.content.length >= 15)
+  return {
+    reviews: valid.slice(0, 400),
+    ignoredShortCount: nonEmpty.length - valid.length,
+  }
+}
+
+export function parsePastedReviews(text: string): PublicReview[] {
+  return analyzePastedReviews(text).reviews
 }

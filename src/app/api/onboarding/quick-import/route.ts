@@ -1,7 +1,7 @@
-import { after, NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
+import { ONBOARDING_IMPORT_LIMIT } from '@/lib/billing/plans'
 import { getFeedbackCapacity, getUserPlan, isSiteWritable, READ_ONLY_MESSAGE } from '@/lib/billing/limits'
-import { classifyAndSaveFeedback } from '@/lib/feedback/classify'
 import { fetchAppStoreReviews, parsePastedReviews, type PublicReview } from '@/lib/admin/acquisition-reviews'
 
 export const maxDuration = 60
@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const importLimit = Math.min(capacity.remaining, ONBOARDING_IMPORT_LIMIT)
+
   let reviews: PublicReview[] = []
   let importedSource = 'manual_paste'
 
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sélectionnez une application valide.' }, { status: 400 })
     }
     importedSource = 'app_store'
-    const maxPages = Math.min(4, Math.max(1, Math.ceil(capacity.remaining / 50)))
+    const maxPages = Math.min(2, Math.max(1, Math.ceil(importLimit / 50)))
     try {
       reviews = await fetchAppStoreReviews(appId, country, maxPages)
     } catch {
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
   const admin = getSupabaseAdminClient() as any
   await admin.from('sites').update({ onboarding_method: 'import' }).eq('id', siteId).eq('user_id', user.id)
 
-  const selected = reviews.slice(0, capacity.remaining)
+  const selected = reviews.slice(0, importLimit)
   const overflowCount = Math.max(0, reviews.length - selected.length)
 
   const rowsToInsert = selected.map((rev) => ({
@@ -91,29 +93,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Impossible d’enregistrer ces avis dans votre projet.' }, { status: 500 })
   }
 
-  if (inserted?.length) {
-    after(async () => {
-      const batchSize = 50
-      for (let offset = 0; offset < inserted.length; offset += batchSize) {
-        const batch = inserted.slice(offset, offset + batchSize)
-        await Promise.all(
-          batch.map(async (item: { id: string; site_id: string; content: string }) => {
-            try {
-              await classifyAndSaveFeedback(getSupabaseAdminClient(), item.id, item.site_id, item.content)
-            } catch (err) {
-              console.error('[Quick import] async classification failed', err)
-            }
-          }),
-        )
-      }
-    })
-  }
-
   return NextResponse.json({
     imported: rowsToInsert.length,
     overflow: overflowCount,
     limit: capacity.limit,
+    onboardingLimit: ONBOARDING_IMPORT_LIMIT,
     plan,
+    onboardingMethod: 'import',
   })
 }
 

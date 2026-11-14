@@ -23,10 +23,12 @@ export function formatCountdown(ms: number): string {
   return 'dans moins d’une minute'
 }
 
-export function SynthesisRefresh({ generateError, billing, generating, onGenerate }: {
+export function SynthesisRefresh({ generateError, billing, generating, hasSynthesis, unsynthesized, onGenerate }: {
   generateError: Error | null
   billing: BillingStatus | undefined
   generating: boolean
+  hasSynthesis?: boolean
+  unsynthesized?: number
   onGenerate: () => void
 }) {
   const nextAt = getNextSynthesisAt(generateError, billing)
@@ -42,14 +44,23 @@ export function SynthesisRefresh({ generateError, billing, generating, onGenerat
 
   const remaining = target - now
   const blocked = !Number.isNaN(target) && remaining > 0
+  const upToDate = Boolean(hasSynthesis) && (unsynthesized ?? 0) === 0
 
   return (
     <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-      {blocked && (
+      {blocked ? (
         <p className="text-sm text-gray-600 dark:text-zinc-400" aria-live="polite">Synthèse {formatCountdown(remaining)}</p>
-      )}
-      <button type="button" onClick={onGenerate} disabled={blocked || generating} className={btnSecondary}>
-        {generating ? 'Analyse en cours…' : 'Lancer'}
+      ) : upToDate ? (
+        <p className="text-sm text-gray-500 dark:text-zinc-400">Aucun nouvel avis</p>
+      ) : null}
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={blocked || generating || upToDate}
+        title={upToDate ? 'Ajoutez de nouveaux avis pour générer une nouvelle synthèse' : undefined}
+        className={btnSecondary}
+      >
+        {generating ? 'Analyse en cours…' : upToDate ? 'À jour' : 'Lancer'}
       </button>
     </div>
   )

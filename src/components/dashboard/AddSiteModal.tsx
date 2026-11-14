@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useCreateSite } from '@/lib/hooks/useSites'
 import type { Site } from '@/lib/hooks/useSites'
+import { parseOptionalProjectUrl } from '@/lib/projects/url'
 
 interface AddSiteModalProps {
   isOpen: boolean
@@ -67,20 +68,17 @@ export function AddSiteModal({ isOpen, onClose, onSuccess }: AddSiteModalProps) 
       setError('Ajoutez un nom de projet ou une URL publique.')
       return
     }
-    if (trimmedUrl) {
-      try {
-        const parsed = new URL(trimmedUrl.startsWith('http') ? trimmedUrl : `https://${trimmedUrl}`)
-        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid')
-      } catch {
-        setError("Veuillez saisir une URL valide (ex. https://monsite.com).")
-        return
-      }
+    const parsedUrl = parseOptionalProjectUrl(trimmedUrl)
+    if (parsedUrl.error) {
+      setError(parsedUrl.error)
+      return
     }
 
     createSite.mutate(
       {
-        url: trimmedUrl || undefined,
+        url: parsedUrl.url || undefined,
         name: trimmedName || undefined,
+        completeOnboarding: true,
       },
       {
         onSuccess: (newSite) => {

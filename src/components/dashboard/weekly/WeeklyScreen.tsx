@@ -41,6 +41,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
 
   // F : quota de synthèse
   const quotaError = generateError instanceof ApiError && generateError.status === 429 && generateError.body.quota === 'synthesis'
+  const cooldownError = generateError instanceof ApiError && generateError.status === 429 && !quotaError
   const nextAt = (quotaError && typeof generateError.body.nextAvailableAt === 'string' ? generateError.body.nextAvailableAt : null) ?? site?.nextSynthesisAt ?? null
   const quotaBlocked = quotaError || Boolean(nextAt && new Date(nextAt).getTime() > Date.now())
 
@@ -53,7 +54,11 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
   )
 
   // G : erreur autre que le quota
-  const failed = Boolean(generateError) && !quotaError
+  const failed = Boolean(generateError) && !quotaError && !cooldownError
+
+  const cooldownBanner = cooldownError && (
+    <Banner tone="info">{generateError.message}</Banner>
+  )
 
   const errorBanner = failed && (
     <Banner tone="alert" action={<button type="button" onClick={onGenerate} disabled={generating} className={btnSecondary}>Réessayer</button>}>
@@ -90,7 +95,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       <section className={`${surface} p-6 sm:p-8`}>
         <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Ajoutez vos premiers avis</h2>
         <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">Qualio a besoin d’au moins 3 avis pour vous proposer votre première recommandation.</p>
-        <Link href={unfinished ? '/onboarding' : '/dashboard/collection'} className={`${btnPrimary} mt-6`}>{unfinished ? 'Terminer la configuration' : 'Ajouter des avis'}</Link>
+        <Link href={unfinished ? `/onboarding?siteId=${encodeURIComponent(siteId)}` : '/dashboard/collection'} className={`${btnPrimary} mt-6`}>{unfinished ? 'Terminer la configuration' : 'Ajouter des avis'}</Link>
       </section>
     )
   }
@@ -123,6 +128,7 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
       <div className="space-y-5">
         {limitBanner}
         {errorBanner}
+        {cooldownBanner}
         {exampleBanner}
         <section className={`${surface} p-6 sm:p-8`}>
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-white">Vous avez {counts.total} avis. Lancez votre première synthèse.</h2>
@@ -188,13 +194,15 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
     })
   }
 
-  const refreshDisabled = quotaBlocked || generating
+  const noNewReviews = Boolean(data.synthesis) && counts.unsynthesized === 0
+  const refreshDisabled = quotaBlocked || generating || noNewReviews
   const generateLabel = data.synthesis ? 'Analyser les nouveaux avis' : 'Analyser les avis'
 
   return (
     <div className="space-y-5">
       {limitBanner}
       {errorBanner}
+      {cooldownBanner}
       {exampleBanner}
       {generating && <GeneratingPanel />}
       {!generating && counts.unsynthesized > 0 && (
@@ -267,7 +275,11 @@ export function WeeklyScreen(props: WeeklyScreenProps) {
               Avec Pro, elle est automatique chaque semaine. <Link href="/pricing" className="font-semibold text-gray-950 underline underline-offset-4 dark:text-white">Passer à Pro</Link>
             </p>
           )}
-          <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>{generateLabel}</button>
+          {noNewReviews ? (
+            <Link href="/dashboard/collection" className={btnSecondary}>Ajouter des avis</Link>
+          ) : (
+            <button type="button" onClick={onGenerate} disabled={refreshDisabled} className={btnSecondary}>{generateLabel}</button>
+          )}
           {quotaMessage}
         </div>
       </footer>

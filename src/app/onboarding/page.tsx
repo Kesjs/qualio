@@ -7,19 +7,24 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  ArrowRightOnRectangleIcon,
   CheckIcon,
   ClipboardDocumentIcon,
   DocumentArrowUpIcon,
   LockClosedIcon,
   MagnifyingGlassIcon,
+  PencilSquareIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { StarIcon } from '@heroicons/react/20/solid'
 import { analyzeCsv, CSV_MAX_BYTES, isCsvFileName, splitByContent, toCsv, type CsvAnalysis } from '@/lib/csv'
-import { APP_STORE_COUNTRIES, parsePastedReviews, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
-import type { PlanId } from '@/lib/billing/plans'
+import { analyzePastedReviews, APP_STORE_COUNTRIES, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
+import { parseOptionalProjectUrl } from '@/lib/projects/url'
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { ONBOARDING_IMPORT_LIMIT, type PlanId } from '@/lib/billing/plans'
 import type { Site } from '@/lib/hooks/useSites'
 import { ColumnPickers, CsvPreview } from '@/components/dashboard/CsvPreview'
+import { LogoutDialog } from '@/components/dashboard/LogoutDialog'
 import { Select } from '@/components/dashboard/Select'
 import { AnimatedThemeToggle } from '@/components/ui/animated-theme-toggle'
 import { Banner, btnQuiet, GeneratingPanel, surface } from '@/components/dashboard/weekly/bricks'
@@ -38,16 +43,26 @@ type SourceTab = 'pasted' | 'app_store' | 'csv' | 'widget'
 type Status = { tone: 'info' | 'alert'; text: string }
 type CopyState = 'idle' | 'copying' | 'copied' | 'error'
 type WidgetSource = { id: string; public_key: string }
-type OnboardingBilling = { plan: PlanId; label: string; limits: { widget: boolean; projects: number; feedbackPerProject: number } }
+type OnboardingBilling = {
+  plan: PlanId
+  label: string
+  limits: { widget: boolean; projects: number; feedbackPerProject: number }
+  usage: { projects: number }
+  site: { feedback: number; feedbackLimit: number } | null
+}
 type ClaimPreview = {
   found: boolean
   subjectName?: string
   sourceLabel?: string
   reviewCount?: number
   problemCount?: number
+  canClaim?: boolean
+  planLabel?: string
+  projectCount?: number
+  projectLimit?: number
 }
 
-const DRAFT_KEY = 'qualio:onboarding-draft'
+const DRAFT_KEY_PREFIX = 'qualio:onboarding-draft:'
 const SELECTED_SITE_KEY = 'qualio:selected-site'
 
 const APP_STORE_COUNTRY_OPTIONS = APP_STORE_COUNTRIES.map((c) => ({
@@ -93,16 +108,25 @@ function OnboardingFlow() {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const reportToken = searchParams.get('report')?.trim() ?? ''
+  const requestedSiteId = searchParams.get('siteId')?.trim() ?? ''
 
   const [dismissedReport, setDismissedReport] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [projectUrl, setProjectUrl] = useState('')
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [sourceTab, setSourceTab] = useState<SourceTab>('pasted')
+  const [logoutOpen, setLogoutOpen] = useState(false)
+
+  // Édition rapide des infos projet à l'étape 2
+  const [editingProject, setEditingProject] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editUrl, setEditUrl] = useState('')
 
   // Coller des avis
   const [pastedText, setPastedText] = useState('')
-  const detectedPastedCount = useMemo(() => (pastedText.trim() ? parsePastedReviews(pastedText).length : 0), [pastedText])
+  const pastedAnalysis = useMemo(() => (pastedText.trim() ? analyzePastedReviews(pastedText) : { reviews: [], ignoredShortCount: 0 }), [pastedText])
+  const detectedPastedCount = pastedAnalysis.reviews.length
+  const ignoredShortPastedCount = pastedAnalysis.ignoredShortCount
 
   // App Store iOS
   const [appCountry, setAppCountry] = useState('fr')
@@ -127,6 +151,17 @@ function OnboardingFlow() {
   const [promptCopyStatus, setPromptCopyStatus] = useState<CopyState>('idle')
   const [createdSite, setCreatedSite] = useState<Site | null>(null)
 
+  const authUserQuery = useQuery({
+    queryKey: ['onboarding-session-user'],
+    queryFn: async () => {
+      const { data } = await getSupabaseBrowserClient().auth.getUser()
+      return data.user ? { id: data.user.id, email: data.user.email ?? null } : null
+    },
+    staleTime: Infinity,
+  })
+  const authUser = authUserQuery.data
+  const draftKey = authUser?.id ? `${DRAFT_KEY_PREFIX}${authUser.id}` : null
+
   const claimQuery = useQuery({
     queryKey: ['onboarding-claim-report', reportToken],
     queryFn: async () => {
@@ -149,7 +184,11 @@ function OnboardingFlow() {
     refetchOnMount: 'always',
   })
   const sites = sitesQuery.data
-  const activeSite = createdSite ?? sites?.find((item) => !item.onboarding_completed_at) ?? null
+  const activeSite =
+    createdSite
+    ?? (requestedSiteId ? sites?.find((item) => item.id === requestedSiteId) : undefined)
+    ?? sites?.find((item) => !item.onboarding_completed_at)
+    ?? null
   const step: 1 | 2 = activeSite ? 2 : 1
 
   useEffect(() => {
@@ -159,17 +198,24 @@ function OnboardingFlow() {
   }, [activeSite?.onboarding_method])
 
   const billingQuery = useQuery({
-    queryKey: ['onboarding-billing', activeSite?.id],
+    queryKey: ['onboarding-billing', activeSite?.id ?? null],
     queryFn: async () => {
-      const response = await fetch(`/api/billing/status?siteId=${encodeURIComponent(activeSite!.id)}`)
+      const query = activeSite ? `?siteId=${encodeURIComponent(activeSite.id)}` : ''
+      const response = await fetch(`/api/billing/status${query}`)
       if (!response.ok) throw new Error('Impossible de charger votre plan.')
       return response.json() as Promise<OnboardingBilling>
     },
-    enabled: Boolean(activeSite),
     staleTime: 0,
     refetchOnMount: 'always',
   })
-  const widgetAvailable = billingQuery.data?.limits.widget ?? false
+  const widgetAvailable = billingQuery.data?.limits.widget ?? true
+  const importedCount = billingQuery.data?.site?.feedback ?? 0
+  const feedbackLimit = billingQuery.data?.site?.feedbackLimit ?? billingQuery.data?.limits.feedbackPerProject ?? 50
+  const feedbackLimitReached = Boolean(activeSite) && importedCount >= feedbackLimit
+  const projectCount = billingQuery.data?.usage?.projects ?? sites?.length ?? 0
+  const projectLimit = billingQuery.data?.limits.projects ?? 1
+  const hasCompletedSites = Boolean(sites?.some((s) => s.onboarding_completed_at))
+  const projectLimitReached = step === 1 && Boolean(billingQuery.data) && projectCount >= projectLimit
 
   const widgetQuery = useQuery({
     queryKey: ['feedback-sources', activeSite?.id],
@@ -182,36 +228,43 @@ function OnboardingFlow() {
   })
   const widgetKey = widgetQuery.data?.[0]?.public_key ?? null
 
-  const usageQuery = useQuery({
-    queryKey: ['onboarding-usage', activeSite?.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/billing/status?siteId=${encodeURIComponent(activeSite!.id)}`)
-      if (!response.ok) throw new Error('Impossible de charger le projet.')
-      return response.json() as Promise<{ site: { feedback: number } | null }>
-    },
-    enabled: Boolean(activeSite),
-    staleTime: 0,
-  })
-  const importedCount = usageQuery.data?.site?.feedback ?? 0
-
   const split = useMemo(() => splitByContent(analysis?.rows ?? [], textCol, dateCol), [analysis, textCol, dateCol])
   const hasCsvErrors = (analysis?.errors.length ?? 0) > 0
 
   useEffect(() => {
+    if (authUserQuery.isPending) return
+    if (!draftKey) {
+      setDraftLoaded(true)
+      return
+    }
     try {
-      const draft = JSON.parse(window.localStorage.getItem(DRAFT_KEY) ?? 'null') as { projectName?: unknown; projectUrl?: unknown } | null
+      const draft = JSON.parse(window.localStorage.getItem(draftKey) ?? 'null') as { projectName?: unknown; projectUrl?: unknown } | null
       if (typeof draft?.projectName === 'string') setProjectName(draft.projectName)
       if (typeof draft?.projectUrl === 'string') setProjectUrl(draft.projectUrl)
     } catch {
-      window.localStorage.removeItem(DRAFT_KEY)
+      window.localStorage.removeItem(draftKey)
     } finally {
       setDraftLoaded(true)
     }
-  }, [])
+  }, [authUserQuery.isPending, draftKey])
 
   useEffect(() => {
-    if (draftLoaded) window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ projectName, projectUrl }))
-  }, [draftLoaded, projectName, projectUrl])
+    if (!draftLoaded || !draftKey) return
+    if (!projectName.trim() && !projectUrl.trim()) {
+      window.localStorage.removeItem(draftKey)
+      return
+    }
+    window.localStorage.setItem(draftKey, JSON.stringify({ projectName, projectUrl }))
+  }, [draftLoaded, draftKey, projectName, projectUrl])
+
+  function clearDraft() {
+    if (!draftKey) return
+    try {
+      window.localStorage.removeItem(draftKey)
+    } catch {
+      /* stockage navigateur indisponible */
+    }
+  }
 
   function saveSite(next: Site) {
     queryClient.setQueryData<Site[]>(['sites'], (current) =>
@@ -219,6 +272,13 @@ function OnboardingFlow() {
         ? current.map((item) => (item.id === next.id ? next : item))
         : [next, ...(current ?? [])],
     )
+    setCreatedSite((current) => (current?.id === next.id ? next : current))
+  }
+
+  function applyLocalOnboardingMethod(target: Site, method: 'widget' | 'import') {
+    const updated: Site = { ...target, onboarding_method: method }
+    saveSite(updated)
+    return updated
   }
 
   async function patchSite(target: Site, changes: Record<string, unknown>) {
@@ -229,8 +289,9 @@ function OnboardingFlow() {
     })
     const result = await readJson(response)
     if (!response.ok) throw new Error(result.error ?? 'Impossible d’enregistrer votre progression.')
-    saveSite(result as Site)
-    return result as Site
+    const updated = result as Site
+    saveSite(updated)
+    return updated
   }
 
   function fail(error: unknown, fallback: string) {
@@ -252,7 +313,7 @@ function OnboardingFlow() {
       const site = result.site as Site
       saveSite(site)
       selectActiveWorkspace(site.id)
-      window.localStorage.removeItem(DRAFT_KEY)
+      clearDraft()
       router.push('/dashboard')
     } catch (error) {
       fail(error, 'Impossible d’importer ce rapport.')
@@ -263,8 +324,14 @@ function OnboardingFlow() {
   async function createProject(event: FormEvent) {
     event.preventDefault()
     setStatus(null)
-    if (!projectName.trim() && !projectUrl.trim()) {
-      setStatus({ tone: 'alert', text: 'Indiquez un nom de produit ou une URL.' })
+    const trimmedName = projectName.trim()
+    const parsedUrl = parseOptionalProjectUrl(projectUrl)
+    if (parsedUrl.error) {
+      setStatus({ tone: 'alert', text: parsedUrl.error })
+      return
+    }
+    if (!trimmedName && !parsedUrl.url) {
+      setStatus({ tone: 'alert', text: 'Indiquez un nom de produit ou une URL valide.' })
       return
     }
     setBusy(true)
@@ -272,7 +339,7 @@ function OnboardingFlow() {
       const response = await fetch('/api/sites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: projectUrl, name: projectName || undefined }),
+        body: JSON.stringify({ url: parsedUrl.url ?? undefined, name: trimmedName || undefined }),
       })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible de créer le projet.')
@@ -282,11 +349,43 @@ function OnboardingFlow() {
       selectActiveWorkspace(site.id)
       if (!appQuery && site.name) setAppQuery(site.name)
       await sitesQuery.refetch()
-      window.localStorage.removeItem(DRAFT_KEY)
+      clearDraft()
       setProjectName('')
       setProjectUrl('')
     } catch (error) {
       fail(error, 'Impossible de créer le projet.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function openProjectEditor(target: Site) {
+    setStatus(null)
+    setEditName(target.name ?? '')
+    setEditUrl(target.url ?? '')
+    setEditingProject(true)
+  }
+
+  async function saveProjectDetails(event: FormEvent) {
+    event.preventDefault()
+    if (!activeSite) return
+    setStatus(null)
+    const trimmedName = editName.trim()
+    const parsedUrl = parseOptionalProjectUrl(editUrl)
+    if (parsedUrl.error) {
+      setStatus({ tone: 'alert', text: parsedUrl.error })
+      return
+    }
+    if (!trimmedName && !parsedUrl.url) {
+      setStatus({ tone: 'alert', text: 'Indiquez un nom de produit ou une URL valide.' })
+      return
+    }
+    setBusy(true)
+    try {
+      await patchSite(activeSite, { name: trimmedName, url: parsedUrl.url })
+      setEditingProject(false)
+    } catch (error) {
+      fail(error, 'Impossible de modifier le projet.')
     } finally {
       setBusy(false)
     }
@@ -297,7 +396,7 @@ function OnboardingFlow() {
     try {
       await patchSite(target, { onboarding_completed: true })
       selectActiveWorkspace(target.id)
-      window.localStorage.removeItem(DRAFT_KEY)
+      clearDraft()
       router.push('/dashboard')
     } catch (error) {
       fail(error, 'Impossible de terminer la configuration.')
@@ -316,7 +415,7 @@ function OnboardingFlow() {
       })
       const result = await readJson(response)
       if (!response.ok) {
-        await usageQuery.refetch()
+        await billingQuery.refetch()
         setSynthesizing(false)
         setBusy(false)
         setStatus({
@@ -327,7 +426,7 @@ function OnboardingFlow() {
       }
       await finishOnboarding(target)
     } catch (error) {
-      await usageQuery.refetch()
+      await billingQuery.refetch()
       setSynthesizing(false)
       setBusy(false)
       fail(error, 'Impossible de générer la synthèse.')
@@ -335,12 +434,17 @@ function OnboardingFlow() {
   }
 
   async function importPastedAndSynthesize(target: Site) {
+    if (feedbackLimitReached) {
+      setStatus({ tone: 'alert', text: `La limite de ${feedbackLimit} avis est atteinte pour ce projet. Lancez la synthèse ci-dessus.` })
+      return
+    }
     if (detectedPastedCount < 3) {
-      setStatus({ tone: 'alert', text: 'Collez au moins 3 avis séparés par une ligne vide pour lancer la synthèse.' })
+      setStatus({ tone: 'alert', text: 'Collez au moins 3 avis valides séparés par une ligne vide pour lancer la synthèse.' })
       return
     }
     setStatus(null)
     setBusy(true)
+    let updatedTarget = target
     try {
       const response = await fetch('/api/onboarding/quick-import', {
         method: 'POST',
@@ -349,13 +453,16 @@ function OnboardingFlow() {
       })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible d’importer ces avis.')
+      if (result.onboardingMethod === 'import') {
+        updatedTarget = applyLocalOnboardingMethod(target, 'import')
+      }
       setPastedText('')
     } catch (error) {
       setBusy(false)
       fail(error, 'Impossible d’importer ces avis.')
       return
     }
-    await runSynthesisAndOpen(target)
+    await runSynthesisAndOpen(updatedTarget)
   }
 
   async function searchIosApps(event?: FormEvent) {
@@ -388,8 +495,13 @@ function OnboardingFlow() {
   }
 
   async function importAppStoreAndSynthesize(target: Site, app: AppStoreApp) {
+    if (feedbackLimitReached) {
+      setStatus({ tone: 'alert', text: `La limite de ${feedbackLimit} avis est atteinte pour ce projet. Lancez la synthèse ci-dessus.` })
+      return
+    }
     setStatus(null)
     setBusy(true)
+    let updatedTarget = target
     try {
       const response = await fetch('/api/onboarding/quick-import', {
         method: 'POST',
@@ -398,12 +510,15 @@ function OnboardingFlow() {
       })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible d’importer les avis App Store.')
+      if (result.onboardingMethod === 'import') {
+        updatedTarget = applyLocalOnboardingMethod(target, 'import')
+      }
     } catch (error) {
       setBusy(false)
       fail(error, 'Impossible d’importer les avis App Store.')
       return
     }
-    await runSynthesisAndOpen(target)
+    await runSynthesisAndOpen(updatedTarget)
   }
 
   function resetCsv() {
@@ -452,12 +567,16 @@ function OnboardingFlow() {
   }
 
   async function importCsvAndSynthesize(target: Site) {
+    if (feedbackLimitReached) {
+      setStatus({ tone: 'alert', text: `La limite de ${feedbackLimit} avis est atteinte pour ce projet. Lancez la synthèse ci-dessus.` })
+      return
+    }
     if (!analysis || textCol < 0 || hasCsvErrors || !split.valid.length) return
     setStatus(null)
     setBusy(true)
     let importedTotal = 0
+    let updatedTarget = target
     try {
-      await patchSite(target, { onboarding_method: 'import' })
       const rows = split.valid.map(({ cells }) => [
         cells[textCol] ?? '',
         authorCol >= 0 ? cells[authorCol] ?? '' : '',
@@ -467,12 +586,13 @@ function OnboardingFlow() {
       const response = await fetch('/api/feedback/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteId: target.id, csv }),
+        body: JSON.stringify({ siteId: target.id, csv, onboarding: true }),
       })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible d’importer ce fichier.')
       importedTotal = Number(result.imported ?? 0)
       resetCsv()
+      updatedTarget = await patchSite(target, { onboarding_method: 'import' })
     } catch (error) {
       setBusy(false)
       fail(error, 'Impossible d’importer ce fichier.')
@@ -480,19 +600,23 @@ function OnboardingFlow() {
     }
 
     if (importedTotal + importedCount >= 3) {
-      await runSynthesisAndOpen(target)
+      await runSynthesisAndOpen(updatedTarget)
     } else {
-      await usageQuery.refetch()
+      await billingQuery.refetch()
       setBusy(false)
       setStatus({ tone: 'info', text: `${importedTotal} avis importé(s). Ajoutez au moins 3 avis pour lancer la synthèse.` })
     }
   }
 
   async function tryExamplesAndSynthesize(target: Site) {
+    if (feedbackLimitReached) {
+      setStatus({ tone: 'alert', text: `La limite de ${feedbackLimit} avis est atteinte pour ce projet. Lancez la synthèse ci-dessus.` })
+      return
+    }
     setStatus(null)
     setBusy(true)
+    let updatedTarget = target
     try {
-      await patchSite(target, { onboarding_method: 'import' })
       const response = await fetch('/api/feedback/examples', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -500,12 +624,13 @@ function OnboardingFlow() {
       })
       const result = await readJson(response)
       if (!response.ok) throw new Error(result.error ?? 'Impossible de charger les exemples.')
+      updatedTarget = await patchSite(target, { onboarding_method: 'import' })
     } catch (error) {
       setBusy(false)
       fail(error, 'Impossible de charger les exemples.')
       return
     }
-    await runSynthesisAndOpen(target)
+    await runSynthesisAndOpen(updatedTarget)
   }
 
   async function prepareWidget(target: Site) {
@@ -535,19 +660,29 @@ function OnboardingFlow() {
       if (activeSite) {
         await patchSite(activeSite, { onboarding_completed: true })
         selectActiveWorkspace(activeSite.id)
+      } else if (projectLimitReached || hasCompletedSites) {
+        clearDraft()
+        router.push('/dashboard')
+        return
       } else {
+        const trimmedName = projectName.trim()
+        const parsedUrl = parseOptionalProjectUrl(projectUrl)
         const response = await fetch('/api/sites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: 'Mon espace' }),
+          body: JSON.stringify({
+            name: trimmedName || (!parsedUrl.url ? 'Mon espace' : undefined),
+            url: parsedUrl.url ?? undefined,
+            completeOnboarding: true,
+          }),
         })
         const result = await readJson(response)
         if (!response.ok) throw new Error(result.error ?? 'Impossible de créer votre espace.')
-        const site = await patchSite(result as Site, { onboarding_completed: true })
+        const site = result as Site
         saveSite(site)
         selectActiveWorkspace(site.id)
       }
-      window.localStorage.removeItem(DRAFT_KEY)
+      clearDraft()
       router.push('/dashboard')
     } catch (error) {
       fail(error, 'Impossible de passer cette étape.')
@@ -631,21 +766,22 @@ Consignes :
     )
   }
 
-  if (!draftLoaded || !sitesQuery.isFetchedAfterMount) {
+  if (authUserQuery.isPending || !draftLoaded || !sitesQuery.isFetchedAfterMount || (!billingQuery.data && !billingQuery.isError)) {
     return <LoadingScreen />
   }
 
   const showClaimBanner = Boolean(reportToken && !dismissedReport && claimQuery.data?.found)
+  const claimBlocked = showClaimBanner && claimQuery.data?.canClaim === false
   const title = step === 1 ? 'Nommez votre espace de travail.' : 'Importez vos premiers retours.'
   const description =
     step === 1
       ? 'Un projet regroupe les avis d’un produit, d’une boutique ou d’un client. Trente secondes suffisent pour obtenir votre première synthèse.'
-      : `Projet actif : ${activeSite?.name || activeSite?.url || 'Mon produit'}. Collez quelques avis, cherchez votre app iOS ou déposez un CSV pour générer vos 3 premières priorités.`
+      : `Collez quelques avis, cherchez votre app iOS ou déposez un CSV pour générer les 3 premières priorités de ${activeSite?.name || activeSite?.url || 'votre projet'}.`
 
   return (
     <main className="min-h-[100dvh] bg-white px-5 py-8 text-gray-950 dark:bg-black dark:text-white sm:px-8">
       <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between gap-3">
+        <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200/90 bg-white p-1.5 shadow-2xs transition-colors dark:border-white/[0.1] dark:bg-black">
               <img src="/qualio-logo/export/mark/monogram-orange.svg" alt="Qualio" className="h-full w-full object-contain" />
@@ -658,7 +794,25 @@ Consignes :
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {authUser?.email && (
+              <span
+                className="hidden max-w-[200px] truncate text-xs text-gray-500 dark:text-zinc-400 md:inline"
+                title={authUser.email}
+              >
+                {authUser.email}
+              </span>
+            )}
             <AnimatedThemeToggle className="h-9 w-9" />
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              disabled={busy}
+              title="Se déconnecter"
+              className={btnQuiet}
+            >
+              <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
             <button type="button" onClick={() => void skipOnboarding()} disabled={busy} className={btnQuiet}>
               Passer pour l’instant
             </button>
@@ -682,22 +836,43 @@ Consignes :
                     <span className="font-mono tabular-nums">{claimQuery.data.reviewCount ?? 0}</span> avis {claimQuery.data.sourceLabel}
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-300">
-                    Ouvrez directement votre espace avec cette synthèse et ses{' '}
-                    <span className="font-mono font-semibold tabular-nums">{claimQuery.data.problemCount ?? 3}</span> actions prioritaires pré-chargées.
+                    {claimBlocked ? (
+                      <>
+                        Votre plan {claimQuery.data.planLabel ?? 'actuel'} autorise {claimQuery.data.projectLimit ?? 1} projet
+                        {(claimQuery.data.projectLimit ?? 1) > 1 ? 's' : ''}. Ouvrez votre espace existant ou changez d’offre pour importer ce rapport.
+                      </>
+                    ) : (
+                      <>
+                        Ouvrez directement votre espace avec cette synthèse et ses{' '}
+                        <span className="font-mono font-semibold tabular-nums">{claimQuery.data.problemCount ?? 3}</span> actions prioritaires pré-chargées.
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-                  <button type="button" onClick={() => void claimPublicReport()} disabled={busy} className={primaryButton}>
-                    {busy ? 'Ouverture…' : 'Ouvrir ce rapport dans mon espace'}
-                    <ArrowRightIcon className="h-4 w-4" aria-hidden />
-                  </button>
+                  {claimBlocked ? (
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => router.push('/dashboard')} className={primaryButton}>
+                        Ouvrir mon espace
+                        <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                      </button>
+                      <Link href="/pricing" className={secondaryButton}>
+                        Voir les offres
+                      </Link>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => void claimPublicReport()} disabled={busy} className={primaryButton}>
+                      {busy ? 'Ouverture…' : 'Ouvrir ce rapport dans mon espace'}
+                      <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDismissedReport(true)}
                     disabled={busy}
                     className="text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white"
                   >
-                    Créer un autre projet à la place
+                    {claimBlocked ? 'Masquer cet aperçu' : 'Créer un autre projet à la place'}
                   </button>
                 </div>
               </div>
@@ -706,16 +881,15 @@ Consignes :
 
           {/* Barre de progression en 2 étapes */}
           <div className="flex items-center gap-4">
-            {sites && sites.some((s) => s.onboarding_completed_at) && (
+            {hasCompletedSites && (
               <button
                 type="button"
                 onClick={() => router.push('/dashboard')}
                 disabled={busy}
-                aria-label="Retour au tableau de bord"
-                title="Retour au tableau de bord"
-                className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-700 hover:border-gray-400 disabled:opacity-40 dark:border-white/15 dark:bg-transparent dark:text-zinc-200 dark:hover:border-white/30 ${pressable} ${focusRing}`}
+                className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 hover:border-gray-400 disabled:opacity-40 dark:border-white/15 dark:bg-transparent dark:text-zinc-200 dark:hover:border-white/30 ${pressable} ${focusRing}`}
               >
-                <ArrowLeftIcon className="h-5 w-5" aria-hidden />
+                <ArrowLeftIcon className="h-4 w-4" aria-hidden />
+                Tableau de bord
               </button>
             )}
             <div
@@ -744,7 +918,27 @@ Consignes :
           {synthesizing && <GeneratingPanel />}
 
           {/* ÉTAPE 1 : Créer l'espace */}
-          {step === 1 && (
+          {step === 1 && projectLimitReached && (
+            <section className={`${surface} space-y-4 p-6 sm:p-8`} aria-label="Limite de projets atteinte">
+              <h2 className="text-lg font-semibold text-gray-950 dark:text-white">
+                Limite de projets atteinte ({projectCount}/{projectLimit})
+              </h2>
+              <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                Votre plan {billingQuery.data?.label ?? 'Gratuit'} autorise {projectLimit} projet{projectLimit > 1 ? 's' : ''}. Retrouvez votre espace existant sur le tableau de bord ou passez à une offre supérieure pour gérer plusieurs projets.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <button type="button" onClick={() => router.push('/dashboard')} className={primaryButton}>
+                  Ouvrir mon tableau de bord
+                  <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                </button>
+                <Link href="/pricing" className={secondaryButton}>
+                  Voir les offres
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {step === 1 && !projectLimitReached && (
             <form onSubmit={createProject} className={`${surface} space-y-5 p-5 sm:p-6`}>
               <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
                 Nom du produit, de la boutique ou du client
@@ -752,7 +946,6 @@ Consignes :
                   value={projectName}
                   onChange={(event) => setProjectName(event.target.value)}
                   placeholder="Ex. Mon application, Boutique Alma…"
-                  autoFocus
                   className={`${inputClass} mt-2`}
                 />
               </label>
@@ -768,332 +961,36 @@ Consignes :
                   placeholder="https://mon-site.com"
                   className={`${inputClass} mt-2`}
                 />
+                <span className="mt-1.5 block font-normal text-gray-500 dark:text-zinc-400">
+                  Vous pouvez saisir simplement le domaine (ex. mon-site.com).
+                </span>
               </label>
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <button disabled={busy} className={primaryButton}>
                   {busy ? 'Création…' : 'Continuer vers mes avis'}
                   <ArrowRightIcon className="h-4 w-4" aria-hidden />
                 </button>
-                <span className="text-xs text-gray-500 dark:text-zinc-400">Modifiable à tout moment dans les réglages</span>
+                <span className="text-xs text-gray-500 dark:text-zinc-400">
+                  Indiquez un nom ou une URL · modifiable à tout moment
+                </span>
               </div>
             </form>
           )}
 
           {/* ÉTAPE 2 : Importer ou connecter ses premiers retours */}
           {step === 2 && activeSite && !synthesizing && (
-            <section className={`${surface} space-y-6 p-5 sm:p-6`} aria-label="Premiers retours">
-              <Tabs<SourceTab>
-                label="Méthode d’ajout des avis"
-                value={sourceTab}
-                onChange={(next) => {
-                  setStatus(null)
-                  setSourceTab(next)
-                }}
-                tabs={[
-                  { id: 'pasted', label: 'Coller des avis (20 s)' },
-                  { id: 'app_store', label: 'App Store iOS (1 clic)' },
-                  { id: 'csv', label: 'Fichier CSV' },
-                  { id: 'widget', label: 'Widget sur mon site', locked: !widgetAvailable },
-                ]}
-              />
-
-              {/* ONGLET 1 : COLLER DES AVIS */}
-              {sourceTab === 'pasted' && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                      Copiez-collez vos derniers avis Trustpilot, Google, G2, Capterra ou tickets support en les séparant par une{' '}
-                      <strong className="font-semibold text-gray-900 dark:text-white">ligne vide</strong>.
-                    </p>
-                    <span className="font-mono text-xs font-semibold tabular-nums text-gray-600 dark:text-zinc-300">
-                      {detectedPastedCount} avis détecté{detectedPastedCount > 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  <textarea
-                    value={pastedText}
-                    onChange={(event) => setPastedText(event.target.value)}
-                    rows={7}
-                    placeholder={`Exemple :\n\nImpossible de télécharger mes factures PDF depuis la mise à jour mobile, je dois passer sur ordinateur à chaque fois.\n\nLe support répond vite mais l’export comptable plante dès qu’on dépasse 200 lignes.\n\nTrès bon outil au quotidien, il manque juste un filtre par date sur le tableau principal.`}
-                    className="w-full rounded-xl border border-gray-300 bg-white p-3.5 text-sm leading-6 text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-gray-950 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-white"
-                  />
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => void importPastedAndSynthesize(activeSite)}
-                      disabled={busy || detectedPastedCount < 3}
-                      className={primaryButton}
-                    >
-                      <SparklesIcon className="h-4 w-4" aria-hidden />
-                      {detectedPastedCount >= 3
-                        ? `Analyser ces ${detectedPastedCount} avis`
-                        : 'Collez au moins 3 avis'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void tryExamplesAndSynthesize(activeSite)}
-                      disabled={busy}
-                      className={secondaryButton}
-                    >
-                      Essayer avec 15 avis d’exemple
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ONGLET 2 : APP STORE iOS */}
-              {sourceTab === 'app_store' && (
-                <div className="space-y-4">
-                  <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                    Cherchez une application iOS publique ou collez son lien <code>apps.apple.com</code> : Qualio récupère ses avis écrits récents et génère votre synthèse immédiatement.
-                  </p>
-
-                  <form onSubmit={(e) => void searchIosApps(e)} className="flex flex-col gap-2.5 sm:flex-row">
-                    <Select
-                      label="Pays de l’App Store"
-                      value={appCountry}
-                      onChange={setAppCountry}
-                      options={APP_STORE_COUNTRY_OPTIONS}
-                      disabled={searchingApps || busy}
-                      className="w-full sm:w-48 sm:shrink-0"
-                      buttonClassName={`${selectClass} !min-h-11 w-full`}
-                      listClassName="min-w-[210px]"
-                    />
-                    <input
-                      value={appQuery}
-                      onChange={(e) => setAppQuery(e.target.value)}
-                      placeholder="Nom de l’app (ex. Qonto, Pennylane…) ou lien App Store"
-                      className={`${inputClass} flex-1`}
-                    />
-                    <button type="submit" disabled={searchingApps || busy} className={secondaryButton}>
-                      <MagnifyingGlassIcon className="h-4 w-4" aria-hidden />
-                      {searchingApps ? 'Recherche…' : 'Chercher'}
-                    </button>
-                  </form>
-
-                  {appResults.length > 0 && (
-                    <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 dark:divide-white/[0.08] dark:border-white/[0.08]">
-                      {appResults.map((app) => {
-                        const isSelected = selectedApp?.id === app.id
-                        return (
-                          <li key={app.id} className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedApp(app)}
-                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                            >
-                              {app.icon ? (
-                                <img src={app.icon} alt="" className="h-10 w-10 shrink-0 rounded-xl border border-gray-200 dark:border-white/10" />
-                              ) : (
-                                <span className="h-10 w-10 shrink-0 rounded-xl bg-gray-100 dark:bg-white/10" />
-                              )}
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">{app.name}</p>
-                                <p className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
-                                  <span className="truncate">{app.seller}</span>
-                                  {app.rating != null && (
-                                    <span className="inline-flex items-center gap-0.5 font-mono tabular-nums">
-                                      <StarIcon className="h-3.5 w-3.5 text-[#ee6018]" aria-hidden />
-                                      {app.rating.toFixed(1)}
-                                    </span>
-                                  )}
-                                  {app.ratingCount != null && (
-                                    <span className="font-mono tabular-nums">{app.ratingCount.toLocaleString('fr-FR')} notes</span>
-                                  )}
-                                </p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void importAppStoreAndSynthesize(activeSite, app)}
-                              disabled={busy}
-                              className={isSelected ? primaryButton : secondaryButton}
-                            >
-                              <SparklesIcon className="h-4 w-4" aria-hidden />
-                              Importer et analyser
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              {/* ONGLET 3 : FICHIER CSV */}
-              {sourceTab === 'csv' && (
-                <div className="space-y-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                      <strong className="font-semibold text-gray-950 dark:text-white">Colonnes :</strong> <code>content</code> obligatoire ;{' '}
-                      <code>author_name</code> et <code>created_at</code> facultatives. UTF-8, virgule ou point-virgule, jusqu’à 5 Mo.
-                    </p>
-                    <button type="button" onClick={downloadSample} className={`${secondaryButton} shrink-0`}>
-                      Modèle CSV
-                    </button>
-                  </div>
-
-                  {!analysis && (
-                    <label
-                      onDragOver={(event) => {
-                        event.preventDefault()
-                        setDragging(true)
-                      }}
-                      onDragLeave={() => setDragging(false)}
-                      onDrop={onDrop}
-                      className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-sm transition duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#c2410c] ${
-                        dragging
-                          ? 'border-gray-950 bg-gray-100 text-gray-950 dark:border-white dark:bg-white/[0.08] dark:text-white'
-                          : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-500 dark:border-white/15 dark:bg-white/[0.03] dark:text-zinc-300'
-                      }`}
-                    >
-                      <DocumentArrowUpIcon className="h-7 w-7 text-gray-400 dark:text-zinc-500" aria-hidden />
-                      <span className="mt-3 font-semibold">Choisir un fichier CSV</span>
-                      <span className="mt-1 text-xs text-gray-500 dark:text-zinc-400">ou le glisser ici · jusqu’à 5 Mo et 5 000 lignes</span>
-                      <input
-                        type="file"
-                        accept=".csv,text/csv"
-                        onChange={(event) => {
-                          selectCsvFile(event.target.files?.[0])
-                          event.target.value = ''
-                        }}
-                        className="sr-only"
-                      />
-                    </label>
-                  )}
-
-                  {analysis && csvFileName && (
-                    <div className="space-y-5">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                        <p className="min-w-0 font-medium text-gray-900 dark:text-white">
-                          <span className="break-all font-mono">{csvFileName}</span> ·{' '}
-                          <span className="font-mono tabular-nums">{analysis.rows.length}</span> lignes
-                        </p>
-                        <button type="button" onClick={resetCsv} className={`${secondaryButton} min-h-9 px-3 text-xs`}>
-                          Choisir un autre fichier
-                        </button>
-                      </div>
-                      <ColumnPickers
-                        headers={analysis.headers}
-                        textCol={textCol}
-                        authorCol={authorCol}
-                        dateCol={dateCol}
-                        onText={setTextCol}
-                        onAuthor={setAuthorCol}
-                        onDate={setDateCol}
-                      />
-                      <CsvPreview analysis={analysis} textCol={textCol} authorCol={authorCol} dateCol={dateCol} />
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button
-                      type="button"
-                      onClick={() => void importCsvAndSynthesize(activeSite)}
-                      disabled={busy || !analysis || textCol < 0 || hasCsvErrors || !split.valid.length}
-                      className={primaryButton}
-                    >
-                      <SparklesIcon className="h-4 w-4" aria-hidden />
-                      {busy ? 'Import…' : analysis ? `Importer ${split.valid.length} avis et analyser` : 'Importer les avis'}
-                    </button>
-                    <button type="button" onClick={() => void tryExamplesAndSynthesize(activeSite)} disabled={busy} className={secondaryButton}>
-                      Essayer avec 15 avis d’exemple
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ONGLET 4 : WIDGET */}
-              {sourceTab === 'widget' && !widgetAvailable && (
-                <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
-                  <div className="flex items-start gap-3">
-                    <LockClosedIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-500 dark:text-zinc-400" aria-hidden />
-                    <div>
-                      <h2 className="text-base font-semibold text-gray-950 dark:text-white">Widget disponible avec Pro ou Agence</h2>
-                      <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                        Sur le plan Gratuit, démarrez immédiatement en collant vos avis, depuis l’App Store ou par CSV. Passez à Pro quand vous souhaitez collecter en continu sur votre site.
-                      </p>
-                    </div>
-                  </div>
-                  <Link href="/pricing" className={`${secondaryButton} shrink-0`}>
-                    Voir les offres
-                  </Link>
-                </div>
-              )}
-
-              {sourceTab === 'widget' && widgetAvailable && !widgetKey && (
-                <div className="space-y-4">
-                  <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                    Qualio va générer une clé publique dédiée à ce projet. Vous pourrez copier le script d’une ligne ou le prompt prêt pour votre agent de code.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void prepareWidget(activeSite)}
-                    disabled={busy || widgetQuery.isLoading}
-                    className={primaryButton}
-                  >
-                    {busy ? 'Préparation…' : 'Générer mon script'}
-                    <ArrowRightIcon className="h-4 w-4" aria-hidden />
-                  </button>
-                </div>
-              )}
-
-              {sourceTab === 'widget' && widgetAvailable && widgetKey && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    <CheckIcon className="h-5 w-5" aria-hidden />
-                    Source widget prête
-                  </div>
-                  <p className="text-sm leading-6 text-gray-600 dark:text-zinc-400">
-                    Collez ce script juste avant la balise <code>&lt;/body&gt;</code> de votre site, ou copiez le prompt pour votre agent de code.
-                  </p>
-                  <div className="relative overflow-x-auto rounded-xl bg-gray-950 p-4 pr-14 font-mono text-xs leading-6 text-gray-200">
-                    <code className="whitespace-pre-wrap break-all">{widgetScript}</code>
-                    <button
-                      type="button"
-                      onClick={() => void copyWith(widgetScript, setCopyStatus, 2200)}
-                      disabled={copyStatus === 'copying'}
-                      aria-label={copyStatus === 'copied' ? 'Script copié' : 'Copier le script'}
-                      title={copyStatus === 'copied' ? 'Script copié' : 'Copier le script'}
-                      className={`absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg border ${pressable} ${focusRing} ${
-                        copyStatus === 'copied'
-                          ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
-                          : copyStatus === 'error'
-                            ? 'border-red-400/40 bg-red-500/15 text-red-300'
-                            : 'border-white/10 text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {copyStatus === 'copied' ? <CheckIcon className="h-4 w-4" aria-hidden /> : <ClipboardDocumentIcon className="h-4 w-4" aria-hidden />}
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => void copyWith(agentPrompt, setPromptCopyStatus, 3000)}
-                      disabled={promptCopyStatus === 'copying'}
-                      className={secondaryButton}
-                    >
-                      {promptCopyStatus === 'copied' ? 'Prompt copié' : 'Copier le prompt IA'}
-                      <ClipboardDocumentIcon className="h-4 w-4" aria-hidden />
-                    </button>
-                    <button type="button" onClick={() => void finishOnboarding(activeSite)} disabled={busy} className={primaryButton}>
-                      Ouvrir mon espace
-                      <ArrowRightIcon className="h-4 w-4" aria-hidden />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Filet de sécurité si des avis ont déjà été importés dans ce projet */}
+            <div className="space-y-5">
+              {/* Récupération immédiate si des avis ont déjà été importés dans ce projet */}
               {importedCount >= 3 && (
-                <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-500/25 dark:bg-emerald-500/10">
                   <div>
-                    <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-                      <span className="font-mono tabular-nums">{importedCount}</span> avis déjà présents dans ce projet.
+                    <p className="text-sm font-semibold text-emerald-950 dark:text-emerald-200">
+                      {feedbackLimitReached
+                        ? `Limite atteinte : ${importedCount} / ${feedbackLimit} avis déjà enregistrés.`
+                        : `${importedCount} avis déjà présents dans ce projet.`}
                     </p>
                     <p className="mt-0.5 text-xs text-emerald-800 dark:text-emerald-300">
-                      Lancez la synthèse maintenant ou ouvrez directement votre espace.
+                      Lancez la synthèse maintenant pour générer vos priorités ou ouvrez directement votre espace.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1107,10 +1004,410 @@ Consignes :
                   </div>
                 </div>
               )}
-            </section>
+
+              <section className={`${surface} space-y-6 p-5 sm:p-6`} aria-label="Premiers retours">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-4 dark:border-white/[0.08]">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">
+                      {activeSite.name || activeSite.url || 'Mon produit'}
+                    </p>
+                    {activeSite.url && activeSite.name && (
+                      <p className="truncate text-xs text-gray-500 dark:text-zinc-400">{activeSite.url}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => (editingProject ? setEditingProject(false) : openProjectEditor(activeSite))}
+                    disabled={busy}
+                    className={`${btnQuiet} text-xs`}
+                  >
+                    <PencilSquareIcon className="h-4 w-4" aria-hidden />
+                    {editingProject ? 'Fermer' : 'Modifier nom ou URL'}
+                  </button>
+                </div>
+
+                {editingProject && (
+                  <form
+                    onSubmit={(event) => void saveProjectDetails(event)}
+                    className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end dark:border-white/[0.08] dark:bg-white/[0.03]"
+                  >
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                      Nom du projet
+                      <input
+                        value={editName}
+                        onChange={(event) => setEditName(event.target.value)}
+                        placeholder="Ex. Mon application"
+                        className={`${inputClass} mt-1.5`}
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                      URL du site (facultative)
+                      <input
+                        value={editUrl}
+                        onChange={(event) => setEditUrl(event.target.value)}
+                        type="text"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        placeholder="https://mon-site.com"
+                        className={`${inputClass} mt-1.5`}
+                      />
+                    </label>
+                    <button type="submit" disabled={busy} className={primaryButton}>
+                      Enregistrer
+                    </button>
+                  </form>
+                )}
+
+                <Tabs<SourceTab>
+                  label="Méthode d’ajout des avis"
+                  value={sourceTab}
+                  onChange={(next) => {
+                    setStatus(null)
+                    setSourceTab(next)
+                  }}
+                  tabs={[
+                    { id: 'pasted', label: 'Coller des avis (20 s)' },
+                    { id: 'app_store', label: 'App Store iOS (1 clic)' },
+                    { id: 'csv', label: 'Fichier CSV' },
+                    { id: 'widget', label: 'Widget sur mon site', locked: !widgetAvailable },
+                  ]}
+                />
+
+                {/* ONGLET 1 : COLLER DES AVIS */}
+                {sourceTab === 'pasted' && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                        Copiez-collez vos derniers avis Trustpilot, Google, G2, Capterra ou tickets support en les séparant par une{' '}
+                        <strong className="font-semibold text-gray-900 dark:text-white">ligne vide</strong>.
+                      </p>
+                      <span className="font-mono text-xs font-semibold tabular-nums text-gray-600 dark:text-zinc-300">
+                        {detectedPastedCount} avis détecté{detectedPastedCount > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    <textarea
+                      value={pastedText}
+                      onChange={(event) => setPastedText(event.target.value)}
+                      rows={7}
+                      placeholder={`Exemple :\n\nImpossible de télécharger mes factures PDF depuis la mise à jour mobile, je dois passer sur ordinateur à chaque fois.\n\nLe support répond vite mais l’export comptable plante dès qu’on dépasse 200 lignes.\n\nTrès bon outil au quotidien, il manque juste un filtre par date sur le tableau principal.`}
+                      className="w-full rounded-xl border border-gray-300 bg-white p-3.5 text-sm leading-6 text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-gray-900 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-white/45"
+                    />
+
+                    {ignoredShortPastedCount > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        {ignoredShortPastedCount} bloc{ignoredShortPastedCount > 1 ? 's' : ''} ignoré{ignoredShortPastedCount > 1 ? 's' : ''} (moins de 15 caractères). Séparez chaque avis complet par une ligne vide.
+                      </p>
+                    )}
+
+                    {detectedPastedCount > ONBOARDING_IMPORT_LIMIT && (
+                      <p className="text-xs text-gray-500 dark:text-zinc-400">
+                        Les {ONBOARDING_IMPORT_LIMIT} premiers avis seront importés maintenant afin de garder de la capacité pour la suite.
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void importPastedAndSynthesize(activeSite)}
+                        disabled={busy || feedbackLimitReached || detectedPastedCount < 3}
+                        className={primaryButton}
+                      >
+                        <SparklesIcon className="h-4 w-4" aria-hidden />
+                        {feedbackLimitReached
+                          ? `Limite de ${feedbackLimit} avis atteinte`
+                          : detectedPastedCount > ONBOARDING_IMPORT_LIMIT
+                            ? `Analyser les ${ONBOARDING_IMPORT_LIMIT} premiers avis`
+                            : detectedPastedCount >= 3
+                              ? `Analyser ces ${detectedPastedCount} avis`
+                              : 'Collez au moins 3 avis'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void tryExamplesAndSynthesize(activeSite)}
+                        disabled={busy || feedbackLimitReached}
+                        className={secondaryButton}
+                      >
+                        Essayer avec {ONBOARDING_IMPORT_LIMIT} avis d’exemple
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ONGLET 2 : APP STORE iOS */}
+                {sourceTab === 'app_store' && (
+                  <div className="space-y-4">
+                    <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                      Cherchez une application iOS publique ou collez son lien <code>apps.apple.com</code> : Qualio importe jusqu’à {ONBOARDING_IMPORT_LIMIT} avis écrits récents et génère votre synthèse immédiatement, tout en gardant de la capacité pour vos prochains retours.
+                    </p>
+
+                    <form onSubmit={(e) => void searchIosApps(e)} className="flex flex-col gap-2.5 sm:flex-row">
+                      <Select
+                        label="Pays de l’App Store"
+                        value={appCountry}
+                        onChange={setAppCountry}
+                        options={APP_STORE_COUNTRY_OPTIONS}
+                        disabled={searchingApps || busy}
+                        className="w-full sm:w-48 sm:shrink-0"
+                        buttonClassName={`${selectClass} !min-h-11 w-full`}
+                        listClassName="min-w-[210px]"
+                      />
+                      <input
+                        value={appQuery}
+                        onChange={(e) => setAppQuery(e.target.value)}
+                        placeholder="Nom de l’app (ex. Qonto, Pennylane…) ou lien App Store"
+                        className={`${inputClass} flex-1`}
+                      />
+                      <button type="submit" disabled={searchingApps || busy} className={secondaryButton}>
+                        <MagnifyingGlassIcon className="h-4 w-4" aria-hidden />
+                        {searchingApps ? 'Recherche…' : 'Chercher'}
+                      </button>
+                    </form>
+
+                    {feedbackLimitReached && appResults.length > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        Limite de {feedbackLimit} avis atteinte pour ce projet : lancez « Générer ma synthèse » ci-dessus.
+                      </p>
+                    )}
+
+                    {appResults.length > 0 && (
+                      <ul className="divide-y divide-gray-200 rounded-xl border border-gray-200 dark:divide-white/[0.08] dark:border-white/[0.08]">
+                        {appResults.map((app) => {
+                          const isSelected = selectedApp?.id === app.id
+                          return (
+                            <li key={app.id} className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedApp(app)}
+                                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              >
+                                {app.icon ? (
+                                  <img src={app.icon} alt="" className="h-10 w-10 shrink-0 rounded-xl border border-gray-200 dark:border-white/10" />
+                                ) : (
+                                  <span className="h-10 w-10 shrink-0 rounded-xl bg-gray-100 dark:bg-white/10" />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-gray-950 dark:text-white">{app.name}</p>
+                                  <p className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
+                                    <span className="truncate">{app.seller}</span>
+                                    {app.rating != null && (
+                                      <span className="inline-flex items-center gap-0.5 font-mono tabular-nums">
+                                        <StarIcon className="h-3.5 w-3.5 text-[#ee6018]" aria-hidden />
+                                        {app.rating.toFixed(1)}
+                                      </span>
+                                    )}
+                                    {app.ratingCount != null && (
+                                      <span className="font-mono tabular-nums">{app.ratingCount.toLocaleString('fr-FR')} notes</span>
+                                    )}
+                                  </p>
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void importAppStoreAndSynthesize(activeSite, app)}
+                                disabled={busy || feedbackLimitReached}
+                                className={isSelected ? primaryButton : secondaryButton}
+                              >
+                                <SparklesIcon className="h-4 w-4" aria-hidden />
+                                {feedbackLimitReached ? 'Limite atteinte' : 'Importer et analyser'}
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* ONGLET 3 : FICHIER CSV */}
+                {sourceTab === 'csv' && (
+                  <div className="space-y-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                        <strong className="font-semibold text-gray-950 dark:text-white">Colonnes :</strong> <code>content</code> obligatoire ;{' '}
+                        <code>author_name</code> et <code>created_at</code> facultatives. UTF-8, virgule ou point-virgule, jusqu’à 5 Mo.
+                      </p>
+                      <button type="button" onClick={downloadSample} className={`${secondaryButton} shrink-0`}>
+                        Modèle CSV
+                      </button>
+                    </div>
+
+                    {!analysis && (
+                      <label
+                        onDragOver={(event) => {
+                          event.preventDefault()
+                          setDragging(true)
+                        }}
+                        onDragLeave={() => setDragging(false)}
+                        onDrop={onDrop}
+                        className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-sm transition duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#c2410c] ${
+                          dragging
+                            ? 'border-gray-950 bg-gray-100 text-gray-950 dark:border-white dark:bg-white/[0.08] dark:text-white'
+                            : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-500 dark:border-white/15 dark:bg-white/[0.03] dark:text-zinc-300'
+                        }`}
+                      >
+                        <DocumentArrowUpIcon className="h-7 w-7 text-gray-400 dark:text-zinc-500" aria-hidden />
+                        <span className="mt-3 font-semibold">Choisir un fichier CSV</span>
+                        <span className="mt-1 text-xs text-gray-500 dark:text-zinc-400">ou le glisser ici · jusqu’à 5 Mo et 5 000 lignes</span>
+                        <input
+                          type="file"
+                          accept=".csv,text/csv"
+                          onChange={(event) => {
+                            selectCsvFile(event.target.files?.[0])
+                            event.target.value = ''
+                          }}
+                          className="sr-only"
+                        />
+                      </label>
+                    )}
+
+                    {analysis && csvFileName && (
+                      <div className="space-y-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                          <p className="min-w-0 font-medium text-gray-900 dark:text-white">
+                            <span className="break-all font-mono">{csvFileName}</span> ·{' '}
+                            <span className="font-mono tabular-nums">{analysis.rows.length}</span> lignes
+                          </p>
+                          <button type="button" onClick={resetCsv} className={`${secondaryButton} min-h-9 px-3 text-xs`}>
+                            Choisir un autre fichier
+                          </button>
+                        </div>
+                        <ColumnPickers
+                          headers={analysis.headers}
+                          textCol={textCol}
+                          authorCol={authorCol}
+                          dateCol={dateCol}
+                          onText={setTextCol}
+                          onAuthor={setAuthorCol}
+                          onDate={setDateCol}
+                        />
+                        <CsvPreview analysis={analysis} textCol={textCol} authorCol={authorCol} dateCol={dateCol} />
+                      </div>
+                    )}
+
+                    {analysis && split.valid.length > ONBOARDING_IMPORT_LIMIT && (
+                      <p className="text-xs text-gray-500 dark:text-zinc-400">
+                        Les {ONBOARDING_IMPORT_LIMIT} premiers avis seront importés maintenant pour démarrer vite (vous pourrez ajouter les suivants depuis « Ajouter des avis »).
+                      </p>
+                    )}
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <button
+                        type="button"
+                        onClick={() => void importCsvAndSynthesize(activeSite)}
+                        disabled={busy || feedbackLimitReached || !analysis || textCol < 0 || hasCsvErrors || !split.valid.length}
+                        className={primaryButton}
+                      >
+                        <SparklesIcon className="h-4 w-4" aria-hidden />
+                        {feedbackLimitReached
+                          ? `Limite de ${feedbackLimit} avis atteinte`
+                          : busy
+                            ? 'Import…'
+                            : analysis
+                              ? split.valid.length > ONBOARDING_IMPORT_LIMIT
+                                ? `Importer ${ONBOARDING_IMPORT_LIMIT} avis sur ${split.valid.length} et analyser`
+                                : `Importer ${split.valid.length} avis et analyser`
+                              : 'Importer les avis'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void tryExamplesAndSynthesize(activeSite)}
+                        disabled={busy || feedbackLimitReached}
+                        className={secondaryButton}
+                      >
+                        Essayer avec {ONBOARDING_IMPORT_LIMIT} avis d’exemple
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ONGLET 4 : WIDGET */}
+                {sourceTab === 'widget' && !widgetAvailable && (
+                  <div className="flex flex-col gap-4 rounded-xl border border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.08]">
+                    <div className="flex items-start gap-3">
+                      <LockClosedIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-500 dark:text-zinc-400" aria-hidden />
+                      <div>
+                        <h2 className="text-base font-semibold text-gray-950 dark:text-white">Widget non actif sur cette offre</h2>
+                        <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                          Démarrez immédiatement en collant vos avis, depuis l’App Store ou par CSV, ou consultez nos offres.
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/pricing" className={`${secondaryButton} shrink-0`}>
+                      Voir les offres
+                    </Link>
+                  </div>
+                )}
+
+                {sourceTab === 'widget' && widgetAvailable && !widgetKey && (
+                  <div className="space-y-4">
+                    <p className="max-w-xl text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                      Qualio va générer une clé publique dédiée à ce projet. Vous pourrez copier le script d’une ligne ou le prompt prêt pour votre agent de code.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void prepareWidget(activeSite)}
+                      disabled={busy || widgetQuery.isLoading}
+                      className={primaryButton}
+                    >
+                      {busy ? 'Préparation…' : 'Générer mon script'}
+                      <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                )}
+
+                {sourceTab === 'widget' && widgetAvailable && widgetKey && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                      <CheckIcon className="h-5 w-5" aria-hidden />
+                      Source widget prête
+                    </div>
+                    <p className="text-sm leading-6 text-gray-600 dark:text-zinc-400">
+                      Collez ce script juste avant la balise <code>&lt;/body&gt;</code> de votre site, ou copiez le prompt pour votre agent de code.
+                    </p>
+                    <div className="relative overflow-x-auto rounded-xl bg-gray-950 p-4 pr-14 font-mono text-xs leading-6 text-gray-200">
+                      <code className="whitespace-pre-wrap break-all">{widgetScript}</code>
+                      <button
+                        type="button"
+                        onClick={() => void copyWith(widgetScript, setCopyStatus, 2200)}
+                        disabled={copyStatus === 'copying'}
+                        aria-label={copyStatus === 'copied' ? 'Script copié' : 'Copier le script'}
+                        title={copyStatus === 'copied' ? 'Script copié' : 'Copier le script'}
+                        className={`absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg border ${pressable} ${focusRing} ${
+                          copyStatus === 'copied'
+                            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
+                            : copyStatus === 'error'
+                              ? 'border-red-400/40 bg-red-500/15 text-red-300'
+                              : 'border-white/10 text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {copyStatus === 'copied' ? <CheckIcon className="h-4 w-4" aria-hidden /> : <ClipboardDocumentIcon className="h-4 w-4" aria-hidden />}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void copyWith(agentPrompt, setPromptCopyStatus, 3000)}
+                        disabled={promptCopyStatus === 'copying'}
+                        className={secondaryButton}
+                      >
+                        {promptCopyStatus === 'copied' ? 'Prompt copié' : 'Copier le prompt IA'}
+                        <ClipboardDocumentIcon className="h-4 w-4" aria-hidden />
+                      </button>
+                      <button type="button" onClick={() => void finishOnboarding(activeSite)} disabled={busy} className={primaryButton}>
+                        Ouvrir mon espace
+                        <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           )}
         </div>
       </div>
+      <LogoutDialog open={logoutOpen} onClose={() => setLogoutOpen(false)} />
     </main>
   )
 }

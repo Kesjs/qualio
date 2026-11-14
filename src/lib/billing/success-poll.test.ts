@@ -6,24 +6,26 @@ describe('billing confirmation poll', () => {
 
   it('confirms a successful status immediately', async () => {
     const onState = vi.fn()
+    const payload = { plan: 'pro', status: 'active', hasCompletedOnboarding: true }
     const stop = startBillingConfirmationPoll({
-      fetchStatus: async () => ({ state: 'confirmed', data: { plan: 'pro', status: 'active' } }),
+      fetchStatus: async () => ({ state: 'confirmed', data: payload }),
       onState,
     })
-    await vi.waitFor(() => expect(onState).toHaveBeenCalledWith('confirmed'))
+    await vi.waitFor(() => expect(onState).toHaveBeenCalledWith('confirmed', payload))
     stop()
   })
 
   it('keeps checking until a late confirmation', async () => {
     vi.useFakeTimers()
     const onState = vi.fn()
+    const payload = { plan: 'pro', status: 'active' }
     const fetchStatus = vi.fn()
       .mockResolvedValueOnce({ state: 'pending' as const })
-      .mockResolvedValueOnce({ state: 'confirmed' as const, data: { plan: 'pro', status: 'active' } })
+      .mockResolvedValueOnce({ state: 'confirmed' as const, data: payload })
     const stop = startBillingConfirmationPoll({ fetchStatus, onState })
     await vi.waitFor(() => expect(fetchStatus).toHaveBeenCalledTimes(1))
     await vi.advanceTimersByTimeAsync(1_500)
-    expect(onState).toHaveBeenCalledWith('confirmed')
+    expect(onState).toHaveBeenCalledWith('confirmed', payload)
     stop()
   })
 

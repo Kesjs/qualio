@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { generateFeedbackSynthesis } from '@/lib/feedback/ai'
-import { classifyPendingFeedback } from '@/lib/feedback/classify'
+import { backfillThemesFromSynthesis, classifyPendingFeedback } from '@/lib/feedback/classify'
 import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
 import { writableSiteIds } from '@/lib/billing/writable'
 import { buildWeeklyDigestEmail, type DigestProject } from '@/lib/email/weekly-digest'
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       if (latest?.created_at && (!lastSynthesisAt || latest.created_at > lastSynthesisAt)) lastSynthesisAt = latest.created_at
       if (existingWeek) continue
       const since = latest?.created_at ?? new Date(Date.now() - 7 * 86400000).toISOString()
-      try { await classifyPendingFeedback(admin, site.id, { limit: 20, budgetMs: 15_000 }) } catch (error) { console.error('[Weekly digest] pending classification failed', error) }
+      try { await classifyPendingFeedback(admin, site.id, { limit: 40, batchSize: 20, concurrency: 2, budgetMs: 12_000, onlyMissingSentiment: true }) } catch (error) { console.error('[Weekly digest] pending classification failed', error) }
       const { data: feedback } = await admin.from('feedback_items').select('id, content, author_name, theme, sentiment, created_at').eq('site_id', site.id).not('status', 'in', '(archived,locked)').gt('created_at', since).order('created_at', { ascending: false }).limit(301)
       if (!feedback?.length) continue
       totalNew += feedback.length
@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
       generated += 1; userGenerated += 1
       void recordProductEvent(admin, userId, 'weekly_synthesis_generated', `weekly:${site.id}:${weekKey}`, { site_id: site.id, feedback_count: feedback.length, plan })
       await persistRecommendations(admin, userId, site.id, saved.id, synthesis, feedback.length)
+      try { await backfillThemesFromSynthesis(admin, site.id, synthesis) } catch (backfillError) { console.error('[Weekly digest] theme backfill failed', backfillError) }
       const recommendation = synthesis.recommendations[0] ?? { title: 'Une nouvelle synthèse est prête.', rationale: synthesis.summary }
       projects.push({ name, newCount: feedback.length, recommendation, topTheme: synthesis.themes[0]?.name ?? null, decisions })
     }

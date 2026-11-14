@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
-import { motion, useMotionValue, useTransform } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface AnimatedThemeToggleProps {
@@ -47,18 +47,20 @@ export function AnimatedThemeToggle({ className }: AnimatedThemeToggleProps) {
 }
 
 function SolarSwitch({ isDark }: { isDark: boolean }) {
-  const duration = 0.45
+  const duration = 0.35
 
   const moonVariants = {
     checked: {
       scale: 1,
       opacity: 1,
       rotate: 0,
+      pathLength: 1,
     },
     unchecked: {
       scale: 0,
       opacity: 0,
       rotate: -90,
+      pathLength: 0,
     },
   }
 
@@ -67,21 +69,19 @@ function SolarSwitch({ isDark }: { isDark: boolean }) {
       scale: 0,
       opacity: 0,
       rotate: 90,
+      pathLength: 0,
     },
     unchecked: {
       scale: 1,
       opacity: 1,
       rotate: 0,
+      pathLength: 1,
     },
   }
 
-  const scaleMoon = useMotionValue(isDark ? 1 : 0)
-  const scaleSun = useMotionValue(isDark ? 0 : 1)
-  const pathLengthMoon = useTransform(scaleMoon, [0.5, 1], [0, 1])
-  const pathLengthSun = useTransform(scaleSun, [0.5, 1], [0, 1])
-
   return (
     <motion.div
+      initial={false}
       animate={isDark ? 'checked' : 'unchecked'}
       className="relative flex items-center justify-center h-4.5 w-4.5"
     >
@@ -103,12 +103,7 @@ function SolarSwitch({ isDark }: { isDark: boolean }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           variants={sunVariants}
-          custom={isDark}
           transition={{ duration }}
-          style={{
-            pathLength: pathLengthSun,
-            scale: scaleSun,
-          }}
         />
 
         {/* Sun Rays */}
@@ -119,12 +114,7 @@ function SolarSwitch({ isDark }: { isDark: boolean }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           variants={sunVariants}
-          custom={isDark}
           transition={{ duration }}
-          style={{
-            pathLength: pathLengthSun,
-            scale: scaleSun,
-          }}
         />
 
         {/* Moon Crescent */}
@@ -135,12 +125,7 @@ function SolarSwitch({ isDark }: { isDark: boolean }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           variants={moonVariants}
-          custom={isDark}
           transition={{ duration }}
-          style={{
-            pathLength: pathLengthMoon,
-            scale: scaleMoon,
-          }}
         />
       </motion.svg>
     </motion.div>

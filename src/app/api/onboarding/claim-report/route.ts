@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdminClient, getSupabaseServerClient } from '@/lib/supabase/server'
-import { BILLING_PLANS, resolvePlan } from '@/lib/billing/plans'
+import { BILLING_PLANS, ONBOARDING_IMPORT_LIMIT, resolvePlan } from '@/lib/billing/plans'
 import { appStoreIdFrom, fetchAppStoreReviews } from '@/lib/admin/acquisition-reviews'
 import type { ProspectReport } from '@/lib/admin/acquisition-report'
 import { persistRecommendations } from '@/lib/feedback/persist-recommendations'
@@ -8,6 +8,22 @@ import { persistRecommendations } from '@/lib/feedback/persist-recommendations'
 export const maxDuration = 60
 
 const TOKEN_RE = /^[\w-]{12,80}$/
+
+async function loadUserProjectQuota(supabase: any, admin: any, userId: string) {
+  const [{ data: subscription }, { count: projectCount }] = await Promise.all([
+    admin.from('billing_subscriptions').select('plan, status, source, current_period_end').eq('user_id', userId).maybeSingle(),
+    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+  ])
+  const plan = resolvePlan(subscription)
+  const limit = BILLING_PLANS[plan].projects
+  const used = projectCount ?? 0
+  return { plan, planLabel: BILLING_PLANS[plan].label, projectCount: used, projectLimit: limit, canClaim: used < limit }
+}
+
+async function rollbackClaimedSite(admin: any, siteId: string, userId: string) {
+  await admin.from('feedback_items').delete().eq('site_id', siteId).eq('user_id', userId)
+  await admin.from('sites').delete().eq('id', siteId).eq('user_id', userId)
+}
 
 /** Aperçu léger d'un rapport public afin de proposer l'import en 1 clic dans /onboarding. */
 export async function GET(request: NextRequest) {
@@ -19,12 +35,15 @@ export async function GET(request: NextRequest) {
   if (!TOKEN_RE.test(token)) return NextResponse.json({ found: false })
 
   const admin = getSupabaseAdminClient() as any
-  const { data } = await admin
-    .from('acquisition_reports')
-    .select('subject_name, source_label, review_count, report')
-    .eq('token', token)
-    .is('revoked_at', null)
-    .maybeSingle()
+  const [{ data }, quota] = await Promise.all([
+    admin
+      .from('acquisition_reports')
+      .select('subject_name, source_label, review_count, report')
+      .eq('token', token)
+      .is('revoked_at', null)
+      .maybeSingle(),
+    loadUserProjectQuota(supabase, admin, user.id),
+  ])
 
   if (!data?.report) return NextResponse.json({ found: false })
   const report = data.report as ProspectReport
@@ -34,6 +53,10 @@ export async function GET(request: NextRequest) {
     sourceLabel: data.source_label,
     reviewCount: data.review_count,
     problemCount: report.problems?.length ?? 0,
+    canClaim: quota.canClaim,
+    planLabel: quota.planLabel,
+    projectCount: quota.projectCount,
+    projectLimit: quota.projectLimit,
   })
 }
 
@@ -58,18 +81,14 @@ export async function POST(request: NextRequest) {
   if (!row?.report) return NextResponse.json({ error: 'Ce rapport est introuvable ou expiré.' }, { status: 404 })
   const report = row.report as ProspectReport
 
-  const [{ data: subscription }, { count: projectCount }] = await Promise.all([
-    admin.from('billing_subscriptions').select('plan, status, source, current_period_end').eq('user_id', user.id).maybeSingle(),
-    supabase.from('sites').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-  ])
-  const plan = resolvePlan(subscription)
-  const limit = BILLING_PLANS[plan].projects
-  if ((projectCount ?? 0) >= limit) {
+  const quota = await loadUserProjectQuota(supabase, admin, user.id)
+  if (!quota.canClaim) {
     return NextResponse.json(
-      { error: `Votre plan ${BILLING_PLANS[plan].label} autorise ${limit} projet${limit > 1 ? 's' : ''}.` },
+      { error: `Votre plan ${quota.planLabel} autorise ${quota.projectLimit} projet${quota.projectLimit > 1 ? 's' : ''}.` },
       { status: 403 },
     )
   }
+  const plan = quota.plan
 
   const nowIso = new Date().toISOString()
   const { data: createdSite, error: siteError } = await admin
@@ -112,14 +131,15 @@ export async function POST(request: NextRequest) {
     quoteIndexByProblem.push(indices)
   }
 
-  // 2. Si c'est une app iOS et qu'il reste de la capacité sur le plan, enrichir avec les avis récents du flux Apple
+  // 2. Si c'est une app iOS et qu'il reste de la capacité, enrichir jusqu'au plafond d'onboarding pour garder de la marge sur le projet
   const appId = row.source === 'app_store' && row.source_url ? appStoreIdFrom(row.source_url) : null
-  if (appId && itemsToInsert.length < maxFeedback) {
+  const enrichmentTarget = Math.min(maxFeedback, ONBOARDING_IMPORT_LIMIT)
+  if (appId && itemsToInsert.length < enrichmentTarget) {
     try {
       const liveReviews = await fetchAppStoreReviews(appId, 'fr', 1)
       const existingTexts = new Set(itemsToInsert.map((i) => String(i.content).slice(0, 80)))
       for (const rev of liveReviews) {
-        if (itemsToInsert.length >= maxFeedback) break
+        if (itemsToInsert.length >= enrichmentTarget) break
         const text = (rev.title ? `${rev.title} — ${rev.content}` : rev.content).slice(0, 2000)
         if (existingTexts.has(text.slice(0, 80))) continue
         existingTexts.add(text.slice(0, 80))
@@ -140,10 +160,15 @@ export async function POST(request: NextRequest) {
 
   let insertedIds: string[] = []
   if (itemsToInsert.length > 0) {
-    const { data: insertedRows } = await admin
+    const { data: insertedRows, error: insertError } = await admin
       .from('feedback_items')
       .insert(itemsToInsert)
       .select('id')
+    if (insertError) {
+      await rollbackClaimedSite(admin, createdSite.id, user.id)
+      console.error('[Claim report] feedback insert failed', insertError)
+      return NextResponse.json({ error: 'Les avis n’ont pas pu être importés. Réessayez.' }, { status: 500 })
+    }
     insertedIds = ((insertedRows ?? []) as Array<{ id: string }>).map((r) => r.id)
   }
 
@@ -169,7 +194,7 @@ export async function POST(request: NextRequest) {
     feedback_ids: insertedIds.slice(0, Math.min(insertedIds.length, t.mentions)),
   }))
 
-  const { data: savedSynthesis } = await admin
+  const { data: savedSynthesis, error: synthesisError } = await admin
     .from('feedback_syntheses')
     .insert({
       user_id: user.id,
@@ -184,16 +209,29 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single()
 
-  if (savedSynthesis?.id && mappedRecommendations.length > 0) {
-    await persistRecommendations(
-      admin,
-      user.id,
-      createdSite.id,
-      savedSynthesis.id,
-      { title: report.title, summary: report.summary, themes: mappedThemes, recommendations: mappedRecommendations },
-      Math.max(insertedIds.length, report.reviewCount),
-      { supersedeOthers: true },
-    )
+  if (synthesisError || !savedSynthesis?.id) {
+    await rollbackClaimedSite(admin, createdSite.id, user.id)
+    console.error('[Claim report] synthesis insert failed', synthesisError)
+    return NextResponse.json({ error: 'La synthèse n’a pas pu être enregistrée. Réessayez.' }, { status: 500 })
+  }
+
+  if (mappedRecommendations.length > 0) {
+    try {
+      await persistRecommendations(
+        admin,
+        user.id,
+        createdSite.id,
+        savedSynthesis.id,
+        { title: report.title, summary: report.summary, themes: mappedThemes, recommendations: mappedRecommendations },
+        Math.max(insertedIds.length, report.reviewCount),
+        { supersedeOthers: true },
+      )
+    } catch (recommendationError) {
+      await admin.from('feedback_syntheses').delete().eq('id', savedSynthesis.id).eq('user_id', user.id)
+      await rollbackClaimedSite(admin, createdSite.id, user.id)
+      console.error('[Claim report] recommendation persistence failed', recommendationError)
+      return NextResponse.json({ error: 'Les priorités n’ont pas pu être enregistrées. Réessayez.' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ site: createdSite, imported: insertedIds.length })

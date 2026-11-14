@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { appStoreIdFrom, parseAppStoreFeed, parsePastedReviews } from '@/lib/admin/acquisition-reviews'
+import { analyzePastedReviews, appStoreIdFrom, parseAppStoreFeed, parsePastedReviews } from '@/lib/admin/acquisition-reviews'
 import { assembleReport, quoteExcerpt, reportHook } from '@/lib/admin/acquisition-report'
 
 describe('sources d’avis publics', () => {
@@ -39,6 +39,10 @@ describe('sources d’avis publics', () => {
     expect(parsed).toHaveLength(2)
     expect(parsed[0].rating).toBe(2)
     expect(parsed[1].rating).toBe(4)
+
+    const analyzed = analyzePastedReviews(raw)
+    expect(analyzed.reviews).toHaveLength(2)
+    expect(analyzed.ignoredShortCount).toBe(1)
   })
 })
 

@@ -19,8 +19,8 @@ export const primaryButton = `inline-flex min-h-11 items-center justify-center g
 export const secondaryButton = `inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 ${pressable} hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/15 dark:bg-transparent dark:text-zinc-100 dark:hover:border-white/30 ${focusRing}`
 export const dangerButton = `inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 ${pressable} hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-500/30 dark:bg-transparent dark:text-red-300 dark:hover:bg-red-500/10 ${focusRing}`
 
-export const inputClass = `min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-gray-950 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-white ${focusRing}`
-export const selectClass = `h-10 rounded-lg border border-gray-300 bg-white px-2.5 text-sm font-medium text-gray-800 outline-none transition focus:border-gray-950 dark:border-white/15 dark:bg-[#16181E] dark:text-zinc-200 dark:focus:border-white ${focusRing}`
+export const inputClass = 'min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-950 outline-none transition placeholder:text-gray-400 focus:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#c2410c]/60 dark:border-white/15 dark:bg-white/[0.04] dark:text-white dark:focus:border-white/45'
+export const selectClass = `h-10 rounded-lg border border-gray-300 bg-white px-2.5 text-sm font-medium text-gray-800 outline-none transition focus:border-gray-950 dark:border-white/15 dark:bg-[#16181E] dark:text-zinc-200 dark:focus:border-white/45 ${focusRing}`
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) {
   return (
@@ -77,7 +77,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange }: { label
   }
 
   return (
-    <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-white/[0.08]">
+    <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-white/[0.08]">
       {tabs.map((tab, index) => {
         const selected = tab.id === value
         return (
@@ -95,7 +95,7 @@ export function Tabs<T extends string>({ label, tabs, value, onChange }: { label
             {tab.label}
             {tab.attention && <span className="h-2.5 w-2.5 rounded-full bg-[#ee6018]" aria-label="Notification à configurer" />}
             {tab.locked && <><LockClosedIcon className="h-3.5 w-3.5" aria-hidden /><span className="sr-only">(avec Pro)</span></>}
-            <span aria-hidden className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gray-950 transition-transform duration-200 motion-reduce:transition-none dark:bg-white ${selected ? 'scale-x-100' : 'scale-x-0'}`} />
+            <span aria-hidden className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-gray-950 transition-transform duration-200 motion-reduce:transition-none dark:bg-white ${selected ? 'scale-x-100' : 'scale-x-0'}`} />
           </button>
         )
       })}

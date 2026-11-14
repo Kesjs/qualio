@@ -3,6 +3,7 @@ export type BillingConfirmationState = 'checking' | 'confirmed' | 'delayed' | 'u
 export type BillingStatusResponse = {
   plan?: string
   status?: string
+  hasCompletedOnboarding?: boolean
 }
 
 type PollOutcome =
@@ -22,7 +23,7 @@ export function startBillingConfirmationPoll({
   onState,
 }: {
   fetchStatus: () => Promise<PollOutcome>
-  onState: (state: BillingConfirmationState) => void
+  onState: (state: BillingConfirmationState, data?: BillingStatusResponse) => void
 }) {
   let cancelled = false
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -39,7 +40,7 @@ export function startBillingConfirmationPoll({
     const result = await fetchStatus()
     if (cancelled) return
     if (result.state === 'confirmed') {
-      onState('confirmed')
+      onState('confirmed', result.data)
       return
     }
     if (result.state === 'unauthorized') {

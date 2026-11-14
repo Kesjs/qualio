@@ -22,7 +22,7 @@ async function fetchSites(): Promise<Site[]> {
   return body
 }
 
-async function createSiteAPI(data: { name?: string; url?: string }): Promise<Site> {
+async function createSiteAPI(data: { name?: string; url?: string; completeOnboarding?: boolean }): Promise<Site> {
   const response = await fetch('/api/sites', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

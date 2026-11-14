@@ -96,7 +96,28 @@ export function getGeminiModelCandidates(configuredModel?: string) {
   return Array.from(new Set([preferred, GEMINI_PRIMARY_FALLBACK, GEMINI_SECONDARY_FALLBACK, GEMINI_TERTIARY_FALLBACK]))
 }
 
-function getProviderStatus(error: unknown): number | null {
+export function resolveAiProvider(): 'gemini' | 'openai' {
+  const configured = process.env.FEEDBACK_AI_PROVIDER?.trim().toLowerCase()
+  if (configured === 'gemini') return 'gemini'
+  if (configured === 'openai') return 'openai'
+  if (!process.env.OPENAI_API_KEY && process.env.GEMINI_API_KEY) return 'gemini'
+  return 'openai'
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+function parseJsonObject(text: string | null | undefined): unknown {
+  if (!text) return null
+  const trimmed = text.trim()
+  const cleaned = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    : trimmed
+  return JSON.parse(cleaned)
+}
+
+export function getProviderStatus(error: unknown): number | null {
   if (!error || typeof error !== 'object') return null
   const record = error as Record<string, unknown>
   if (typeof record.status === 'number') return record.status
@@ -129,13 +150,16 @@ export async function createOpenAiCompletion(params: Record<string, any>) {
       const status = getProviderStatus(error)
       const message = error instanceof Error ? error.message : ''
       if (status === 400 && 'temperature' in body && /temperature/i.test(message)) { body = { ...body }; delete body.temperature; continue }
-      if (attempt < 2 && (status === 429 || (status !== null && status >= 500))) { await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1))); continue }
+      if (attempt < 3 && (status === 429 || status === 408 || (status !== null && status >= 500))) {
+        await sleep(700 * (attempt + 1))
+        continue
+      }
       throw error
     }
   }
 }
 
-function shouldRetryGemini(error: unknown) {
+export function shouldRetryGemini(error: unknown) {
   if (error instanceof SyntaxError) return true
   const status = getProviderStatus(error)
   return status === 404 || status === 408 || status === 429 || (status !== null && status >= 500)
@@ -196,7 +220,7 @@ async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configu
         contents: [{ role: 'user', parts: [{ text: buildUserPayload(feedback) }] }],
         config: { systemInstruction: SYSTEM_PROMPT, temperature: 0.15, responseMimeType: 'application/json', responseSchema: synthesisSchema },
       })
-      const parsed = response.text ? JSON.parse(response.text) : null
+      const parsed = parseJsonObject(response.text)
       const result = cleanSynthesisResult(parsed, validIds)
       if (result) {
         const inputTokens = response.usageMetadata?.promptTokenCount
@@ -208,7 +232,11 @@ async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configu
     } catch (error) {
       lastError = error
       if (index === models.length - 1 || !shouldRetryGemini(error)) throw error
-      console.warn(`[Feedback synthesis] Gemini model unavailable, retrying with ${models[index + 1]}`, { model, status: getProviderStatus(error) })
+      const status = getProviderStatus(error)
+      console.warn(`[Feedback synthesis] Gemini model unavailable, retrying with ${models[index + 1]}`, { model, status })
+      if (status !== 404) {
+        await sleep(350 * (index + 1))
+      }
     }
   }
 
@@ -218,7 +246,7 @@ async function generateGeminiSynthesis(feedback: FeedbackForSynthesis[], configu
 
 export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]): Promise<FeedbackSynthesis | null> {
   if (feedback.length < 3) return null
-  const provider = (process.env.FEEDBACK_AI_PROVIDER || 'openai').toLocaleLowerCase()
+  const provider = resolveAiProvider()
   let parsed: unknown = null
   let meta: FeedbackSynthesis['_meta'] | undefined
   if (provider === 'gemini') {
@@ -236,7 +264,11 @@ export async function generateFeedbackSynthesis(feedback: FeedbackForSynthesis[]
       response_format: { type: 'json_schema', json_schema: { name: 'feedback_synthesis', strict: true, schema: openAiSynthesisSchema } },
     })
     const content = response.choices[0]?.message?.content
-    parsed = content ? JSON.parse(content) : null
+    try {
+      parsed = parseJsonObject(content)
+    } catch {
+      parsed = null
+    }
     const inputTokens = response.usage?.prompt_tokens
     const outputTokens = response.usage?.completion_tokens
     meta = { tokens_input: inputTokens, tokens_output: outputTokens, cost_usd: typeof inputTokens === 'number' && typeof outputTokens === 'number' ? inputTokens * 0.2 / 1_000_000 + outputTokens * 1.2 / 1_000_000 : undefined, model: response.model }
