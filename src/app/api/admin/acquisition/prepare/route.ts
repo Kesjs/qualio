@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { buildDraft, GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 import { pickBestContact } from '@/lib/admin/acquisition-company'
-import { scanCompany } from '@/lib/admin/acquisition-scan'
+import { sameCompanyDomain, scanCompany } from '@/lib/admin/acquisition-scan'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 
 export const maxDuration = 60
@@ -22,7 +22,18 @@ export async function POST(request: Request) {
     ((await admin.from('acquisition_contacts').select('id, email, full_name, email_status, email_source_url, confidence').eq('company_id', company.id)).data ?? []) as ContactRow[]
   let contacts = await load()
   let scanned = false
-  if (contacts.length === 0 || contacts.every((c) => !c.email_source_url)) { await scanCompany(admin, company); scanned = true; contacts = await load() }
+  if (contacts.length === 0 || contacts.every((c) => !c.email_source_url)) {
+    await Promise.race([scanCompany(admin, company), new Promise((resolve) => setTimeout(resolve, 15_000))]).catch(() => {})
+    scanned = true
+    contacts = await load()
+  }
+  for (const contact of contacts) {
+    if (!contact.email_source_url && company.domain && sameCompanyDomain(contact.email, company.domain)) {
+      const fallbackUrl = `https://${company.domain}`
+      await admin.from('acquisition_contacts').update({ email_source_url: fallbackUrl }).eq('id', contact.id)
+      contact.email_source_url = fallbackUrl
+    }
+  }
   const usable = contacts.filter((contact: any) => !['suppressed', 'invalid'].includes(contact.email_status))
   const best = pickBestContact(contacts)
   if (!best) return NextResponse.json({ scanned, emails: 0, drafted: 0, reason: 'Aucun email trouvé sur le site.' })

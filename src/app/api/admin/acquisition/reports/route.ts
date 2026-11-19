@@ -7,7 +7,7 @@ import { publicReportUrl } from '@/lib/admin/acquisition-report-url'
 import { buildDraft, GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 import { toDraftReport } from '@/lib/admin/acquisition-report-store'
 import { pickBestContact, resolveAppStoreCompany } from '@/lib/admin/acquisition-company'
-import { scanCompany } from '@/lib/admin/acquisition-scan'
+import { sameCompanyDomain, scanCompany } from '@/lib/admin/acquisition-scan'
 
 export const maxDuration = 90
 
@@ -61,36 +61,98 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Source d’avis inconnue.' }, { status: 400 })
   }
 
+  const admin = getSupabaseAdminClient() as any
+
+  type ContactRow = {
+    id: string
+    email: string
+    full_name: string | null
+    email_status: string
+    email_source_url: string | null
+    confidence: number | null
+  }
+
+  // Résolution de l'entreprise et scan du site menés EN PARALLÈLE de la synthèse IA Gemini,
+  // avec un plafond de 18 s pour ne jamais faire expirer la fonction serverless (60 s max sur Vercel).
+  const resolveCompanyAndContacts = async (): Promise<{
+    company: { id: string; name: string; domain: string; source_notes: string | null } | null
+    contacts: ContactRow[]
+  }> => {
+    try {
+      let company: { id: string; name: string; domain: string; source_notes: string | null } | null = null
+      if (companyId) {
+        const { data: existingCompany } = await admin
+          .from('acquisition_companies')
+          .select('id, name, domain, source_notes')
+          .eq('id', companyId)
+          .maybeSingle()
+        if (existingCompany) company = existingCompany
+      } else if (body.source === 'app_store') {
+        let sellerUrl = body.sellerUrl
+        if (sellerUrl === undefined && body.appId) {
+          const lookup = await searchAppStore(String(body.appId), String(body.country ?? 'fr').toLowerCase(), 1).catch(() => [])
+          sellerUrl = lookup[0]?.sellerUrl ?? null
+        }
+        company = await resolveAppStoreCompany(admin, {
+          sellerUrl,
+          companyName: subjectName,
+          sourceUrl,
+          country: String(body.country ?? 'fr'),
+        })
+      }
+
+      if (!company) return { company: null, contacts: [] }
+
+      const loadContacts = async (): Promise<ContactRow[]> =>
+        ((await admin
+          .from('acquisition_contacts')
+          .select('id, email, full_name, email_status, email_source_url, confidence')
+          .eq('company_id', company!.id)).data ?? []) as ContactRow[]
+
+      let companyContacts = await loadContacts()
+      if (companyContacts.length === 0 || companyContacts.every((c) => !c.email_source_url)) {
+        await Promise.race([
+          scanCompany(admin, company),
+          new Promise((resolve) => setTimeout(resolve, 15_000)),
+        ]).catch((err) => console.warn('[Report] scanCompany warning', err))
+        companyContacts = await loadContacts()
+      }
+
+      // Si un contact du domaine de l'entreprise n'a toujours pas d'email_source_url, rattacher https://{domain}
+      for (const contact of companyContacts) {
+        if (!contact.email_source_url && company.domain && sameCompanyDomain(contact.email, company.domain)) {
+          const fallbackUrl = `https://${company.domain}`
+          await admin
+            .from('acquisition_contacts')
+            .update({ email_source_url: fallbackUrl })
+            .eq('id', contact.id)
+          contact.email_source_url = fallbackUrl
+        }
+      }
+
+      return { company, contacts: companyContacts }
+    } catch (err) {
+      console.warn('[Report] resolveCompanyAndContacts warning', err)
+      return { company: null, contacts: [] }
+    }
+  }
+
   let report
+  let companyResult: {
+    company: { id: string; name: string; domain: string; source_notes: string | null } | null
+    contacts: ContactRow[]
+  }
   try {
-    report = await analyzePublicReviews(reviews)
+    ;[report, companyResult] = await Promise.all([
+      analyzePublicReviews(reviews),
+      resolveCompanyAndContacts(),
+    ])
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'L’analyse a échoué.' }, { status: 422 })
   }
 
-  const admin = getSupabaseAdminClient() as any
-  let resolvedCompany: { id: string; name: string; domain: string; source_notes: string | null } | null = null
-  if (companyId) {
-    const { data: existingCompany } = await admin
-      .from('acquisition_companies')
-      .select('id, name, domain, source_notes')
-      .eq('id', companyId)
-      .maybeSingle()
-    if (existingCompany) resolvedCompany = existingCompany
-  } else if (body.source === 'app_store') {
-    let sellerUrl = body.sellerUrl
-    if (sellerUrl === undefined && body.appId) {
-      const lookup = await searchAppStore(String(body.appId), String(body.country ?? 'fr').toLowerCase(), 1).catch(() => [])
-      sellerUrl = lookup[0]?.sellerUrl ?? null
-    }
-    resolvedCompany = await resolveAppStoreCompany(admin, {
-      sellerUrl,
-      companyName: subjectName,
-      sourceUrl,
-      country: String(body.country ?? 'fr'),
-    })
-  }
-
+  const resolvedCompany = companyResult.company
+  const companyContacts = companyResult.contacts
   const resolvedCompanyId = resolvedCompany?.id ?? companyId
 
   const token = reportToken()
@@ -130,25 +192,6 @@ export async function POST(request: Request) {
   } | null = null
 
   if (resolvedCompany) {
-    const loadContacts = async () =>
-      ((await admin
-        .from('acquisition_contacts')
-        .select('id, email, full_name, email_status, email_source_url, confidence')
-        .eq('company_id', resolvedCompany!.id)).data ?? []) as Array<{
-        id: string
-        email: string
-        full_name: string | null
-        email_status: string
-        email_source_url: string | null
-        confidence: number | null
-      }>
-
-    let companyContacts = await loadContacts()
-    if (companyContacts.length === 0 || companyContacts.every((c) => !c.email_source_url)) {
-      await scanCompany(admin, resolvedCompany)
-      companyContacts = await loadContacts()
-    }
-
     const best = pickBestContact(companyContacts)
     if (best) {
       bestContactPayload = {
