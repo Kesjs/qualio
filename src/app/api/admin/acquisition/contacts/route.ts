@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
 import { validatePublicEmail } from '@/lib/admin/email-validation'
+import { cleanDomain } from '@/lib/admin/acquisition-ai'
 
 export const maxDuration = 30
 
@@ -16,33 +17,76 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     companyId?: string
+    companyName?: string
+    domain?: string | null
+    reportId?: string | null
     contactId?: string
     email?: string
     fullName?: string
     role?: string
   }
 
-  const companyId = String(body.companyId ?? '').trim()
+  let companyId = String(body.companyId ?? '').trim()
   const email = String(body.email ?? '').trim().toLowerCase()
   const fullName = body.fullName ? String(body.fullName).trim().slice(0, 120) : null
   const role = body.role ? String(body.role).trim().slice(0, 80) : null
 
-  if (!companyId) {
-    return NextResponse.json({ error: 'Entreprise manquante.' }, { status: 400 })
-  }
   if (!email || !email.includes('@') || email.length < 5) {
     return NextResponse.json({ error: 'Adresse email invalide.' }, { status: 400 })
   }
 
   const admin = getSupabaseAdminClient() as any
-  const { data: company, error: companyError } = await admin
-    .from('acquisition_companies')
-    .select('id, name, domain, relevance_score, status')
-    .eq('id', companyId)
-    .maybeSingle()
+  let company: { id: string; name: string; domain: string; relevance_score: number | null; status: string } | null = null
 
-  if (companyError || !company) {
-    return NextResponse.json({ error: 'Entreprise introuvable.' }, { status: 404 })
+  if (companyId) {
+    const { data, error: companyError } = await admin
+      .from('acquisition_companies')
+      .select('id, name, domain, relevance_score, status')
+      .eq('id', companyId)
+      .maybeSingle()
+
+    if (companyError || !data) {
+      return NextResponse.json({ error: 'Entreprise introuvable.' }, { status: 404 })
+    }
+    company = data
+  } else {
+    const emailDomain = email.split('@')[1]?.trim().toLowerCase() ?? ''
+    const resolvedDomain = cleanDomain(body.domain) ?? cleanDomain(emailDomain) ?? emailDomain
+    const cleanName = String(body.companyName ?? '').trim().slice(0, 200)
+    if (!cleanName || !resolvedDomain) {
+      return NextResponse.json({ error: 'Entreprise manquante.' }, { status: 400 })
+    }
+
+    const { data: existingCompany } = await admin
+      .from('acquisition_companies')
+      .select('id, name, domain, relevance_score, status')
+      .ilike('domain', resolvedDomain)
+      .maybeSingle()
+
+    if (existingCompany) {
+      company = existingCompany
+    } else {
+      const { data: createdCompany, error: createError } = await admin
+        .from('acquisition_companies')
+        .insert({
+          name: cleanName,
+          domain: resolvedDomain,
+          website_url: `https://${resolvedDomain}`,
+          source_notes: 'Ajout manuel',
+          status: 'review',
+        })
+        .select('id, name, domain, relevance_score, status')
+        .single()
+      if (createError || !createdCompany) {
+        return NextResponse.json({ error: 'Impossible de créer l’entreprise.' }, { status: 500 })
+      }
+      company = createdCompany
+    }
+    companyId = company!.id
+  }
+
+  if (body.reportId) {
+    await admin.from('acquisition_reports').update({ company_id: companyId }).eq('id', body.reportId)
   }
 
   const validation = await validatePublicEmail(email)
@@ -116,7 +160,7 @@ export async function POST(request: Request) {
   }
 
   // Augmenter le score de pertinence et passer le statut en 'review' pour rendre le prospect prêt
-  const newScore = Math.min(100, Math.max(company.relevance_score ?? 0, 45))
+  const newScore = Math.min(100, Math.max(company?.relevance_score ?? 0, 45))
   await admin
     .from('acquisition_companies')
     .update({
@@ -125,6 +169,6 @@ export async function POST(request: Request) {
     })
     .eq('id', companyId)
 
-  return NextResponse.json({ success: true, contact: contactRow })
+  return NextResponse.json({ success: true, companyId, contact: contactRow })
 }
 

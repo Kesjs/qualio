@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { getSupabaseAdminClient } from '@/lib/supabase/server'
-import { fetchAppStoreReviews, parsePastedReviews, type PublicReview } from '@/lib/admin/acquisition-reviews'
+import { fetchAppStoreReviews, parsePastedReviews, searchAppStore, type PublicReview } from '@/lib/admin/acquisition-reviews'
 import { analyzePublicReviews, reportToken } from '@/lib/admin/acquisition-report'
 import { publicReportUrl } from '@/lib/admin/acquisition-report-url'
-import { buildDraft, GENERIC_EMAIL, type DraftReport } from '@/lib/admin/acquisition-draft'
+import { buildDraft, GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
+import { toDraftReport } from '@/lib/admin/acquisition-report-store'
+import { pickBestContact, resolveAppStoreCompany } from '@/lib/admin/acquisition-company'
+import { scanCompany } from '@/lib/admin/acquisition-scan'
 
 export const maxDuration = 90
 
@@ -15,6 +18,7 @@ type Body = {
   appId?: string
   appName?: string
   appUrl?: string
+  sellerUrl?: string | null
   country?: string
   text?: string
   subjectName?: string
@@ -65,11 +69,35 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdminClient() as any
+  let resolvedCompany: { id: string; name: string; domain: string; source_notes: string | null } | null = null
+  if (companyId) {
+    const { data: existingCompany } = await admin
+      .from('acquisition_companies')
+      .select('id, name, domain, source_notes')
+      .eq('id', companyId)
+      .maybeSingle()
+    if (existingCompany) resolvedCompany = existingCompany
+  } else if (body.source === 'app_store') {
+    let sellerUrl = body.sellerUrl
+    if (sellerUrl === undefined && body.appId) {
+      const lookup = await searchAppStore(String(body.appId), String(body.country ?? 'fr').toLowerCase(), 1).catch(() => [])
+      sellerUrl = lookup[0]?.sellerUrl ?? null
+    }
+    resolvedCompany = await resolveAppStoreCompany(admin, {
+      sellerUrl,
+      companyName: subjectName,
+      sourceUrl,
+      country: String(body.country ?? 'fr'),
+    })
+  }
+
+  const resolvedCompanyId = resolvedCompany?.id ?? companyId
+
   const token = reportToken()
   const { data, error } = await admin
     .from('acquisition_reports')
     .insert({
-      company_id: companyId,
+      company_id: resolvedCompanyId,
       token,
       subject_name: subjectName,
       source: body.source,
@@ -92,14 +120,49 @@ export async function POST(request: Request) {
 
   const url = publicReportUrl(data.token)
   let draftUpdated = false
+  let bestContactPayload: {
+    id: string
+    email: string
+    fullName: string | null
+    emailStatus: string
+    emailSourceUrl: string | null
+    isGeneric: boolean
+  } | null = null
 
-  // Si ce prospect a déjà un brouillon non envoyé, on remplace son texte par l'accroche « valeur d'abord ».
-  if (companyId) {
-    const [{ data: companyRow }, { data: companyContacts }] = await Promise.all([
-      admin.from('acquisition_companies').select('name, source_notes').eq('id', companyId).maybeSingle(),
-      admin.from('acquisition_contacts').select('id, email, full_name').eq('company_id', companyId),
-    ])
-    const contactIds = ((companyContacts ?? []) as Array<{ id: string; email: string; full_name: string | null }>).map((c) => c.id)
+  if (resolvedCompany) {
+    const loadContacts = async () =>
+      ((await admin
+        .from('acquisition_contacts')
+        .select('id, email, full_name, email_status, email_source_url, confidence')
+        .eq('company_id', resolvedCompany!.id)).data ?? []) as Array<{
+        id: string
+        email: string
+        full_name: string | null
+        email_status: string
+        email_source_url: string | null
+        confidence: number | null
+      }>
+
+    let companyContacts = await loadContacts()
+    if (companyContacts.length === 0) {
+      await scanCompany(admin, resolvedCompany)
+      companyContacts = await loadContacts()
+    }
+
+    const best = pickBestContact(companyContacts)
+    if (best) {
+      bestContactPayload = {
+        id: best.id,
+        email: best.email,
+        fullName: best.full_name,
+        emailStatus: best.email_status,
+        emailSourceUrl: best.email_source_url ?? null,
+        isGeneric: GENERIC_EMAIL.test(best.email),
+      }
+    }
+
+    // Si ce prospect a déjà un brouillon non envoyé, on remplace son texte par l'accroche « valeur d'abord ».
+    const contactIds = companyContacts.map((c) => c.id)
     if (contactIds.length > 0) {
       const { data: openDrafts } = await admin
         .from('acquisition_messages')
@@ -109,23 +172,21 @@ export async function POST(request: Request) {
         .is('follow_up_of', null)
         .limit(5)
       if (openDrafts?.length) {
-        const contactMap = new Map(((companyContacts ?? []) as Array<{ id: string; email: string; full_name: string | null }>).map((c) => [c.id, c]))
-        const top = report.problems[0]
-        const draftReport: DraftReport = {
+        const contactMap = new Map(companyContacts.map((c) => [c.id, c]))
+        const draftReport = toDraftReport({
           url,
           reviewCount: report.reviewCount,
           sourceLabel,
           subjectName,
-          topProblem: top ? { title: top.title, mentions: top.mentions } : null,
-          problemCount: report.problems.length,
-        }
+          report,
+        })
         for (const msg of openDrafts as Array<{ id: string; contact_id: string }>) {
           const contact = contactMap.get(msg.contact_id)
           const rebuilt = buildDraft({
             report: draftReport,
             fullName: contact && GENERIC_EMAIL.test(contact.email) ? null : contact?.full_name,
-            companyName: companyRow?.name ?? subjectName,
-            companyNotes: companyRow?.source_notes,
+            companyName: resolvedCompany.name ?? subjectName,
+            companyNotes: resolvedCompany.source_notes,
           })
           await admin.from('acquisition_messages').update({ subject: rebuilt.subject, body: rebuilt.body }).eq('id', msg.id)
           draftUpdated = true
@@ -141,6 +202,9 @@ export async function POST(request: Request) {
     reviewCount: report.reviewCount,
     averageRating: report.averageRating,
     draftUpdated,
+    companyId: resolvedCompanyId,
+    contact: bestContactPayload,
     problems: report.problems.map((item) => ({ title: item.title, mentions: item.mentions })),
+    themes: report.themes.slice(0, 3),
   })
 }

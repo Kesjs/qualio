@@ -4,17 +4,45 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowTopRightOnSquareIcon, CheckIcon, ClipboardDocumentIcon, DocumentChartBarIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { Badge, BTN_PRIMARY, BTN_SECONDARY, FIELD, FOCUS, Panel } from '@/components/admin/ui'
 import { BTN_SMALL, BTN_SMALL_ACCENT, plural, postJson, type Notify, type ReportTarget } from '@/components/admin/acquisition-shared'
+import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 import { parsePastedReviews, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
 import { REPORT_MIN_REVIEWS } from '@/lib/admin/acquisition-report'
 
 type SourceMode = 'app_store' | 'pasted'
+type GeneratedContact = {
+  id: string
+  email: string
+  fullName: string | null
+  emailStatus: string
+  emailSourceUrl: string | null
+  isGeneric: boolean
+}
+type InlineDraft = {
+  id: string
+  subject: string
+  body: string
+  savedSubject: string
+  savedBody: string
+  sent: boolean
+}
 type GeneratedResult = {
+  id: string
   url: string
+  subjectName: string
   reviewCount: number
   averageRating: number | null
   draftUpdated: boolean
   companyId: string | null
+  contact: GeneratedContact | null
   problems: Array<{ title: string; mentions: number }>
+}
+
+const CONTACT_STATUS_META: Record<string, { label: string; tone: 'success' | 'info' | 'warning' | 'danger' | 'neutral' }> = {
+  verified: { label: 'Vérifié (MX)', tone: 'success' },
+  public: { label: 'Public', tone: 'info' },
+  unverified: { label: 'Non vérifié', tone: 'warning' },
+  invalid: { label: 'Invalide', tone: 'danger' },
+  suppressed: { label: 'Exclu', tone: 'danger' },
 }
 
 const PASTE_PLATFORMS = ['Trustpilot', 'G2', 'Capterra', 'Google Play', 'Avis Vérifiés'] as const
@@ -50,8 +78,14 @@ export function AcquisitionReportStudio({
   const [generating, setGenerating] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [preparingDraft, setPreparingDraft] = useState(false)
+  const [sendingDraft, setSendingDraft] = useState(false)
   const [copied, setCopied] = useState(false)
   const [generated, setGenerated] = useState<GeneratedResult | null>(null)
+  const [draft, setDraft] = useState<InlineDraft | null>(null)
+  const [editingContact, setEditingContact] = useState(false)
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactFullName, setContactFullName] = useState('')
+  const [savingContact, setSavingContact] = useState(false)
 
   useEffect(() => {
     if (!generating) {
@@ -108,13 +142,17 @@ export function AcquisitionReportStudio({
 
     setGenerating(true)
     setGenerated(null)
+    setDraft(null)
+    setEditingContact(false)
+    const appName = target?.companyName || selectedApp?.name || subjectName.trim()
     const payload =
       source === 'app_store' && selectedApp
         ? {
             source: 'app_store',
             appId: selectedApp.id,
-            appName: target?.companyName || selectedApp.name,
+            appName,
             appUrl: selectedApp.url,
+            sellerUrl: selectedApp.sellerUrl ?? null,
             country,
             companyId: target?.companyId ?? null,
           }
@@ -132,14 +170,19 @@ export function AcquisitionReportStudio({
     if (!ok) return notify('error', data.error ?? 'La création du rapport a échoué.')
 
     const result: GeneratedResult = {
+      id: data.id,
       url: data.url,
+      subjectName: source === 'app_store' ? appName : subjectName.trim(),
       reviewCount: data.reviewCount,
       averageRating: data.averageRating ?? null,
       draftUpdated: Boolean(data.draftUpdated),
-      companyId: target?.companyId ?? null,
+      companyId: data.companyId ?? target?.companyId ?? null,
+      contact: data.contact ?? null,
       problems: data.problems ?? [],
     }
     setGenerated(result)
+    setContactEmail(result.contact?.email ?? '')
+    setContactFullName(result.contact?.fullName ?? '')
     refresh()
     notify(
       'success',
@@ -159,6 +202,38 @@ export function AcquisitionReportStudio({
     }
   }
 
+  async function saveContact(event: React.FormEvent) {
+    event.preventDefault()
+    if (!generated || !contactEmail.trim()) return
+    setSavingContact(true)
+    const { ok, data } = await postJson('/api/admin/acquisition/contacts', {
+      companyId: generated.companyId ?? undefined,
+      companyName: generated.subjectName,
+      reportId: generated.id,
+      contactId: generated.contact?.id,
+      email: contactEmail.trim(),
+      fullName: contactFullName.trim() || undefined,
+    })
+    setSavingContact(false)
+    if (!ok) return notify('error', data.error ?? 'Impossible d’enregistrer le contact.')
+    const saved = data.contact
+    const updatedContact: GeneratedContact = {
+      id: saved.id,
+      email: saved.email,
+      fullName: saved.full_name ?? null,
+      emailStatus: saved.email_status,
+      emailSourceUrl: saved.email_source_url ?? generated.contact?.emailSourceUrl ?? null,
+      isGeneric: GENERIC_EMAIL.test(saved.email),
+    }
+    setGenerated((prev) =>
+      prev ? { ...prev, companyId: data.companyId ?? prev.companyId, contact: updatedContact } : prev,
+    )
+    setEditingContact(false)
+    setDraft(null)
+    refresh()
+    notify('success', 'Contact enregistré.')
+  }
+
   async function prepareDraftWithReport() {
     if (!generated?.companyId) return
     setPreparingDraft(true)
@@ -166,8 +241,47 @@ export function AcquisitionReportStudio({
     setPreparingDraft(false)
     if (!ok) return notify('error', data.error ?? 'Impossible de préparer le brouillon.')
     refresh()
-    if (data.drafted) notify('success', 'Brouillon personnalisé créé avec le lien /rapport.', 'drafts')
-    else notify('info', data.reason ?? 'Vérifie l’adresse email du prospect dans « À contacter ».')
+    if (data.message) {
+      setDraft({
+        id: data.message.id,
+        subject: data.message.subject,
+        body: data.message.body,
+        savedSubject: data.message.subject,
+        savedBody: data.message.body,
+        sent: false,
+      })
+      notify('success', data.drafted ? 'Brouillon prêt à relire.' : 'Brouillon existant chargé.')
+    } else {
+      notify('info', data.reason ?? 'Vérifie l’adresse email du prospect dans « À contacter ».')
+    }
+  }
+
+  async function sendInlineDraft() {
+    if (!draft || draft.sent) return
+    setSendingDraft(true)
+    if (draft.subject.trim() !== draft.savedSubject || draft.body.trim() !== draft.savedBody) {
+      const saveRes = await postJson('/api/admin/acquisition/messages/update', {
+        id: draft.id,
+        subject: draft.subject,
+        body: draft.body,
+      })
+      if (!saveRes.ok) {
+        setSendingDraft(false)
+        return notify('error', saveRes.data.error ?? 'Impossible d’enregistrer les modifications.')
+      }
+    }
+    const { ok, data } = await postJson('/api/admin/acquisition/send', { messageIds: [draft.id] })
+    setSendingDraft(false)
+    if (!ok) return notify('error', data.error ?? 'Envoi impossible.')
+    if (data.sent > 0) {
+      setDraft((prev) => (prev ? { ...prev, sent: true, savedSubject: prev.subject, savedBody: prev.body } : prev))
+      refresh()
+      notify('success', 'Email envoyé.')
+    } else if (data.skippedReasons?.length) {
+      notify('error', data.skippedReasons.join(', '))
+    } else {
+      notify('error', 'L’envoi a échoué ou a été ignoré.')
+    }
   }
 
   return (
@@ -482,15 +596,11 @@ export function AcquisitionReportStudio({
                   Aperçu (sans compter de vue)
                   <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden />
                 </a>
-                {generated.draftUpdated ? (
-                  <button type="button" onClick={() => notify('info', 'Ouverture du brouillon mis à jour.', 'drafts')} className={BTN_SMALL_ACCENT}>
-                    Voir le brouillon
-                  </button>
-                ) : generated.companyId ? (
+                {generated.companyId && generated.contact && !draft && (
                   <button type="button" disabled={preparingDraft} onClick={() => void prepareDraftWithReport()} className={BTN_SMALL_ACCENT}>
-                    {preparingDraft ? 'Rédaction…' : 'Rédiger l’email avec ce rapport'}
+                    {preparingDraft ? 'Préparation…' : 'Préparer l’email'}
                   </button>
-                ) : null}
+                )}
               </div>
             </div>
 
@@ -505,6 +615,163 @@ export function AcquisitionReportStudio({
                   </li>
                 ))}
               </ol>
+            )}
+
+            {/* Bloc Contact */}
+            <div className="mt-4 rounded-xl border border-gray-200/80 dark:border-white/[0.08] bg-gray-50/70 dark:bg-[#101010]/60 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                  Contact
+                </span>
+                {generated.contact && !editingContact && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactEmail(generated.contact?.email ?? '')
+                      setContactFullName(generated.contact?.fullName ?? '')
+                      setEditingContact(true)
+                    }}
+                    className={BTN_SMALL}
+                  >
+                    Modifier
+                  </button>
+                )}
+              </div>
+
+              {editingContact || !generated.contact ? (
+                <form onSubmit={saveContact} className="mt-2.5 space-y-3">
+                  {!generated.contact && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Contact introuvable automatiquement. Ajoute l’adresse manuellement :
+                    </p>
+                  )}
+                  <div className="grid gap-2.5 sm:grid-cols-[1fr_1fr_auto]">
+                    <input
+                      type="email"
+                      required
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="prenom@editeur.com"
+                      aria-label="Adresse email du contact"
+                      className={FIELD}
+                    />
+                    <input
+                      type="text"
+                      value={contactFullName}
+                      onChange={(e) => setContactFullName(e.target.value)}
+                      placeholder="Prénom Nom (optionnel)"
+                      aria-label="Nom du contact"
+                      className={FIELD}
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={savingContact || !contactEmail.trim()} className={BTN_PRIMARY}>
+                        {savingContact ? 'Enregistrement…' : 'Enregistrer'}
+                      </button>
+                      {generated.contact && (
+                        <button type="button" onClick={() => setEditingContact(false)} className={BTN_SECONDARY}>
+                          Annuler
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm font-medium text-gray-900 dark:text-[#eeeeee]">
+                      {generated.contact.email}
+                    </span>
+                    {generated.contact.fullName && (
+                      <span className="text-xs text-gray-600 dark:text-zinc-300">({generated.contact.fullName})</span>
+                    )}
+                    <Badge tone={(CONTACT_STATUS_META[generated.contact.emailStatus] ?? CONTACT_STATUS_META.unverified).tone}>
+                      {(CONTACT_STATUS_META[generated.contact.emailStatus] ?? { label: generated.contact.emailStatus }).label}
+                    </Badge>
+                  </div>
+                  {generated.contact.emailSourceUrl && (
+                    <p className="text-xs text-gray-500 dark:text-zinc-400">
+                      Source :{' '}
+                      <a
+                        href={generated.contact.emailSourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono underline hover:text-gray-800 dark:hover:text-zinc-200 break-all"
+                      >
+                        {generated.contact.emailSourceUrl}
+                      </a>
+                    </p>
+                  )}
+                  {generated.contact.isGeneric && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Boîte générique — une adresse nominative augmente les chances de réponse.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Éditeur d'email en ligne (aucun envoi sans clic) */}
+            {draft && (
+              <div className="mt-4 rounded-xl border border-gray-200/80 dark:border-white/[0.08] p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    Email prêt à relire
+                  </span>
+                  {draft.sent && <Badge tone="success">Email envoyé</Badge>}
+                </div>
+                <div>
+                  <label htmlFor="inline-draft-subject" className="mb-1 block text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                    Objet
+                  </label>
+                  <input
+                    id="inline-draft-subject"
+                    value={draft.subject}
+                    disabled={draft.sent}
+                    maxLength={200}
+                    onChange={(e) => setDraft((prev) => (prev ? { ...prev, subject: e.target.value } : prev))}
+                    className={FIELD}
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label htmlFor="inline-draft-body" className="text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                      Corps du message
+                    </label>
+                    {(() => {
+                      const words = draft.body.trim() ? draft.body.trim().split(/\s+/).length : 0
+                      return (
+                        <span className={`font-mono text-[11px] tabular-nums ${words > 110 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-zinc-400'}`}>
+                          {words} / 110 mots
+                        </span>
+                      )
+                    })()}
+                  </div>
+                  <textarea
+                    id="inline-draft-body"
+                    value={draft.body}
+                    disabled={draft.sent}
+                    rows={10}
+                    maxLength={5000}
+                    onChange={(e) => setDraft((prev) => (prev ? { ...prev, body: e.target.value } : prev))}
+                    className={`${FIELD} py-2.5 text-sm leading-6`}
+                  />
+                </div>
+                {!draft.sent && (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-gray-500 dark:text-zinc-400">
+                      Le pied de page légal et le lien de désinscription sont ajoutés automatiquement à l’envoi.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={sendingDraft || !draft.subject.trim() || !draft.body.trim()}
+                      onClick={() => void sendInlineDraft()}
+                      className={BTN_PRIMARY}
+                    >
+                      {sendingDraft ? 'Envoi en cours…' : 'Envoyer'}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

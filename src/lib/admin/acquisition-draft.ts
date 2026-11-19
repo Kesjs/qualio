@@ -1,7 +1,19 @@
+import { quoteExcerpt } from '@/lib/admin/acquisition-report'
+
 export const GENERIC_EMAIL = /^(billing|support|contact|hello|info|sales|bonjour|accueil|reception|reservation|admin)@/i
 
 export type DraftEvidence = { label: string; evidence: string | null; source_url: string }
-export type DraftReport = { url: string; reviewCount: number; sourceLabel: string; subjectName: string; topProblem: { title: string; mentions: number } | null; problemCount: number }
+export type DraftReportTheme = { name: string; mentions: number; negativeShare: number | null }
+export type DraftReport = {
+  url: string
+  reviewCount: number
+  sourceLabel: string
+  subjectName: string
+  themes: DraftReportTheme[]
+  topQuote?: string | null
+  periodStart?: string | null
+  periodEnd?: string | null
+}
 type DraftInput = { fullName?: string | null; companyName?: string | null; companyNotes?: string | null; followUpOf?: { subject: string } | null; evidence?: DraftEvidence[]; report?: DraftReport | null }
 
 export const EXAMPLE_URL = 'https://tryqualio.pro/exemple'
@@ -22,10 +34,27 @@ function usefulEvidence(evidence: DraftEvidence[]) {
   return evidence.find((item) => /avis|review|témoignage|feedback|collecte/i.test(`${item.label} ${item.evidence ?? ''}`))
 }
 
+function formatThemeForSubject(name: string) {
+  const lower = name.trim().toLowerCase()
+  if (lower.length > 28 && lower.includes(' et ')) {
+    return lower.split(/\s+et\s+/)[0].trim()
+  }
+  return lower
+}
+
+function formatThemeForLine(name: string) {
+  const trimmed = name.trim()
+  if (trimmed.length > 28 && /\s+et\s+/i.test(trimmed)) {
+    return trimmed.split(/\s+et\s+/i)[0].trim()
+  }
+  return trimmed
+}
+
 /** Premier message ou relance courte. Le contenu reste relu et modifiable avant l'envoi.
  *  La mention « adresse publiée sur votre site » et le « stop » sont ajoutés par le pied de page de l'email (renderAcquisitionEmail). */
 export function buildDraft({ fullName, companyName, companyNotes, followUpOf, evidence, report }: DraftInput) {
-  const greeting = `Bonjour${fullName ? ` ${fullName}` : ''},`
+  const firstName = fullName?.trim().split(/\s+/)[0] || null
+  const greeting = `Bonjour${firstName ? ` ${firstName}` : ''},`
   const signature = 'Kennedy\nQualio · tryqualio.pro'
   if (followUpOf && report) {
     return {
@@ -42,33 +71,41 @@ export function buildDraft({ fullName, companyName, companyNotes, followUpOf, ev
   const company = companyName?.trim() || 'votre entreprise'
   // Valeur d'abord : un rapport réel sur leurs propres avis remplace tout pitch générique.
   if (report) {
-    const others = report.problemCount - 1
-    const top = report.topProblem
-    if (top) {
-      const mentionsLabel = top.mentions > 1 ? `${top.mentions} avis` : '1 avis'
-      return {
-        subject: top.mentions > 1
-          ? `${report.subjectName} : « ${top.title} » revient dans ${top.mentions} avis`
-          : `${report.subjectName} : « ${top.title} » ressort des avis`,
-        body: [
-          greeting,
-          `Dans les ${report.reviewCount} derniers avis ${report.sourceLabel} de ${report.subjectName}, un point revient plus que les autres : « ${top.title} », cité dans ${mentionsLabel}.${others > 0 ? ` ${others === 1 ? 'Un autre sujet ressort' : `${others} autres sujets ressortent`} nettement.` : ''}`,
-          `Le détail, avec les avis qui l’appuient, sans inscription : ${report.url}`,
-          'Je l’ai généré avec Qualio, l’outil que je construis pour ça. Est-ce que ça correspond à ce que vous observez ?',
-          signature,
-        ].join('\n\n'),
-      }
-    }
-    return {
-      subject: `${report.reviewCount} avis ${report.sourceLabel} de ${report.subjectName}, lus pour vous`,
-      body: [
+    const themes = report.themes.slice(0, 3)
+    const topTheme = themes[0]
+    const subject = topTheme
+      ? `${report.subjectName} : ${topTheme.mentions} avis sur ${report.reviewCount} parlent de ${formatThemeForSubject(topTheme.name)}`
+      : `${report.subjectName} : analyse de ${report.reviewCount} avis ${report.sourceLabel}`
+    const introSuffix =
+      themes.length === 3
+        ? ' Trois sujets reviennent :'
+        : themes.length === 2
+          ? ' Deux sujets reviennent :'
+          : themes.length === 1
+            ? ' Un sujet revient :'
+            : ''
+    const buildBody = (quoteMax: number) => {
+      const quote = quoteMax > 0 && report.topQuote ? quoteExcerpt(report.topQuote, quoteMax) : null
+      const themeLines = themes.map((theme, index) => {
+        const share = theme.negativeShare != null ? `, dont ${theme.negativeShare} % critiques` : ''
+        const quotePart = index === 0 && quote ? ` « ${quote} »` : ''
+        return `${index + 1}. ${formatThemeForLine(theme.name)} : ${theme.mentions} avis${share}${quotePart}`
+      })
+      return [
         greeting,
-        `J’ai lu les ${report.reviewCount} derniers avis ${report.sourceLabel} de ${report.subjectName} et je les ai regroupés par sujet.`,
-        `Le rapport complet, avec les avis qui appuient chaque point : ${report.url}`,
-        'Il est à vous, sans inscription ni engagement. Je l’ai fait avec Qualio, l’outil que je construis pour ce genre d’analyse.',
-        'Est-ce que ça correspond à ce que vous observez de votre côté ?',
+        `J’ai analysé les ${report.reviewCount} avis ${report.sourceLabel} de ${report.subjectName} que j’ai pu récupérer.${introSuffix}`,
+        ...(themeLines.length ? [themeLines.join('\n')] : []),
+        `Le rapport complet, avec les avis cités pour chaque point : ${report.url}`,
+        'Je l’ai fait avec Qualio, l’outil que je construis pour transformer des avis en décisions. Le rapport est déjà chargé dans un espace gratuit à votre nom si vous voulez y ajouter d’autres avis.',
         signature,
-      ].join('\n\n'),
+      ].join('\n\n')
+    }
+    let body = buildBody(60)
+    if (body.trim().split(/\s+/).length > 110) body = buildBody(40)
+    if (body.trim().split(/\s+/).length > 110) body = buildBody(0)
+    return {
+      subject,
+      body,
     }
   }
   if (isAgency(companyName, companyNotes)) {
