@@ -25,9 +25,15 @@ export const APP_STORE_COUNTRIES = [
   { code: 'be', label: 'Belgique' },
   { code: 'ch', label: 'Suisse' },
   { code: 'ca', label: 'Canada' },
+  { code: 'ci', label: 'Côte d’Ivoire' },
+  { code: 'sn', label: 'Sénégal' },
+  { code: 'ma', label: 'Maroc' },
+  { code: 'cm', label: 'Cameroun' },
   { code: 'us', label: 'États-Unis' },
   { code: 'gb', label: 'Royaume-Uni' },
 ] as const
+
+const FALLBACK_STOREFRONTS = ['fr', 'ci', 'sn', 'ma', 'cm', 'be', 'ch', 'ca', 'gb', 'us'] as const
 
 /** « https://apps.apple.com/fr/app/x/id123456789 » ou « 123456789 » → « 123456789 ». */
 export function appStoreIdFrom(input: string): string | null {
@@ -77,19 +83,64 @@ export function parseAppStoreFeed(json: unknown): PublicReview[] {
     .filter((review) => review.id && review.content.length >= 3)
 }
 
-/** Avis les plus récents, jusqu'à `maxPages` pages de 50 (limite Apple : 10 pages). */
+/**
+ * Avis les plus récents, jusqu'à `maxPages` pages de 50 (limite Apple : 10 pages).
+ * Si la boutique choisie contient trop peu d'avis écrits (ex. Yango ou app internationale cherchée sur FR),
+ * élargit automatiquement aux autres boutiques francophones puis internationales.
+ */
 export async function fetchAppStoreReviews(appId: string, country = 'fr', maxPages = 6): Promise<PublicReview[]> {
   const cc = COUNTRY.test(country) ? country : 'fr'
   const reviews: PublicReview[] = []
   const seen = new Set<string>()
-  for (let page = 1; page <= Math.min(maxPages, 10); page += 1) {
-    const response = await fetch(`https://itunes.apple.com/${cc}/rss/customerreviews/page=${page}/id=${appId}/sortby=mostrecent/json`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000), cache: 'no-store' })
-    if (!response.ok) break
-    const batch = parseAppStoreFeed(await response.json().catch(() => null))
-    const fresh = batch.filter((review) => !seen.has(review.id))
-    if (!fresh.length) break
-    for (const review of fresh) { seen.add(review.id); reviews.push(review) }
+
+  const addBatch = (batch: PublicReview[]) => {
+    let added = 0
+    for (const review of batch) {
+      if (!seen.has(review.id)) {
+        seen.add(review.id)
+        reviews.push(review)
+        added += 1
+      }
+    }
+    return added
   }
+
+  const fetchFeedPage = async (storefront: string, page: number): Promise<PublicReview[]> => {
+    const pagedUrl = `https://itunes.apple.com/${storefront}/rss/customerreviews/page=${page}/id=${appId}/sortby=mostrecent/json`
+    const response = await fetch(pagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000), cache: 'no-store' }).catch(() => null)
+    if (response?.ok) {
+      const parsed = parseAppStoreFeed(await response.json().catch(() => null))
+      if (parsed.length > 0 || page > 1) return parsed
+    }
+    if (page === 1) {
+      const unpagedUrl = `https://itunes.apple.com/${storefront}/rss/customerreviews/id=${appId}/sortby=mostrecent/json`
+      const fallbackRes = await fetch(unpagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000), cache: 'no-store' }).catch(() => null)
+      if (fallbackRes?.ok) return parseAppStoreFeed(await fallbackRes.json().catch(() => null))
+    }
+    return []
+  }
+
+  for (let page = 1; page <= Math.min(maxPages, 10); page += 1) {
+    const batch = await fetchFeedPage(cc, page)
+    if (!addBatch(batch)) break
+  }
+
+  if (reviews.length < 15) {
+    const fallbacks = FALLBACK_STOREFRONTS.filter((code) => code !== cc)
+    for (let i = 0; i < fallbacks.length && reviews.length < 60; i += 3) {
+      const slice = fallbacks.slice(i, i + 3)
+      const batches = await Promise.all(
+        slice.map(async (code) => {
+          const p1 = await fetchFeedPage(code, 1)
+          if (p1.length < 20) return p1
+          const p2 = await fetchFeedPage(code, 2)
+          return [...p1, ...p2]
+        }),
+      )
+      for (const batch of batches) addBatch(batch)
+    }
+  }
+
   return reviews
 }
 

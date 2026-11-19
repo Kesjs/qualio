@@ -407,6 +407,10 @@ export function AcquisitionReportStudio({
                   <option value="be">Belgique (BE)</option>
                   <option value="ch">Suisse (CH)</option>
                   <option value="ca">Canada (CA)</option>
+                  <option value="ci">Côte d’Ivoire (CI)</option>
+                  <option value="sn">Sénégal (SN)</option>
+                  <option value="ma">Maroc (MA)</option>
+                  <option value="cm">Cameroun (CM)</option>
                   <option value="us">États-Unis (US)</option>
                   <option value="gb">Royaume-Uni (UK)</option>
                 </select>
