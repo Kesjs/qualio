@@ -83,10 +83,66 @@ export function parseAppStoreFeed(json: unknown): PublicReview[] {
     .filter((review) => review.id && review.content.length >= 3)
 }
 
+/** Extrait les avis embarqués dans `serialized-server-data` sur `apps.apple.com/.../app/id...?see-all=reviews`. */
+export function parseAppStoreWebReviews(html: string): PublicReview[] {
+  const marker = '<script type="application/json" id="serialized-server-data">'
+  const start = html.indexOf(marker)
+  if (start === -1) return []
+  const jsonStart = start + marker.length
+  const jsonEnd = html.indexOf('</script>', jsonStart)
+  if (jsonEnd === -1) return []
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(html.slice(jsonStart, jsonEnd))
+  } catch {
+    return []
+  }
+
+  const results: PublicReview[] = []
+  const seen = new Set<string>()
+  const walk = (node: unknown) => {
+    if (!node || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item)
+      return
+    }
+    const obj = node as Record<string, unknown>
+    if (obj.$kind === 'Review' && typeof obj.contents === 'string' && typeof obj.rating === 'number') {
+      const id = String(obj.id ?? '').trim()
+      const content = obj.contents.trim()
+      if (id && content.length >= 3 && !seen.has(id)) {
+        seen.add(id)
+        results.push({
+          id,
+          content,
+          rating: obj.rating,
+          title: typeof obj.title === 'string' && obj.title.trim() ? obj.title.trim() : null,
+          created_at: typeof obj.date === 'string' ? new Date(obj.date).toISOString() : new Date().toISOString(),
+        })
+      }
+    }
+    for (const value of Object.values(obj)) walk(value)
+  }
+  walk(parsed)
+  return results
+}
+
+async function fetchAppStoreWebReviews(appId: string, storefront: string): Promise<PublicReview[]> {
+  const url = `https://apps.apple.com/${storefront}/app/id${appId}?see-all=reviews`
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
+    signal: AbortSignal.timeout(8000),
+    cache: 'no-store',
+  }).catch(() => null)
+  if (!response?.ok) return []
+  return parseAppStoreWebReviews(await response.text().catch(() => ''))
+}
+
 /**
  * Avis les plus récents, jusqu'à `maxPages` pages de 50 (limite Apple : 10 pages).
- * Si la boutique choisie contient trop peu d'avis écrits (ex. Yango ou app internationale cherchée sur FR),
- * élargit automatiquement aux autres boutiques francophones puis internationales.
+ * Si le flux RSS historique renvoie trop peu d'avis (ex. Yango, Viator), bascule sur la page publique
+ * `apps.apple.com/...?see-all=reviews` et élargit aux autres boutiques francophones/internationales.
  */
 export async function fetchAppStoreReviews(appId: string, country = 'fr', maxPages = 6): Promise<PublicReview[]> {
   const cc = COUNTRY.test(country) ? country : 'fr'
@@ -107,14 +163,14 @@ export async function fetchAppStoreReviews(appId: string, country = 'fr', maxPag
 
   const fetchFeedPage = async (storefront: string, page: number): Promise<PublicReview[]> => {
     const pagedUrl = `https://itunes.apple.com/${storefront}/rss/customerreviews/page=${page}/id=${appId}/sortby=mostrecent/json`
-    const response = await fetch(pagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000), cache: 'no-store' }).catch(() => null)
+    const response = await fetch(pagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(5000), cache: 'no-store' }).catch(() => null)
     if (response?.ok) {
       const parsed = parseAppStoreFeed(await response.json().catch(() => null))
       if (parsed.length > 0 || page > 1) return parsed
     }
     if (page === 1) {
       const unpagedUrl = `https://itunes.apple.com/${storefront}/rss/customerreviews/id=${appId}/sortby=mostrecent/json`
-      const fallbackRes = await fetch(unpagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(6000), cache: 'no-store' }).catch(() => null)
+      const fallbackRes = await fetch(unpagedUrl, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(5000), cache: 'no-store' }).catch(() => null)
       if (fallbackRes?.ok) return parseAppStoreFeed(await fallbackRes.json().catch(() => null))
     }
     return []
@@ -125,16 +181,21 @@ export async function fetchAppStoreReviews(appId: string, country = 'fr', maxPag
     if (!addBatch(batch)) break
   }
 
+  // Repli 1 : page web App Store sur la boutique choisie (certains apps ont un flux RSS vide mais 20 avis sur ?see-all=reviews)
+  if (reviews.length < 15) {
+    addBatch(await fetchAppStoreWebReviews(appId, cc))
+  }
+
+  // Repli 2 : autres boutiques francophones puis internationales (RSS + web)
   if (reviews.length < 15) {
     const fallbacks = FALLBACK_STOREFRONTS.filter((code) => code !== cc)
-    for (let i = 0; i < fallbacks.length && reviews.length < 60; i += 3) {
+    for (let i = 0; i < fallbacks.length && reviews.length < 40; i += 3) {
       const slice = fallbacks.slice(i, i + 3)
       const batches = await Promise.all(
         slice.map(async (code) => {
-          const p1 = await fetchFeedPage(code, 1)
-          if (p1.length < 20) return p1
-          const p2 = await fetchFeedPage(code, 2)
-          return [...p1, ...p2]
+          const rss = await fetchFeedPage(code, 1)
+          if (rss.length > 0) return rss
+          return fetchAppStoreWebReviews(appId, code)
         }),
       )
       for (const batch of batches) addBatch(batch)
