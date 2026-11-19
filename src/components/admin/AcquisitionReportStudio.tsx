@@ -7,8 +7,9 @@ import { BTN_SMALL, BTN_SMALL_ACCENT, plural, postJson, type Notify, type Report
 import { GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
 import { parsePastedReviews, type AppStoreApp } from '@/lib/admin/acquisition-reviews'
 import { REPORT_MIN_REVIEWS } from '@/lib/admin/acquisition-report'
+import { AcquisitionBatchAppStore } from '@/components/admin/AcquisitionBatchAppStore'
 
-type SourceMode = 'app_store' | 'pasted'
+type SourceMode = 'app_store' | 'batch' | 'pasted'
 type GeneratedContact = {
   id: string
   email: string
@@ -315,6 +316,19 @@ export function AcquisitionReportStudio({
           <button
             type="button"
             role="tab"
+            aria-selected={source === 'batch'}
+            onClick={() => setSource('batch')}
+            className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors duration-150 ${FOCUS} ${
+              source === 'batch'
+                ? 'bg-gray-950 text-white dark:bg-white dark:text-gray-950'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-white/[0.06] dark:hover:text-white'
+            }`}
+          >
+            Lot 10–20 apps (3,4–4,4 ★)
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={source === 'pasted'}
             onClick={() => setSource('pasted')}
             className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 text-sm font-semibold transition-colors duration-150 ${FOCUS} ${
@@ -327,7 +341,9 @@ export function AcquisitionReportStudio({
           </button>
         </div>
 
-        {source === 'app_store' ? (
+        {source === 'batch' ? (
+          <AcquisitionBatchAppStore country={country} onCountryChange={setCountry} notify={notify} refresh={refresh} />
+        ) : source === 'app_store' ? (
           <form onSubmit={generateReport} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-[1fr_7.5rem_auto]">
               <div>

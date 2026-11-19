@@ -1,3 +1,5 @@
+import { cleanDomain } from '@/lib/admin/acquisition-ai'
+
 /**
  * Récupération d'avis publics pour la prospection « valeur d'abord ».
  * Sources : flux publics d'Apple (iTunes Search API + flux RSS des avis App Store) et avis collés à la main
@@ -65,6 +67,47 @@ export async function searchAppStore(term: string, country = 'fr', limit = 6): P
       url: String(item.trackViewUrl ?? `https://apps.apple.com/${cc}/app/id${item.trackId}`),
       sellerUrl: item.sellerUrl ?? null,
     }))
+}
+
+export type AppBatchFilterOptions = {
+  minRating?: number
+  maxRating?: number
+  minRatingCount?: number
+  requirePublisherDomain?: boolean
+  limit?: number
+}
+
+/**
+ * Filtre et dédoublonne les apps App Store pour la prospection en lot :
+ * - note comprise entre minRating et maxRating (ex. 3.4 à 4.4)
+ * - volume minimum de notes
+ * - domaine éditeur valide (hors réseaux sociaux, apple.com, github) et 1 app par domaine éditeur.
+ */
+export function filterAppStoreBatch(
+  apps: AppStoreApp[],
+  options: AppBatchFilterOptions = {},
+): Array<AppStoreApp & { publisherDomain: string | null }> {
+  const minRating = options.minRating ?? 3.4
+  const maxRating = options.maxRating ?? 4.4
+  const minRatingCount = options.minRatingCount ?? 20
+  const requireDomain = options.requirePublisherDomain ?? true
+  const limit = Math.min(Math.max(Math.floor(options.limit ?? 20), 1), 50)
+  const seenDomains = new Set<string>()
+  const out: Array<AppStoreApp & { publisherDomain: string | null }> = []
+
+  for (const app of apps) {
+    if (app.rating == null || app.rating < minRating || app.rating > maxRating) continue
+    if ((app.ratingCount ?? 0) < minRatingCount) continue
+    const domain = cleanDomain(app.sellerUrl)
+    if (requireDomain && !domain) continue
+    if (domain) {
+      if (seenDomains.has(domain)) continue
+      seenDomains.add(domain)
+    }
+    out.push({ ...app, publisherDomain: domain })
+    if (out.length >= limit) break
+  }
+  return out
 }
 
 /** Transforme une page du flux RSS JSON d'Apple en avis. Les entrées sans note (fiche de l'app) sont ignorées. */
