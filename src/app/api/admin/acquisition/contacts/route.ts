@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     companyName?: string
     domain?: string | null
     reportId?: string | null
+    sourceUrl?: string | null
     contactId?: string
     email?: string
     fullName?: string
@@ -36,12 +37,12 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdminClient() as any
-  let company: { id: string; name: string; domain: string; relevance_score: number | null; status: string } | null = null
+  let company: { id: string; name: string; domain: string; website_url: string | null; relevance_score: number | null; status: string } | null = null
 
   if (companyId) {
     const { data, error: companyError } = await admin
       .from('acquisition_companies')
-      .select('id, name, domain, relevance_score, status')
+      .select('id, name, domain, website_url, relevance_score, status')
       .eq('id', companyId)
       .maybeSingle()
 
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
     const { data: existingCompany } = await admin
       .from('acquisition_companies')
-      .select('id, name, domain, relevance_score, status')
+      .select('id, name, domain, website_url, relevance_score, status')
       .ilike('domain', resolvedDomain)
       .maybeSingle()
 
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
           source_notes: 'Ajout manuel',
           status: 'review',
         })
-        .select('id, name, domain, relevance_score, status')
+        .select('id, name, domain, website_url, relevance_score, status')
         .single()
       if (createError || !createdCompany) {
         return NextResponse.json({ error: 'Impossible de créer l’entreprise.' }, { status: 500 })
@@ -91,9 +92,24 @@ export async function POST(request: Request) {
 
   const validation = await validatePublicEmail(email)
   const emailStatus = validation.status === 'invalid' ? 'unverified' : validation.status
+  const explicitSourceUrl =
+    typeof body.sourceUrl === 'string' && /^https?:\/\//i.test(body.sourceUrl.trim())
+      ? body.sourceUrl.trim().slice(0, 500)
+      : null
+  const fallbackSourceUrl =
+    explicitSourceUrl ||
+    company?.website_url ||
+    (company?.domain ? `https://${company.domain}` : null)
 
   let contactRow
   if (body.contactId) {
+    const { data: currentContact } = await admin
+      .from('acquisition_contacts')
+      .select('email_source_url')
+      .eq('id', body.contactId)
+      .eq('company_id', companyId)
+      .maybeSingle()
+
     const { data: updated, error: updateError } = await admin
       .from('acquisition_contacts')
       .update({
@@ -101,6 +117,7 @@ export async function POST(request: Request) {
         full_name: fullName,
         role,
         email_status: emailStatus,
+        email_source_url: explicitSourceUrl ?? currentContact?.email_source_url ?? fallbackSourceUrl,
         confidence: 90,
       })
       .eq('id', body.contactId)
@@ -116,7 +133,7 @@ export async function POST(request: Request) {
     // Vérifier si un contact existe déjà avec cet email
     const { data: existing } = await admin
       .from('acquisition_contacts')
-      .select('id')
+      .select('id, email_source_url')
       .eq('email', email)
       .maybeSingle()
 
@@ -128,6 +145,7 @@ export async function POST(request: Request) {
           full_name: fullName,
           role,
           email_status: emailStatus,
+          email_source_url: explicitSourceUrl ?? existing.email_source_url ?? fallbackSourceUrl,
           confidence: 90,
         })
         .eq('id', existing.id)
@@ -147,6 +165,7 @@ export async function POST(request: Request) {
           full_name: fullName,
           role,
           email_status: emailStatus,
+          email_source_url: fallbackSourceUrl,
           confidence: 90,
         })
         .select()

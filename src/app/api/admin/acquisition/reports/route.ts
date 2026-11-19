@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       }>
 
     let companyContacts = await loadContacts()
-    if (companyContacts.length === 0) {
+    if (companyContacts.length === 0 || companyContacts.every((c) => !c.email_source_url)) {
       await scanCompany(admin, resolvedCompany)
       companyContacts = await loadContacts()
     }

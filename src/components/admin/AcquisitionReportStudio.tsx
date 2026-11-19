@@ -688,7 +688,7 @@ export function AcquisitionReportStudio({
                       {(CONTACT_STATUS_META[generated.contact.emailStatus] ?? { label: generated.contact.emailStatus }).label}
                     </Badge>
                   </div>
-                  {generated.contact.emailSourceUrl && (
+                  {generated.contact.emailSourceUrl ? (
                     <p className="text-xs text-gray-500 dark:text-zinc-400">
                       Source :{' '}
                       <a
@@ -699,6 +699,10 @@ export function AcquisitionReportStudio({
                       >
                         {generated.contact.emailSourceUrl}
                       </a>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Source manquante — clique sur « Modifier » puis « Enregistrer » pour rattacher le site avant l’envoi.
                     </p>
                   )}
                   {generated.contact.isGeneric && (

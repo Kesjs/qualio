@@ -17,12 +17,12 @@ export async function POST(request: Request) {
   const { data: company } = await admin.from('acquisition_companies').select('id, name, domain, source_notes').eq('id', companyId).maybeSingle()
   if (!company) return NextResponse.json({ error: 'Entreprise introuvable.' }, { status: 404 })
 
-  type ContactRow = { id: string; email: string; full_name: string | null; email_status: string; confidence: number | null }
+  type ContactRow = { id: string; email: string; full_name: string | null; email_status: string; email_source_url: string | null; confidence: number | null }
   const load = async (): Promise<ContactRow[]> =>
-    ((await admin.from('acquisition_contacts').select('id, email, full_name, email_status, confidence').eq('company_id', company.id)).data ?? []) as ContactRow[]
+    ((await admin.from('acquisition_contacts').select('id, email, full_name, email_status, email_source_url, confidence').eq('company_id', company.id)).data ?? []) as ContactRow[]
   let contacts = await load()
   let scanned = false
-  if (contacts.length === 0) { await scanCompany(admin, company); scanned = true; contacts = await load() }
+  if (contacts.length === 0 || contacts.every((c) => !c.email_source_url)) { await scanCompany(admin, company); scanned = true; contacts = await load() }
   const usable = contacts.filter((contact: any) => !['suppressed', 'invalid'].includes(contact.email_status))
   const best = pickBestContact(contacts)
   if (!best) return NextResponse.json({ scanned, emails: 0, drafted: 0, reason: 'Aucun email trouvé sur le site.' })
