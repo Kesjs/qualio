@@ -1,15 +1,23 @@
 import fs from 'node:fs'
 import { GoogleGenAI } from '@google/genai'
 
-const transcript = `Les avis clients arrivent de partout : formulaires, emails, support, enquêtes et commentaires en ligne. Ils contiennent des signaux précieux, mais lorsqu’ils restent dispersés, il devient difficile de savoir quoi traiter en premier.
+const transcript = `Vos clients vous disent déjà quoi améliorer. Koualio le lit pour vous.
 
-Qualio rassemble ces retours dans un même espace et les organise automatiquement. L’intelligence artificielle repère les thèmes qui reviennent, distingue les irritants des compliments et fait ressortir les problèmes qui méritent vraiment votre attention.
+Centralisez tous vos avis au même endroit. Koualio analyse chaque retour, repère ce qui revient, et vous dit quoi faire.
 
-Vous obtenez alors une lecture claire de l’expérience client : les sujets prioritaires, leur évolution et les preuves qui les justifient. Chaque recommandation est reliée aux retours qui l’ont déclenchée, pour que l’équipe puisse comprendre le problème et agir avec confiance.
+Pas de magie : chaque conseil cite de vrais avis.
 
-Depuis Qualio, vous pouvez transformer cette analyse en action concrète : valider une recommandation, l’assigner à la bonne personne et suivre sa progression. Les décisions ne restent plus dans un tableau ou dans une réunion ; elles deviennent des actions mesurables.
+Ajoutez vos retours de trois façons : fichier CSV, saisie manuelle, ou widget sur votre site.
 
-Au fil du temps, vous voyez ce qui s’améliore, ce qui se dégrade et l’impact réel des décisions prises. Qualio transforme enfin les avis clients en une direction claire pour toute votre équipe.`
+Lancez votre synthèse, validez la priorité du moment, et Koualio suit l’effet réel de chaque décision.
+
+Partagez la tâche à votre équipe en un clic : par e-mail, PDF, ou via un lien direct accessible sans même créer de compte.
+
+Chaque chiffre se vérifie dans vos statistiques, et vous retrouvez tous les avis bruts filtrables par thème, sentiment ou source.
+
+Importez un nouveau fichier en quelques secondes, envoyez vos idées produit et gérez votre espace en toute simplicité.
+
+Vos clients vous parlent déjà. Rien n’est appliqué sans votre accord. Arrêtez de deviner, décidez avec vos clients. Essayez Koualio gratuitement.`
 
 const apiKey = process.env.GEMINI_API_KEY
 if (!apiKey) throw new Error('GEMINI_API_KEY manquante')

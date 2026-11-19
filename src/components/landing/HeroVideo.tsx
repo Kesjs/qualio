@@ -6,7 +6,7 @@ import { Select } from '@/components/dashboard/Select'
 
 const POSTER = '/qualio-hero-poster.webp'
 const SRC = '/qualio-final.mp4'
-const MUSIC_VOLUME = 0.45
+const SOUND_VOLUME = 0.85
 
 function formatTime(seconds: number) {
   const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0
@@ -17,7 +17,7 @@ function formatTime(seconds: number) {
  * Vidéo du hero : affiche tout de suite l'image (poster), se lance quand elle est visible
  * à plus de 50 %, se met en pause quand on la quitte, et reprend là où elle s'était arrêtée.
  * Mouvement réduit : aucune lecture automatique, un bouton play s'affiche.
- * Son : la musique est celle de la vidéo elle-même (pas de voix). Elle démarre coupée (les navigateurs
+ * Son : musique de fond + voix off intégrées à la vidéo. Le son démarre coupé (les navigateurs
  * interdisent le son automatique) et le visiteur l'active d'un clic.
  */
 export function HeroVideo() {
@@ -33,7 +33,7 @@ export function HeroVideo() {
   const [duration, setDuration] = useState(0)
   const [reduced, setReduced] = useState(false)
   const [awake, setAwake] = useState(false)
-  const [playbackRate, setPlaybackRate] = useState(1.25)
+  const [playbackRate, setPlaybackRate] = useState(1)
 
   const wake = useCallback(() => {
     setAwake(true)
@@ -74,7 +74,7 @@ export function HeroVideo() {
   }, [playbackRate])
 
   useEffect(() => {
-    if (videoRef.current) videoRef.current.volume = MUSIC_VOLUME
+    if (videoRef.current) videoRef.current.volume = SOUND_VOLUME
   }, [])
 
   const toggle = () => {
@@ -163,7 +163,7 @@ export function HeroVideo() {
         </button>
       )}
 
-      {/* Invitation à activer la musique (la vidéo démarre coupée) */}
+      {/* Invitation à activer le son (la vidéo démarre coupée) */}
       {playing && muted && (
         <button
           type="button"
@@ -171,7 +171,7 @@ export function HeroVideo() {
           className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[#ee6018]/90 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-[#ee6018] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c2410c]"
         >
           <SpeakerWaveIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Activer la musique
+          Activer le son
         </button>
       )}
 
@@ -227,7 +227,7 @@ export function HeroVideo() {
           ]}
         />
 
-        <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer la musique' : 'Couper la musique'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
+        <button type="button" onClick={toggleSound} aria-label={muted ? 'Activer le son' : 'Couper le son'} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
           {muted ? <SpeakerXMarkIcon className="h-5 w-5" /> : <SpeakerWaveIcon className="h-5 w-5" />}
         </button>
         <button type="button" onClick={fullscreen} aria-label="Plein écran" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-[#ee6018]">
