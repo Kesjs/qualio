@@ -1,4 +1,4 @@
-import { loadDraftReport } from '@/lib/admin/acquisition-report-store'
+import { loadDraftReport, tryAutoCreateAppStoreReport } from '@/lib/admin/acquisition-report-store'
 import { NextResponse } from 'next/server'
 import { requireAdminApi } from '@/lib/admin/auth'
 import { buildDraft, GENERIC_EMAIL } from '@/lib/admin/acquisition-draft'
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const { companyId } = await request.json().catch(() => ({})) as { companyId?: string }
   if (!companyId) return NextResponse.json({ error: 'Entreprise manquante.' }, { status: 400 })
   const admin = getSupabaseAdminClient() as any
-  const { data: company } = await admin.from('acquisition_companies').select('id, name, domain, source_notes').eq('id', companyId).maybeSingle()
+  const { data: company } = await admin.from('acquisition_companies').select('id, name, domain, country, source_notes').eq('id', companyId).maybeSingle()
   if (!company) return NextResponse.json({ error: 'Entreprise introuvable.' }, { status: 404 })
 
   type ContactRow = { id: string; email: string; full_name: string | null; email_status: string; email_source_url: string | null; confidence: number | null }
@@ -50,7 +50,19 @@ export async function POST(request: Request) {
   }
 
   const { data: evidence } = await admin.from('acquisition_signals').select('label, evidence, source_url').eq('company_id', company.id).order('confidence', { ascending: false }).limit(3)
-  const report = await loadDraftReport(admin, company.id)
+  let report = await loadDraftReport(admin, company.id)
+  if (!report) {
+    report = await tryAutoCreateAppStoreReport(admin, company)
+  }
+  if (!report) {
+    return NextResponse.json({
+      scanned,
+      emails: usable.length,
+      drafted: 0,
+      needsReport: true,
+      reason: 'Aucun rapport d’avis lié : colle des avis (Trustpilot, G2, Play) dans le Studio pour générer ce brouillon avec rapport.',
+    })
+  }
   const draft = buildDraft({ report, fullName: GENERIC_EMAIL.test(best.email) ? null : best.full_name, companyName: company.name, companyNotes: company.source_notes, evidence: evidence ?? [] })
   const { data: inserted, error } = await admin
     .from('acquisition_messages')

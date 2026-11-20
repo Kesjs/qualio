@@ -107,6 +107,7 @@ export function AcquisitionQueue({
   async function prepare(ids: string[]) {
     let drafted = 0
     let noEmail = 0
+    let needsReport = 0
     let existing = 0
     for (let index = 0; index < ids.length; index += 1) {
       setProgress({ mode: 'prepare', done: index, total: ids.length })
@@ -121,6 +122,7 @@ export function AcquisitionQueue({
       }
       if (data.drafted) drafted += 1
       else if (!data.emails) noEmail += 1
+      else if (data.needsReport) needsReport += 1
       else existing += 1
     }
     setProgress(null)
@@ -128,6 +130,7 @@ export function AcquisitionQueue({
     refresh()
     const parts = [
       noEmail ? `${plural(noEmail, 'site sans email public', 'sites sans email public')}` : '',
+      needsReport ? `${plural(needsReport, 'site sans rapport d’avis (utilise « Créer rapport »)', 'sites sans rapport d’avis (utilise « Créer rapport »)')}` : '',
       existing ? `${existing} déjà en brouillon` : '',
     ]
       .filter(Boolean)
